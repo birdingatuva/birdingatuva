@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, Mail, Instagram, Clock, ExternalLink, Compass } from "lucide-react"
 import fs from "fs"
 import path from "path"
+import { LinktreeIcon } from "@/components/icons/LinktreeIcon"
 
 const trips = [
 	{
@@ -555,7 +556,7 @@ export default function HomePage() {
 							GET IN TOUCH
 						</h2>
 
-						<div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+						<div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
 							<Card className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
 								<CardHeader>
 									<Mail className="w-12 h-12 mx-auto mb-4 text-accent" />
@@ -586,6 +587,23 @@ export default function HomePage() {
 										className="block text-accent hover:underline"
 									>
 										@birdingatuva
+									</a>
+								</CardContent>
+							</Card>
+							{/* Linktree Card */}
+							<Card className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+								<CardHeader>
+									<LinktreeIcon className="w-12 h-12 mx-auto mb-4 text-accent" />
+									<CardTitle className="font-display text-xl">LINKTREE</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<a
+										href="https://linktr.ee/birdingatuva"
+										target="_blank"
+										rel="noopener noreferrer"
+										className="block text-accent hover:underline"
+									>
+										linktr.ee/birdingatuva
 									</a>
 								</CardContent>
 							</Card>
