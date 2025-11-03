@@ -37,6 +37,33 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <title>Birding at UVA</title>
+        <meta name="description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
+        <link rel="icon" href="/images/club-logo.png" type="image/png" />
+        <meta property="og:title" content="Birding at UVA" />
+        <meta property="og:description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
+        <meta property="og:image" content="/images/club-logo.png" />
+        <meta property="og:url" content="https://birdingatuva.vercel.app" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Birding at UVA" />
+        <meta name="twitter:description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
+        <meta name="twitter:image" content="/images/club-logo.png" />
+        <link rel="canonical" href="https://birdingatuva.vercel.app" />
+        {/* Structured Data: Organization */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Birding at UVA",
+          "url": "https://birdingatuva.vercel.app",
+          "logo": "https://birdingatuva.vercel.app/images/club-logo.png",
+          "sameAs": [
+            "https://instagram.com/birdingatuva",
+            "https://linktr.ee/birdingatuva"
+          ]
+        }) }} />
+      </head>
       <body className={`${inter.variable} ${bebasNeue.variable} ${playfair.variable} font-sans antialiased bg-background`}>
         <div className="min-h-screen flex flex-col">
           {/* Temporary banner for announcements. Comment out this section when the banner is not needed. */}
