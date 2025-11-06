@@ -47,7 +47,7 @@ export default function OhillBirdingEvent() {
                   </div>
                 </div>
                 <div className="mb-6 text-muted-foreground">
-                  <p>Join us for a morning of birding on Ohill! We'll meet at Slaughter and explore the trails, looking for fall migrants and resident birds. All experience levels are welcome. Bring binoculars if you have them, and dress for the weather. We look forward to seeing you there!</p>
+                  <p>Come birding with us on Ohill! We'll meet at Slaughter, head out to the trails, and hopefully see a good number of birds. All skill levels are welcome! Bring binoculars if you have any, and if you don't you can still enjoy birding with the Merlin ID app which lets you identify birds by sound and photo. See you there!</p>
                 </div>
                 <div className="mb-6">
                   <div className="bg-white/90 rounded-xl shadow-lg border border-blue-100 p-6">
