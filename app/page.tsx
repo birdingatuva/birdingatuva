@@ -140,10 +140,10 @@ export default function HomePage() {
 							<Button
 								size="lg"
 								variant="outline"
-								className="bg-white/10 text-white border-2 border-white hover:bg-white hover:text-primary text-lg px-8 py-6 shadow-2xl hover:scale-105 transition-transform backdrop-blur-sm"
+								className="bg-white/10 text-white border-2 border-white hover:bg-white hover:text-white text-lg px-8 py-6 shadow-2xl hover:scale-105 transition-transform backdrop-blur-sm"
 								asChild
 							>
-								<Link href="#trips">Explore Trips</Link>
+								<Link href="/events">View Events</Link>
 							</Button>
 						</div>
 					</div>
@@ -388,7 +388,7 @@ export default function HomePage() {
 										</p>
 										<Button
 											variant="default"
-											size="lg"
+										size="lg"
 											className="w-full"
 											asChild
 										>
