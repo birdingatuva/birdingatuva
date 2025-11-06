@@ -106,7 +106,7 @@ export function EventsClient() {
 															status === "Past"
 																? "#888"
 																: status === "Current"
-																? "#2563eb"
+																? "#36834C"
 																: "#36834C",
 														color: "white",
 													}}

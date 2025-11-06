@@ -53,7 +53,7 @@ export default function OhillBirdingEvent() {
 
                   <p className="mb-4">On the walk, you can expect to see mostly resident species, which will allow new birders to learn about the species they are likely to encounter, and will give experienced birders a chance to brush up on some ID skills. This is a low-intensity trip, so we hope that everyone who can will attend.</p>
 
-                  <p className="mb-4">Here are some recommendations of pre-trip actions:</p>
+                  <p className="mb-4 font-semibold">Here are some recommendations of pre-trip actions:</p>
                   <ul className="list-disc pl-6 mb-4">
                     <li><strong>Fill out the attendance form below</strong> (this is required)</li>
                     <li>Download the <strong>Merlin bird ID app</strong> on your phone, as well as the Virginia bird pack</li>
