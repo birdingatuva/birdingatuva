@@ -50,8 +50,8 @@ export default function OhillBirdingEvent() {
                   <p>Come birding with us on Ohill! We'll meet at Slaughter, head out to the trails, and hopefully see a good number of birds. All skill levels are welcome! Bring binoculars if you have any, and if you don't you can still enjoy birding with the Merlin ID app which lets you identify birds by sound and photo. See you there!</p>
                 </div>
                 <div className="mb-6">
-                  <div className="bg-white/90 rounded-xl shadow-lg border border-blue-100 p-6">
-                    <h3 className="font-display text-2xl font-bold text-blue-900 mb-4">Sign Up</h3>
+                  <div className="bg-white/90 rounded-xl shadow-md border border-gray-100 p-6">
+                    <h3 className="font-display text-2xl font-bold text-black mb-4">Sign Up</h3>
                     <iframe
                       src="https://forms.gle/JG4onYKPjaUWLnX57"
                       width="100%"
@@ -60,7 +60,7 @@ export default function OhillBirdingEvent() {
                       marginHeight={0}
                       marginWidth={0}
                       title="Ohill Birding Signup"
-                      className="rounded-lg border border-blue-200"
+                      className="rounded-lg border border-gray-200"
                       style={{ background: 'transparent' }}
                     >
                       Loading…
