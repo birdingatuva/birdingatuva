@@ -9,6 +9,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 const events = [
 	{
@@ -46,17 +47,18 @@ export function EventsClient() {
 										</CardHeader>
 										<CardContent>
 											<p className="text-sm text-muted-foreground mb-4">
-												Having an idea for a trip or event? Reach out to
-												us!
+												Having an idea for a trip or event? Fill out the form
+												below!
 											</p>
-											<Link
-												href="mailto:birdingatuva@gmail.com"
-												className="block w-full"
-											>
-												<span className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-lg text-center">
-													Contact Us
-												</span>
-											</Link>
+											<Button asChild className="w-full">
+												<a
+													href="https://forms.gle/1uCJLQB51k8ZsZUt7"
+													target="_blank"
+													rel="noopener noreferrer"
+												>
+													Suggest an Event
+												</a>
+											</Button>
 										</CardContent>
 									</Card>
 								</div>
@@ -118,7 +120,7 @@ export function EventsClient() {
 												<CardTitle className="font-display text-2xl">
 													<Link
 														href={event.url}
-														className="hover:underline"
+														className="hover:no-underline focus:no-underline"
 													>
 														{event.title}
 													</Link>
