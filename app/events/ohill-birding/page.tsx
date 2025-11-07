@@ -8,10 +8,8 @@ import { MapPin, Calendar, Clock } from "lucide-react";
 import { getEventBySlug } from "../events-data"
 import { formatDisplayDate, formatTimeForDisplay, parseTimeToken } from "../date-utils"
 
-// This file is deprecated. The event page has moved to the new slug format: ohill-birding-2
-// Please use /events/ohill-birding-2/page.tsx instead.
-
-// use shared helpers from date-utils
+const slug = "ohill-birding"
+const event = getEventBySlug(slug)
 
 export default function OhillBirdingEvent() {
   return (
@@ -41,7 +39,7 @@ export default function OhillBirdingEvent() {
                 <h2 className="font-display text-2xl font-bold mb-2">{event?.title ?? ""}</h2>
                 <div className="flex items-center gap-2 text-muted-foreground mb-2">
                   <MapPin className="w-4 h-4" />
-                  {event?.location ?? ""}
+                  {event?.location ? event.location : "Location TBD"}
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
                   <div className="flex items-center gap-1">
