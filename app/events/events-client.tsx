@@ -10,18 +10,8 @@ import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-const events = [
-	{
-		title: "Ohill Birding",
-		date: "Friday Nov 7, 2025",
-		time: "7:00am - 9:15am",
-		location: "Meeting at Slaughter",
-		image: "/images/local-trips/ohill.png", // Use home page image
-		url: "/events/ohill-birding-2025-11-07", // Updated URL with correct date
-		dateISO: "2025-11-07", // ISO for logic
-	},
-]
+import { events } from "./events-data"
+import { DEFAULT_TIMEZONE, parseTimeToken, formatTimeForDisplay, formatDisplayDate, isoToZonedDate } from "./date-utils"
 
 export function EventsClient() {
 	return (
@@ -66,18 +56,40 @@ export function EventsClient() {
 							{/* Main Events Content */}
 							<div className="lg:col-span-3 grid md:grid-cols-2 gap-6">
 								{events.map((event, idx) => {
-									// Date logic
-									const today = new Date()
-									const eventDate = new Date(event.dateISO)
-									let status = "Upcoming"
-									if (
-										eventDate.getFullYear() === today.getFullYear() &&
-										eventDate.getMonth() === today.getMonth() &&
-										eventDate.getDate() === today.getDate()
-									) {
-										status = "Current"
-									} else if (eventDate < today) {
-										status = "Past"
+									// Precise date/time logic: parse start and end times from the time string
+									const now = new Date()
+
+									// use shared parseTimeToken/formatTimeForDisplay from date-utils
+
+									let status = 'Upcoming'
+									const displayDate = formatDisplayDate(event.startDate, event.endDate)
+									try {
+										const start = event.startTime
+											? parseTimeToken(event.startDate, event.startTime)
+											: null
+										const end = event.endTime
+											? parseTimeToken(event.startDate, event.endTime)
+											: null
+										if (start && end) {
+											if (now > end) status = 'Past'
+											else if (now >= start && now <= end) status = 'Current'
+											else status = 'Upcoming'
+										} else {
+											// Fallback to date-only logic if parsing fails
+											const eventDate = isoToZonedDate(event.startDate, DEFAULT_TIMEZONE)
+											if (
+												eventDate.getUTCFullYear() === new Date().getUTCFullYear() &&
+												eventDate.getUTCMonth() === new Date().getUTCMonth() &&
+												eventDate.getUTCDate() === new Date().getUTCDate()
+											) {
+												status = 'Current'
+											} else if (eventDate.getTime() < now.getTime()) {
+												status = 'Past'
+											}
+										}
+									} catch (e) {
+										// on any error, fall back to a safe Upcoming
+										status = 'Upcoming'
 									}
 									return (
 										<Card
@@ -92,11 +104,10 @@ export function EventsClient() {
 													src={event.image}
 													alt={event.title}
 													fill
-													className={`object-cover group-hover:scale-110 transition-transform duration-500${
-														status === "Past"
-															? " grayscale brightness-90"
-															: ""
-													}`}
+													className={`object-cover group-hover:scale-110 transition-transform duration-500`}
+													style={
+														status === 'Past' ? { filter: 'saturate(30%)' } : undefined
+													}
 													quality={85}
 													sizes="(max-width: 768px) 100vw, 50vw"
 													loading="lazy"
@@ -104,13 +115,8 @@ export function EventsClient() {
 												<Badge
 													className="absolute top-4 right-4 shadow-lg font-semibold text-sm"
 													style={{
-														backgroundColor:
-															status === "Past"
-																? "#888"
-																: status === "Current"
-																? "#36834C"
-																: "#36834C",
-														color: "white",
+														backgroundColor: '#36834C',
+														color: 'white',
 													}}
 												>
 													{status}
@@ -134,11 +140,11 @@ export function EventsClient() {
 												<div className="flex items-center gap-4 text-sm text-muted-foreground">
 													<div className="flex items-center gap-1">
 														<Calendar className="w-4 h-4" />
-														<span>{event.date}</span>
+														<span>{displayDate}</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<Clock className="w-4 h-4" />
-														<span>{event.time}</span>
+														<span>{formatTimeForDisplay(event.startDate, event.startTime)} - {formatTimeForDisplay(event.startDate, event.endTime)}</span>
 													</div>
 												</div>
 											</CardContent>

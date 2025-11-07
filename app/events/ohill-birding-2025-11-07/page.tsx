@@ -5,6 +5,13 @@ import { PageHeader } from "@/components/page-header";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Calendar, Clock } from "lucide-react";
+import { getEventBySlug } from "../events-data"
+import { formatDisplayDate, formatTimeForDisplay, parseTimeToken } from "../date-utils"
+
+const slug = "ohill-birding-2025-11-07"
+const event = getEventBySlug(slug)
+
+// use shared helpers from date-utils
 
 export default function OhillBirdingEvent() {
   return (
@@ -13,16 +20,16 @@ export default function OhillBirdingEvent() {
       <main className="relative z-20">
         <DecorativeBirds images={[]} />
         <PageHeader 
-          title="Ohill Birding"
-          description="Friday Nov 7, 2025 | 7:00am - 9:15am | Meeting at Slaughter"
+          title={event?.title ?? ""}
+          description={event ? `${formatDisplayDate(event.startDate, event.endDate)} | ${formatTimeForDisplay(event.startDate, event.startTime)} - ${formatTimeForDisplay(event.startDate, event.endTime)} | ${event.location}` : ""}
         />
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
             <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
               <div className="relative h-72 overflow-hidden p-0 m-0">
                 <Image
-                  src="/images/local-trips/ohill.png"
-                  alt="Ohill Birding Event"
+                  src={event?.image ?? "/images/local-trips/ohill.png"}
+                  alt={`${event?.title ?? "Event"} Image`}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"
                   quality={85}
@@ -31,19 +38,19 @@ export default function OhillBirdingEvent() {
                 />
               </div>
               <CardContent>
-                <h2 className="font-display text-2xl font-bold mb-2">Ohill Birding</h2>
+                <h2 className="font-display text-2xl font-bold mb-2">{event?.title ?? ""}</h2>
                 <div className="flex items-center gap-2 text-muted-foreground mb-2">
                   <MapPin className="w-4 h-4" />
-                  Meeting at Slaughter
+                  {event?.location ?? ""}
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    <span>Friday Nov 7, 2025</span>
+                    <span>{event ? formatDisplayDate(event.startDate, event.endDate) : "Friday Nov 7, 2025"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    <span>7:00am - 9:15am</span>
+                    <span>{event ? `${formatTimeForDisplay(event.startDate, event.startTime)} - ${formatTimeForDisplay(event.startDate, event.endTime)}` : "7:00am - 9:15am"}</span>
                   </div>
                 </div>
                 <div className="mb-6 text-muted-foreground">
