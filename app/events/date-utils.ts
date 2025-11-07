@@ -42,9 +42,9 @@ export function formatDisplayDate(startIso: string, endIso: string, timeZone = D
     const startStr = start.toLocaleDateString(undefined, optsStart)
     if (startIso === endIso) return startStr
     const endStr = end.toLocaleDateString(undefined, optsEnd)
-    return `${startStr} — ${endStr}`
+    return `${startStr} -\n${endStr}`
   } catch {
-    return startIso === endIso ? startIso : `${startIso} — ${endIso}`
+    return startIso === endIso ? startIso : `${startIso} -\n${endIso}`
   }
 }
 
