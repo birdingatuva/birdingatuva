@@ -452,21 +452,26 @@ export default function HomePage() {
 											/>
 										</div>
 										<CardTitle className="font-display text-3xl">
-											GO BIRDING!
+											SUBSCRIBE TO OUR EMAIL LIST
 										</CardTitle>
 									</CardHeader>
 									<CardContent>
 										<p className="text-muted-foreground mb-6 leading-relaxed">
-											Participate in trips, contribute to citizen science
-											projects, and discover the joy of birding.
+											Get important club updates, trip announcements, and reminders straight to your inbox.
 										</p>
 										<Button
-											variant="secondary"
+											variant="default"
 											size="lg"
 											className="w-full"
-											disabled
+											asChild
 										>
-											See You Out There!
+											<a
+												href="https://lists.virginia.edu/sympa/subscribe/birdingatuva"
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												Subscribe to Email List
+											</a>
 										</Button>
 									</CardContent>
 								</Card>
