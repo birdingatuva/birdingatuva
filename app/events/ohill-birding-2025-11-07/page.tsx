@@ -50,7 +50,7 @@ export default function OhillBirdingEvent() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    <span>{event ? `${formatTimeForDisplay(event.startDate, event.startTime)} - ${formatTimeForDisplay(event.startDate, event.endTime)}` : "7:00am - 9:15am"}</span>
+                    <span>{event ? `${formatTimeForDisplay(event.startDate, event.startTime)} - ${formatTimeForDisplay(event.startDate, event.endTime)}` : "Time TBD"}</span>
                   </div>
                 </div>
                 <div className="mb-6 text-muted-foreground">
