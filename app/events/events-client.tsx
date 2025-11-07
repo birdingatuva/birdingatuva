@@ -15,9 +15,9 @@ import { DEFAULT_TIMEZONE, parseTimeToken, formatTimeForDisplay, formatDisplayDa
 
 export function EventsClient() {
 	return (
-		<div className="min-h-screen relative">
+		<div className="flex-1 relative flex flex-col">
 			<Navigation />
-			<main className="relative z-20">
+			<main className="relative z-20 flex-1">
 				<DecorativeBirds images={[]} />
 				<PageHeader
 					title="Events"
