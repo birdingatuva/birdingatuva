@@ -137,14 +137,14 @@ export function EventsClient() {
 												</div>
 											</CardHeader>
 											<CardContent className="space-y-4">
-												<div className="flex items-center gap-4 text-sm text-muted-foreground">
-													<div className="flex items-center gap-1">
-														<Calendar className="w-4 h-4" />
-														<span>{displayDate}</span>
+												<div className="flex items-start gap-4 text-sm text-muted-foreground">
+													<div className="flex gap-1">
+														<Calendar className="w-4 h-4 mt-[0.0625rem] flex-shrink-0" />
+														<span className="leading-tight whitespace-pre-line">{displayDate}</span>
 													</div>
-													<div className="flex items-center gap-1">
-														<Clock className="w-4 h-4" />
-														<span>{formatTimeForDisplay(event.startDate, event.startTime)} - {formatTimeForDisplay(event.startDate, event.endTime)}</span>
+													<div className="flex gap-1">
+														<Clock className="w-4 h-4 mt-[0.0625rem] flex-shrink-0" />
+														<span className="leading-tight">{formatTimeForDisplay(event.startDate, event.startTime)} - {formatTimeForDisplay(event.startDate, event.endTime)}</span>
 													</div>
 												</div>
 											</CardContent>
