@@ -55,6 +55,7 @@
     "next": "16.0.0",
     "next-cloudinary": "^6.17.4",
     "next-themes": "latest",
+    "node-fetch": "^3.3.2",
     "path": "0.12.7",
     "react": "19.2.0",
     "react-day-picker": "9.8.0",
