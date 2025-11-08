@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function proxy(request: NextRequest) {
-  // Only protect /admin and /api/events POST
-  const isAdmin = request.nextUrl.pathname.startsWith('/admin')
+  // Only protect /api/events POST (not /admin page itself, that's protected client-side)
   const isApiEvents = request.nextUrl.pathname.startsWith('/api/events') && request.method === 'POST'
 
-  if (isAdmin || isApiEvents) {
-    // Simple HTTP Basic Auth for /admin page
+  if (isApiEvents) {
+    // Simple HTTP Basic Auth for API
     const authHeader = request.headers.get('authorization')
     const adminPassword = process.env.ADMIN_PASSWORD
     if (!authHeader || authHeader !== `Bearer ${adminPassword}`) {
@@ -18,5 +17,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/events']
+  matcher: ['/api/events']
 }
