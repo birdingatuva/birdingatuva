@@ -14,8 +14,8 @@ interface CloudinaryImageProps {
 export function CloudinaryImage({
   src,
   alt,
-  width = 800,
-  height = 600,
+  width,
+  height,
   className = '',
   fill = false,
 }: CloudinaryImageProps) {
@@ -23,10 +23,8 @@ export function CloudinaryImage({
     <CldImage
       src={src}
       alt={alt}
-      width={width}
-      height={height}
+      {...(fill ? { fill: true } : { width, height })}
       className={className}
-      fill={fill}
     />
   )
 }
