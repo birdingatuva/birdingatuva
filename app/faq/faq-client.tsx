@@ -188,7 +188,7 @@ export function FAQClient({ birdImages }: FAQClientProps) {
                         <CardTitle className="text-lg">Still Have Questions?</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">
+                        <p className="text-sm text-muted-foreground mb-4 -mt-2">
                           Can't find what you're looking for? Reach out to us!
                         </p>
                         <Button asChild className="w-full">
@@ -273,7 +273,7 @@ export function FAQClient({ birdImages }: FAQClientProps) {
                       <CardTitle>Still Have Questions?</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <p className="text-sm text-muted-foreground mb-4 -mt-2">
                         Can't find what you're looking for? Reach out to us!
                       </p>
                       <Button asChild className="w-full">

@@ -36,9 +36,8 @@ export function EventsClient() {
 											</CardTitle>
 										</CardHeader>
 										<CardContent>
-											<p className="text-sm text-muted-foreground mb-4">
-												Having an idea for a trip or event? Fill out the form
-												below!
+											<p className="text-sm text-muted-foreground mb-4 -mt-2">
+												Having an idea for a trip or event? Fill out the form below!
 											</p>
 											<Button asChild className="w-full">
 												<a
