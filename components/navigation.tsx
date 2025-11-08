@@ -51,7 +51,6 @@ export function Navigation() {
       setLoginError("");
       setLoginSuccess(true);
       
-      // Keep popup open for 1 second to show success message, then close and redirect
       setTimeout(() => {
         setShowLogin(false);
         setLoginSuccess(false);

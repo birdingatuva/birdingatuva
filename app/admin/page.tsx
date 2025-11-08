@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import Image from "next/image"
-import DOMPurify from 'dompurify'
-import { marked } from 'marked'
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Upload, X, ImageIcon } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 // Helper to get/set token in localStorage
 function getToken() {
@@ -49,6 +50,16 @@ function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<B
   })
 }
 
+// Helper to convert File/Blob to base64 for localStorage
+function fileToBase64(file: File | Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function AdminPage() {
   // Auth state now handled globally in navigation bar
   const initialForm = {
@@ -66,16 +77,21 @@ export default function AdminPage() {
     hasGoogleForm: false,
   }
   const [form, setForm] = useState(initialForm)
-  const [images, setImages] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
-  const [showMarkdown, setShowMarkdown] = useState(true)
+  const [headerImage, setHeaderImage] = useState<File | null>(null)
+  const [headerImagePreview, setHeaderImagePreview] = useState<string>("")
+  const [additionalImages, setAdditionalImages] = useState<File[]>([])
+  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([])
+  const [showMarkdown, setShowMarkdown] = useState(false) // Default to showing preview
   const [password, setPassword] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
+  const [uploadError, setUploadError] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
+  const [birdImages, setBirdImages] = useState<string[]>([])
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const headerImageInputRef = useRef<HTMLInputElement>(null)
+  const additionalImagesInputRef = useRef<HTMLInputElement>(null)
 
   // Check authorization on mount and periodically
   useEffect(() => {
@@ -87,18 +103,181 @@ export default function AdminPage() {
     return () => clearInterval(interval)
   }, [])
 
+  // Load bird images for decorative birds
+  useEffect(() => {
+    // Use just the filenames - DecorativeBirds will construct the full path
+    const birds = [
+      'bluejay.png',
+      'woodduck.png',
+      'redtail.png',
+      'modo.png',
+      'rwbb.png',
+      'kestrel.png',
+      'flicker.png',
+      'baldeagle.png',
+      'kingfisher.png',
+      'gbh.png',
+      'cardinal.png',
+      'yrwa.png',
+    ]
+    setBirdImages(birds)
+  }, [])
+
   useEffect(() => {
     // Load form data from localStorage on mount
     const savedForm = localStorage.getItem("adminFormData");
     if (savedForm) {
-      setForm(JSON.parse(savedForm));
+      try {
+        setForm(JSON.parse(savedForm));
+      } catch (e) {
+        console.error("Failed to load saved form data:", e);
+      }
+    }
+    
+    // Load saved image previews (not the actual files, just previews for display)
+    const savedHeaderPreview = localStorage.getItem("adminHeaderImagePreview");
+    if (savedHeaderPreview) {
+      setHeaderImagePreview(savedHeaderPreview);
+    }
+    
+    const savedAdditionalPreviews = localStorage.getItem("adminAdditionalImagePreviews");
+    if (savedAdditionalPreviews) {
+      try {
+        setAdditionalImagePreviews(JSON.parse(savedAdditionalPreviews));
+      } catch (e) {
+        console.error("Failed to load saved image previews:", e);
+      }
     }
   }, []);
 
   useEffect(() => {
     // Save form data to localStorage whenever it changes
-    localStorage.setItem("adminFormData", JSON.stringify(form));
+    // Use a timeout to debounce saves
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem("adminFormData", JSON.stringify(form));
+      } catch (e) {
+        console.error("Failed to save form data:", e);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
   }, [form]);
+
+  // Save form data when tab visibility changes or before unload
+  useEffect(() => {
+    const saveFormData = () => {
+      try {
+        localStorage.setItem("adminFormData", JSON.stringify(form));
+      } catch (e) {
+        console.error("Failed to save form data:", e);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        saveFormData();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      saveFormData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [form]);
+
+  const handleHeaderImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    if (file.size > MAX_IMAGE_SIZE) {
+      alert(`File ${file.name} is too large. Max size is ${MAX_IMAGE_MB}MB.`)
+      return
+    }
+    
+    const resized = await resizeImage(file, 1200, 800)
+    const resizedFile = new File([resized], file.name, { type: file.type })
+    setHeaderImage(resizedFile)
+    
+    // Convert to base64 for localStorage persistence across page reloads
+    const base64Preview = await fileToBase64(resizedFile)
+    setHeaderImagePreview(base64Preview)
+    localStorage.setItem("adminHeaderImagePreview", base64Preview)
+  }
+
+  const handleAdditionalImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const maxAdditional = MAX_IMAGE_COUNT - 1 // -1 for header image
+    
+    // Calculate how many more images we can add
+    const remainingSlots = maxAdditional - additionalImages.length
+    
+    if (files.length > remainingSlots) {
+      setUploadError(`You can only add ${remainingSlots} more image(s). Maximum total is ${maxAdditional}.`)
+      return
+    }
+    
+    // Clear any previous errors when successfully adding images
+    if (uploadError) {
+      setUploadError("")
+    }
+    
+    const resizedFiles: File[] = []
+    const previews: string[] = []
+    
+    for (const file of files) {
+      if (file.size > MAX_IMAGE_SIZE) {
+        setUploadError(`File ${file.name} is too large. Max size is ${MAX_IMAGE_MB}MB.`)
+        continue
+      }
+      const resized = await resizeImage(file, 1200, 800)
+      const resizedFile = new File([resized], file.name, { type: file.type })
+      resizedFiles.push(resizedFile)
+      
+      // Convert to base64 for localStorage persistence across page reloads
+      const base64Preview = await fileToBase64(resizedFile)
+      previews.push(base64Preview)
+    }
+    
+    // Append to existing images instead of replacing
+    setAdditionalImages(prev => [...prev, ...resizedFiles])
+    setAdditionalImagePreviews(prev => {
+      const newPreviews = [...prev, ...previews]
+      // Save to localStorage
+      localStorage.setItem("adminAdditionalImagePreviews", JSON.stringify(newPreviews))
+      return newPreviews
+    })
+    
+    // Reset the input so the same files can be selected again if needed
+    if (additionalImagesInputRef.current) {
+      additionalImagesInputRef.current.value = ""
+    }
+  }
+
+  const removeHeaderImage = () => {
+    setHeaderImage(null)
+    setHeaderImagePreview("")
+    localStorage.removeItem("adminHeaderImagePreview")
+    if (headerImageInputRef.current) {
+      headerImageInputRef.current.value = ""
+    }
+  }
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages(prev => prev.filter((_, i) => i !== index))
+    setAdditionalImagePreviews(prev => {
+      const newPreviews = prev.filter((_, i) => i !== index)
+      localStorage.setItem("adminAdditionalImagePreviews", JSON.stringify(newPreviews))
+      return newPreviews
+    })
+  }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -118,8 +297,8 @@ export default function AdminPage() {
       resizedFiles.push(resizedFile)
       previews.push(URL.createObjectURL(resizedFile))
     }
-    setImages(resizedFiles)
-    setImagePreviews(previews)
+    setAdditionalImages(resizedFiles)
+    setAdditionalImagePreviews(previews)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -142,43 +321,101 @@ export default function AdminPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("=== FORM SUBMISSION STARTED ===");
     setSubmitting(true);
     setError("");
 
+    // Validate required fields
+    if (!headerImage) {
+      console.log("Validation failed: No header image");
+      setError("Event header image is required.");
+      setSubmitting(false);
+      // Scroll to the header image section
+      const element = document.querySelector('[data-section="header-image"]');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Add offset for fixed navigation (if any)
+        window.scrollBy({ top: -100, behavior: 'smooth' });
+      }
+      return;
+    }
+
+    console.log("Form data:", form);
+    console.log("Header image:", headerImage?.name, headerImage?.size, "bytes");
+    console.log("Additional images count:", additionalImages.length);
+
     const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
-    images.forEach((img, idx) => {
-      fd.append(`image${idx + 1}`, img);
+    Object.entries(form).forEach(([k, v]) => {
+      fd.append(k, String(v));
+      console.log(`Form field: ${k} = ${String(v).substring(0, 100)}`);
     });
-    fd.append("imageCount", String(images.length));
+    
+    // Add header image as first image
+    let imageIndex = 1
+    if (headerImage) {
+      fd.append(`image${imageIndex}`, headerImage);
+      console.log(`Added image${imageIndex}:`, headerImage.name);
+      imageIndex++
+    }
+    
+    // Add additional images
+    additionalImages.forEach((img) => {
+      fd.append(`image${imageIndex}`, img);
+      console.log(`Added image${imageIndex}:`, img.name);
+      imageIndex++
+    });
+    
+    fd.append("imageCount", String(imageIndex - 1));
+    console.log("Total images:", imageIndex - 1);
 
     // Use the token already stored during login
     const token = getToken();
     if (!token) {
+      console.log("Error: No auth token found");
       setError("You must be logged in to submit the form.");
       setSubmitting(false);
       return;
     }
+    console.log("Auth token found:", token.substring(0, 20) + "...");
 
-    const res = await fetch("/api/events", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd,
-    });
+    try {
+      console.log("Sending POST request to /api/events");
+      const res = await fetch("/api/events", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
 
-    if (res.ok) {
-      alert("Event submitted!");
-      setForm(initialForm);
-      setImages([]);
-      setImagePreviews([]);
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 1500); // Adjusted to 1.5 seconds
-      router.refresh();
-    } else {
-      setError("Submission failed. Please try again.");
+      console.log("Response status:", res.status, res.statusText);
+      
+      if (res.ok) {
+        console.log("✅ Submission successful!");
+        alert("Event submitted successfully!");
+        setForm(initialForm);
+        setHeaderImage(null);
+        setHeaderImagePreview("");
+        setAdditionalImages([]);
+        setAdditionalImagePreviews([]);
+        setSubmitted(true);
+        // Clear all saved form data from localStorage
+        localStorage.removeItem("adminFormData");
+        localStorage.removeItem("adminHeaderImagePreview");
+        localStorage.removeItem("adminAdditionalImagePreviews");
+        setTimeout(() => setSubmitted(false), 1500);
+        router.refresh();
+      } else {
+        console.log("❌ Submission failed with status:", res.status);
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Error response:', errorData);
+        setError(`Submission failed: ${errorData.error || 'Please try again.'}`);
+      }
+    } catch (err) {
+      console.error("❌ Submission exception:", err);
+      setError(`Network error: ${err instanceof Error ? err.message : 'Please check your connection and try again.'}`);
+    } finally {
+      setSubmitting(false);
+      console.log("=== FORM SUBMISSION ENDED ===");
     }
-
-    setSubmitting(false);
   }
 
   // Check if user is logged in
@@ -201,7 +438,7 @@ export default function AdminPage() {
     <div className="flex-1 relative flex flex-col">
       <Navigation />
       <main className="relative z-20 flex-1">
-        <DecorativeBirds images={[]} />
+        <DecorativeBirds images={birdImages} />
         <PageHeader
           title="Admin Panel"
           description="Create and manage club events. Fill out the form below to add a new event to the website."
@@ -214,6 +451,13 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  <style jsx>{`
+                    form > div,
+                    form input,
+                    form textarea {
+                      scroll-margin-top: 8rem;
+                    }
+                  `}</style>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Event Title</label>
                     <Input name="title" value={form.title} onChange={handleChange} required placeholder="e.g., Saturday Morning Bird Walk" />
@@ -226,11 +470,24 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Start Date</label>
-                      <Input name="startDate" type="date" value={form.startDate} onChange={handleChange} required />
+                      <Input 
+                        name="startDate" 
+                        type="date" 
+                        value={form.startDate} 
+                        onChange={handleChange} 
+                        required 
+                        min={new Date().toISOString().split('T')[0]}
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">End Date (Optional)</label>
-                      <Input name="endDate" type="date" value={form.endDate} onChange={handleChange} />
+                      <Input 
+                        name="endDate" 
+                        type="date" 
+                        value={form.endDate} 
+                        onChange={handleChange}
+                        min={form.startDate || new Date().toISOString().split('T')[0]}
+                      />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -240,7 +497,13 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">End Time (Optional)</label>
-                      <Input name="endTime" type="time" value={form.endTime} onChange={handleChange} />
+                      <Input 
+                        name="endTime" 
+                        type="time" 
+                        value={form.endTime} 
+                        onChange={handleChange}
+                        min={form.startTime || undefined}
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -273,23 +536,116 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="border-t pt-6">
+                  <div className="border-t pt-6" data-section="header-image">
+                    <h3 className="text-lg font-semibold mb-4">Event Images</h3>
+                    
+                    {/* Header Image Upload */}
+                    <div className="space-y-2 mb-6">
+                      <label className="text-sm font-medium">Event Header Image (Required)</label>
+                      <p className="text-xs text-muted-foreground mb-3">This will be the main image displayed for your event</p>
+                      
+                      {!headerImagePreview ? (
+                        <label 
+                          htmlFor="headerImage" 
+                          className="flex flex-col items-center justify-center w-full max-w-md aspect-[16/9] border-2 border-dashed border-border rounded-lg cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center">
+                            <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
+                            <p className="mb-2 text-sm font-medium text-muted-foreground">Click to upload header image</p>
+                            <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to {MAX_IMAGE_MB}MB</p>
+                            <p className="text-xs text-muted-foreground mt-1">Recommended: 1280x720px (16:9 ratio)</p>
+                          </div>
+                          <input 
+                            id="headerImage" 
+                            ref={headerImageInputRef}
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleHeaderImageChange}
+                          />
+                        </label>
+                      ) : (
+                        <div className="relative w-1/2 aspect-[16/9] rounded-lg overflow-hidden border border-border group">
+                          <Image 
+                            src={headerImagePreview} 
+                            alt="Header preview" 
+                            fill 
+                            className="object-cover" 
+                          />
+                          <button
+                            type="button"
+                            onClick={removeHeaderImage}
+                            className="absolute top-3 right-3 p-2 rounded-full bg-background/90 hover:bg-background shadow-lg border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                            aria-label="Remove header image"
+                          >
+                            <X className="w-4 h-4 text-foreground" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Additional Images Upload */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Event Images (Optional, max {MAX_IMAGE_COUNT})</label>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageChange}
-                        className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
-                      />
-                      <p className="text-xs text-muted-foreground">Images will be resized to max 1200x800px</p>
-                      {imagePreviews.length > 0 && (
-                        <div className="flex gap-3 flex-wrap mt-3">
-                          {imagePreviews.map((src, i) => (
-                            <div key={i} className="relative">
-                              <Image src={src} alt={`Preview ${i + 1}`} width={150} height={100} className="rounded-lg border-2 object-cover" />
+                      <label className="text-sm font-medium">Additional Images (Optional, max {MAX_IMAGE_COUNT - 1})</label>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Upload additional images for the event gallery
+                        {additionalImages.length > 0 && ` (${additionalImages.length}/${MAX_IMAGE_COUNT - 1} uploaded)`}
+                      </p>
+                      
+                      {/* Upload Error Message - displayed above the upload button */}
+                      {uploadError && (
+                        <div className="mb-4 bg-red-50 dark:bg-red-950/30 border-2 border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-4 py-3 rounded-lg text-sm font-semibold flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <span>{uploadError}</span>
+                        </div>
+                      )}
+                      
+                      {additionalImages.length < MAX_IMAGE_COUNT - 1 && (
+                        <label 
+                          htmlFor="additionalImages" 
+                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <ImageIcon className="w-8 h-8 mb-2 text-muted-foreground" />
+                            <p className="mb-1 text-sm font-medium text-muted-foreground">
+                              {additionalImages.length > 0 ? 'Click to add more images' : 'Click to upload additional images'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Multiple images allowed</p>
+                          </div>
+                          <input 
+                            id="additionalImages" 
+                            ref={additionalImagesInputRef}
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            multiple
+                            onChange={handleAdditionalImagesChange}
+                          />
+                        </label>
+                      )}
+                      
+                      {additionalImagePreviews.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                          {additionalImagePreviews.map((src, i) => (
+                            <div key={i} className="relative group">
+                              <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border border-border">
+                                <Image 
+                                  src={src} 
+                                  alt={`Additional preview ${i + 1}`} 
+                                  fill 
+                                  className="object-cover" 
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeAdditionalImage(i)}
+                                className="absolute top-2 right-2 p-1.5 rounded-full bg-background/90 hover:bg-background shadow-lg border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
+                                aria-label={`Remove image ${i + 1}`}
+                              >
+                                <X className="w-3 h-3 text-foreground" />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -298,14 +654,26 @@ export default function AdminPage() {
                   </div>
 
                   <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Event Description</h3>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Event Description</label>
                       <div className="flex gap-2 mb-3">
-                        <Button type="button" size="sm" variant={showMarkdown ? "default" : "outline"} onClick={() => setShowMarkdown(true)}>
-                          Edit Markdown
-                        </Button>
-                        <Button type="button" size="sm" variant={!showMarkdown ? "default" : "outline"} onClick={() => setShowMarkdown(false)}>
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          variant={!showMarkdown ? "default" : "outline"} 
+                          onClick={() => setShowMarkdown(false)}
+                          className={!showMarkdown ? "hover:bg-primary hover:text-primary-foreground cursor-default" : "hover:text-foreground"}
+                        >
                           Preview
+                        </Button>
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          variant={showMarkdown ? "default" : "outline"} 
+                          onClick={() => setShowMarkdown(true)}
+                          className={showMarkdown ? "hover:bg-primary hover:text-primary-foreground cursor-default" : "hover:text-foreground"}
+                        >
+                          Edit Markdown
                         </Button>
                       </div>
                       {showMarkdown ? (
@@ -315,17 +683,23 @@ export default function AdminPage() {
                           onChange={handleChange}
                           rows={12}
                           placeholder="Enter event description in Markdown format..."
-                          className="font-mono text-sm bg-white dark:bg-slate-900" // Ensure consistent background color
+                          className="font-mono text-sm"
                         />
                       ) : (
-                        <div className="prose dark:prose-invert border rounded-lg p-4 bg-slate-50 dark:bg-slate-800 min-h-[12rem]">
-                          <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(form.bodyMarkdown) as string) }} />
+                        <div className="prose prose-neutral prose-base dark:prose-invert max-w-none border rounded-lg p-6 bg-muted/20 min-h-[12rem] overflow-auto [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-0 [&_strong]:font-bold">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {form.bodyMarkdown || '*No content yet*'}
+                          </ReactMarkdown>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {error && <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm font-medium">{error}</div>}
+                  {error && (
+                    <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-4 py-3 rounded-lg text-sm font-semibold">
+                      {error}
+                    </div>
+                  )}
 
                   <div className="flex gap-3 pt-4">
                     <Button type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
