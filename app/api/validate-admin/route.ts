@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
+import { signAdminToken } from '@/lib/auth';
 
 // Load the hashed password from environment variables
 // Expected to be base64-encoded to avoid issues with $ characters in .env files
@@ -25,10 +26,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid password.' }, { status: 401 });
     }
 
-    // Generate a token (for simplicity, using a placeholder here)
-    const token = 'secure-token-placeholder';
-
-    return NextResponse.json({ token });
+  // Issue short-lived JWT as HttpOnly SameSite cookie
+  const token = signAdminToken('admin');
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set('admin_jwt', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 15, // 15 minutes
+  });
+  return res;
   } catch (error) {
     console.error('Error validating admin password:', error);
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });

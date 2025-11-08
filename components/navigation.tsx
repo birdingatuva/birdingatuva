@@ -5,30 +5,41 @@ import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-// Helper to get/set token in localStorage
-function getToken() {
-  if (typeof window === 'undefined') return ''
-  return localStorage.getItem('admin_token') || ''
-}
-function setToken(token: string) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem('admin_token', token)
-}
+// Previous localStorage token helpers removed; now rely on HttpOnly cookie + session endpoint.
 import { Button } from "@/components/ui/button"
 
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [authorized, setAuthorized] = useState(() => !!getToken())
+  const [authorized, setAuthorized] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginSuccess, setLoginSuccess] = useState(false)
-  // Re-check token on route change to avoid flicker
+  // Re-check session on route change
   useEffect(() => {
-    setAuthorized(!!getToken())
+    checkSession()
   }, [pathname])
+
+  // Periodically poll session validity (every 15s)
+  useEffect(() => {
+    const id = setInterval(() => {
+      checkSession()
+    }, 15000)
+    return () => clearInterval(id)
+  }, [])
+
+  async function checkSession() {
+    try {
+      const res = await fetch('/api/admin-session')
+      setAuthorized(res.ok)
+    } catch {
+      setAuthorized(false)
+    }
+  }
+
+  // Client no longer decodes JWT; server validates via cookie.
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +56,9 @@ export function Navigation() {
     });
 
     if (res.ok) {
-      const { token } = await res.json();
-      setToken(token);
-      setAuthorized(true);
+      // Cookie set server-side; poll session
+      await checkSession()
+      setAuthorized(true)
       setLoginError("");
       setLoginSuccess(true);
       
@@ -69,11 +80,12 @@ export function Navigation() {
   // Login toast state
   const [showLoginToast, setShowLoginToast] = useState(false)
   const loginTimeout = useRef<NodeJS.Timeout | null>(null)
-  const handleLogout = () => {
-    setToken("")
+  const handleLogout = async () => {
+    // Expire cookie client-side; server will treat missing/invalid cookie as unauthenticated
+    document.cookie = 'admin_jwt=; Max-Age=0; Path=/;';
     setAuthorized(false)
     setShowLogin(false)
-    router.push("/") // Redirect to home page
+    router.push("/")
   }
 
   // Insert Admin link if authorized

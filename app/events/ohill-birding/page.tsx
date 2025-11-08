@@ -41,7 +41,6 @@ export default function OhillBirdingEvent() {
       dateDisplay={formatDisplayDate(event.startDate, event.endDate)}
       timeDisplay={`${formatTimeForDisplay(event.startDate, event.startTime)} - ${formatTimeForDisplay(event.startDate, event.endTime)}`}
       bodyMarkdown={bodyMarkdown}
-      signupTitle="Sign Up"
       signupUrl="https://docs.google.com/forms/d/e/1FAIpQLScb7WsWg5hrHRK5OwsLxtzQ4B9BXD3kh-8y1P9BiS6zKx4JQg/viewform?usp=dialog"
       signupEmbedUrl="https://docs.google.com/forms/d/e/1FAIpQLScb7WsWg5hrHRK5OwsLxtzQ4B9BXD3kh-8y1P9BiS6zKx4JQg/viewform?usp=dialog"
     />

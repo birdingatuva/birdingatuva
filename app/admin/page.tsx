@@ -15,15 +15,7 @@ import { Upload, X, ImageIcon } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
-// Helper to get/set token in localStorage
-function getToken() {
-  if (typeof window === 'undefined') return ''
-  return localStorage.getItem('admin_token') || ''
-}
-function setToken(token: string) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem('admin_token', token)
-}
+// No local token; rely on HttpOnly cookie and session endpoint.
 
 function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -71,7 +63,6 @@ export default function AdminPage() {
     endTime: "",
     location: "",
     bodyMarkdown: "",
-    signupTitle: "",
     signupUrl: "",
     signupEmbedUrl: "",
     hasGoogleForm: false,
@@ -85,6 +76,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [error, setError] = useState("")
   const [uploadError, setUploadError] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
@@ -93,13 +85,20 @@ export default function AdminPage() {
   const headerImageInputRef = useRef<HTMLInputElement>(null)
   const additionalImagesInputRef = useRef<HTMLInputElement>(null)
 
-  // Check authorization on mount and periodically
+  // No client-side JWT helpers required.
+
+  // Check authorization on mount and periodically via session endpoint
   useEffect(() => {
-    const checkAuth = () => {
-      setIsAuthorized(!!getToken())
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/admin-session')
+        setIsAuthorized(res.ok)
+      } catch {
+        setIsAuthorized(false)
+      }
     }
     checkAuth()
-    const interval = setInterval(checkAuth, 500)
+    const interval = setInterval(checkAuth, 15000)
     return () => clearInterval(interval)
   }, [])
 
@@ -368,46 +367,40 @@ export default function AdminPage() {
     fd.append("imageCount", String(imageIndex - 1));
     console.log("Total images:", imageIndex - 1);
 
-    // Use the token already stored during login
-    const token = getToken();
-    if (!token) {
-      console.log("Error: No auth token found");
-      setError("You must be logged in to submit the form.");
-      setSubmitting(false);
-      return;
-    }
-    console.log("Auth token found:", token.substring(0, 20) + "...");
+    // Session handled via HttpOnly cookie; rely on server to reject if unauthorized
 
     try {
       console.log("Sending POST request to /api/events");
-      const res = await fetch("/api/events", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
+      const res = await fetch("/api/events", { method: "POST", body: fd });
 
       console.log("Response status:", res.status, res.statusText);
       
       if (res.ok) {
         console.log("✅ Submission successful!");
-        alert("Event submitted successfully!");
         setForm(initialForm);
         setHeaderImage(null);
         setHeaderImagePreview("");
         setAdditionalImages([]);
         setAdditionalImagePreviews([]);
         setSubmitted(true);
+        setShowSuccessToast(true);
         // Clear all saved form data from localStorage
         localStorage.removeItem("adminFormData");
         localStorage.removeItem("adminHeaderImagePreview");
         localStorage.removeItem("adminAdditionalImagePreviews");
         setTimeout(() => setSubmitted(false), 1500);
+        setTimeout(() => setShowSuccessToast(false), 2000);
         router.refresh();
       } else {
         console.log("❌ Submission failed with status:", res.status);
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
         console.error('Error response:', errorData);
-        setError(`Submission failed: ${errorData.error || 'Please try again.'}`);
+        if (res.status === 401) {
+          setIsAuthorized(false)
+          setError('Your session is invalid or expired. Please log in again and resubmit.')
+        } else {
+          setError(`Submission failed: ${errorData.error || 'Please try again.'}`);
+        }
       }
     } catch (err) {
       console.error("❌ Submission exception:", err);
@@ -438,6 +431,11 @@ export default function AdminPage() {
     <div className="flex-1 relative flex flex-col">
       <Navigation />
       <main className="relative z-20 flex-1">
+        {showSuccessToast && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-md text-sm font-semibold animate-in fade-in slide-in-from-top-2 duration-300">
+            Event submitted successfully
+          </div>
+        )}
         <DecorativeBirds images={birdImages} />
         <PageHeader
           title="Admin Panel"

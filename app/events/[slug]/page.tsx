@@ -7,7 +7,6 @@ export default function EventPage({ params }: { params: { slug: string } }) {
   if (!event) return notFound();
 
   const bodyMarkdown = event.bodyMarkdown || "Event details coming soon.";
-  const signupTitle = event.signupTitle || "Sign Up";
   const signupUrl = event.signupUrl || "";
   const signupEmbedUrl = event.signupEmbedUrl || "";
 
@@ -20,7 +19,7 @@ export default function EventPage({ params }: { params: { slug: string } }) {
       dateDisplay={event.startDate}
       timeDisplay={`${event.startTime} - ${event.endTime}`}
       bodyMarkdown={bodyMarkdown}
-      signupTitle={signupTitle}
+      
       signupUrl={signupUrl}
       signupEmbedUrl={signupEmbedUrl}
     />

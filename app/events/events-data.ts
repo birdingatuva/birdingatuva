@@ -26,7 +26,6 @@ On the walk, you can expect to see mostly resident species, which will allow new
 
 Hope to see you all there! If you have any questions, comments, or concerns, send a message on the GroupMe, DM one of the Execs, or send an email to **birdingatuva@gmail.com**
 `,
-    signupTitle: "Sign Up",
     signupUrl: "https://docs.google.com/forms/d/e/1FAIpQLScb7WsWg5hrHRK5OwsLxtzQ4B9BXD3kh-8y1P9BiS6zKx4JQg/viewform?usp=dialog",
     signupEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLScb7WsWg5hrHRK5OwsLxtzQ4B9BXD3kh-8y1P9BiS6zKx4JQg/viewform?usp=dialog",
   },

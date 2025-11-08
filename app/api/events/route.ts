@@ -1,6 +1,8 @@
 import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
+import { verifyAdminToken } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@vercel/postgres'
+import crypto from 'crypto'
 
 // For Cloudinary upload
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
@@ -11,12 +13,11 @@ export async function POST(req: NextRequest) {
   console.log("=== API /api/events POST started ===");
   
   try {
-    // Validate authorization
-    const authHeader = req.headers.get('Authorization')
-    const token = authHeader?.replace('Bearer ', '')
-    console.log("Auth check - header present:", !!authHeader, "token valid:", token === 'secure-token-placeholder');
-    
-    if (!token || token !== 'secure-token-placeholder') {
+    // Validate authorization from HttpOnly cookie
+    const cookieToken = req.cookies.get('admin_jwt')?.value || ''
+    const valid = cookieToken ? verifyAdminToken(cookieToken) : null
+    console.log("Auth check - cookie present:", !!cookieToken, "jwt valid:", !!valid);
+    if (!valid) {
       console.log("❌ Unauthorized");
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -30,7 +31,6 @@ export async function POST(req: NextRequest) {
   const endTime = formData.get('endTime') as string
   const location = formData.get('location') as string
   const bodyMarkdown = formData.get('bodyMarkdown') as string
-  const signupTitle = formData.get('signupTitle') as string
   const signupUrl = formData.get('signupUrl') as string
   const signupEmbedUrl = formData.get('signupEmbedUrl') as string
   const hasGoogleForm = formData.get('hasGoogleForm') === 'true'
@@ -55,22 +55,38 @@ export async function POST(req: NextRequest) {
         
         console.log(`Uploading image${i} to Cloudinary...`)
         
-        const uploadRes = await fetch(
-          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              file: `data:${imageFile.type};base64,${base64}`,
-              upload_preset: 'event-images',
-              public_id: `${slug}-img${i}`,
-              folder: `event-images/${slug}`,
-              api_key: CLOUDINARY_API_KEY,
-              timestamp: Math.floor(Date.now() / 1000),
-            }),
-          }
-        )
-        
+        // Build signed upload parameters for Cloudinary (requires API secret)
+        const timestamp = Math.floor(Date.now() / 1000)
+        const folder = `event-images/${slug}`
+        const public_id = `${slug}-img${i}`
+        const upload_preset = 'event-images'
+        const paramsToSign: Record<string, string | number> = {
+          folder,
+          public_id,
+          timestamp,
+          upload_preset,
+        }
+        const signString = Object.keys(paramsToSign)
+          .sort()
+          .map(k => `${k}=${paramsToSign[k]}`)
+          .join('&') + CLOUDINARY_API_SECRET
+        const signature = crypto.createHash('sha1').update(signString).digest('hex')
+
+        const form = new URLSearchParams()
+        form.append('file', `data:${imageFile.type};base64,${base64}`)
+        form.append('upload_preset', upload_preset)
+        form.append('public_id', public_id)
+        form.append('folder', folder)
+        form.append('timestamp', String(timestamp))
+        form.append('api_key', CLOUDINARY_API_KEY || '')
+        form.append('signature', signature)
+
+        const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: form.toString(),
+        })
+
         const uploadJson = await uploadRes.json()
         
         if (uploadJson.secure_url) {
@@ -90,9 +106,9 @@ export async function POST(req: NextRequest) {
   // Insert into database (store imageUrls as JSON array)
   try {
     await sql`
-      INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_title, signup_url, signup_embed_url, has_google_form)
+      INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form)
       VALUES (
-        ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imageUrls)}, ${bodyMarkdown}, ${signupTitle}, ${signupUrl}, ${signupEmbedUrl}, ${hasGoogleForm}
+        ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imageUrls)}, ${bodyMarkdown}, ${signupUrl}, ${signupEmbedUrl}, ${hasGoogleForm}
       )
     `
     console.log(`Successfully inserted event: ${slug}`)

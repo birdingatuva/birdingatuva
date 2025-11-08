@@ -17,7 +17,7 @@ export interface EventTemplateProps {
   dateDisplay: string;
   timeDisplay: string;
   bodyMarkdown: string;
-  signupTitle: string;
+  // signupTitle removed from data model; use fixed label instead
   signupUrl: string;
   signupEmbedUrl?: string;
 }
@@ -30,7 +30,7 @@ export default function EventTemplate({
   dateDisplay,
   timeDisplay,
   bodyMarkdown,
-  signupTitle,
+  // signupTitle,
   signupUrl,
   signupEmbedUrl,
 }: EventTemplateProps) {
@@ -76,7 +76,7 @@ export default function EventTemplate({
                 <div className="mb-6">
                   <div className="bg-white/90 rounded-xl shadow-md border border-gray-100 p-6">
                     <h3 className="font-display text-2xl font-bold text-black mb-4">
-                      <a href={signupUrl} target="_blank" rel="noopener noreferrer">{signupTitle}</a>
+                      <a href={signupUrl} target="_blank" rel="noopener noreferrer">Sign Up</a>
                     </h3>
                     {signupEmbedUrl && (
                       <iframe
