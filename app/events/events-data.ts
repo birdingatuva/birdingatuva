@@ -1,15 +1,13 @@
-export const events = [
+
+const baseEvents = [
   {
     slug: "ohill-birding",
     title: "Ohill Birding",
-    // ISO date strings for precise logic and future DB compatibility
     startDate: "2025-11-07",
     endDate: "2025-11-07",
-    // store times in 24-hour HH:mm format for consistency
     startTime: "07:00",
     endTime: "09:15",
     location: "Meeting at Slaughter",
-    image: "/images/local-trips/ohill.png",
     url: "/events/ohill-birding",
     bodyMarkdown: `
 Hello everyone! It was great seeing some of you at the interest meeting on Wednesday night! If you didn't get a chance to come, stop by on Tuesday in New Cabell 232. Before then, though, we wanted to do some group birding!!
@@ -31,9 +29,15 @@ Hope to see you all there! If you have any questions, comments, or concerns, sen
     signupTitle: "Sign Up",
     signupUrl: "https://docs.google.com/forms/d/e/1FAIpQLScb7WsWg5hrHRK5OwsLxtzQ4B9BXD3kh-8y1P9BiS6zKx4JQg/viewform?usp=dialog",
     signupEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLScb7WsWg5hrHRK5OwsLxtzQ4B9BXD3kh-8y1P9BiS6zKx4JQg/viewform?usp=dialog",
-  }, 
+  },
+];
 
-].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+export const events = baseEvents
+  .map(event => ({
+    ...event,
+    image: `${event.slug}-img1`,
+  }))
+  .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
 
 export function getEventBySlug(slug: string) {
   return events.find((e) => e.slug === slug) ?? null

@@ -2,7 +2,7 @@ import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { DecorativeBirds } from "@/components/decorative-birds";
 import { PageHeader } from "@/components/page-header";
-import Image from "next/image";
+import { CloudinaryImage } from "@/components/cloudinary-image";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Calendar, Clock } from "lucide-react";
 import React from "react";
@@ -47,14 +47,11 @@ export default function EventTemplate({
           <div className="container mx-auto max-w-3xl relative z-20">
             <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
               <div className="relative h-72 overflow-hidden p-0 m-0">
-                <Image
+                <CloudinaryImage
                   src={image}
                   alt={`${title} Image`}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  quality={85}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  loading="lazy"
                 />
               </div>
               <CardContent>

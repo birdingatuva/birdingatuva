@@ -6,7 +6,7 @@ import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import Image from "next/image"
+import { CloudinaryImage } from "@/components/cloudinary-image"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -99,17 +99,13 @@ export function EventsClient() {
 												href={event.url}
 												className="block relative h-48 overflow-hidden p-0 m-0"
 											>
-												<Image
+												<CloudinaryImage
 													src={event.image}
 													alt={event.title}
 													fill
-													className={`object-cover group-hover:scale-110 transition-transform duration-500`}
-													style={
-														status === 'Past' ? { filter: 'saturate(30%)' } : undefined
-													}
-													quality={85}
-													sizes="(max-width: 768px) 100vw, 50vw"
-													loading="lazy"
+													className={`object-cover group-hover:scale-110 transition-transform duration-500 ${
+														status === 'Past' ? 'saturate-[0.3]' : ''
+													}`}
 												/>
 												<Badge
 													className="absolute top-4 right-4 shadow-lg font-semibold text-sm"
