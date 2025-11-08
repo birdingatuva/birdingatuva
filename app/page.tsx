@@ -154,7 +154,7 @@ export default function HomePage() {
 					<div className="container mx-auto max-w-6xl relative z-20">
 						<div className="grid md:grid-cols-2 gap-12 items-center">
 							<div className="md:order-1 order-2 space-y-3">
-								<div className="relative h-auto md:h-[400px] rounded-2xl overflow-hidden shadow-2xl">
+								<div className="relative h-auto md:h-[400px] rounded-2xl overflow-hidden shadow-lg">
 									<Image
 										src="/images/about-us.jpeg"
 										alt="Club members during bird banding activity"
@@ -232,125 +232,7 @@ export default function HomePage() {
 					</div>
 				</section>
 
-				<section className="py-20 px-4 bg-muted">
-					<div className="container mx-auto max-w-4xl text-center relative z-20">
-						<div className="flex justify-center mb-6">
-							<Image
-								src="/images/ebird-logo.png"
-								alt="eBird Logo"
-								width={200}
-								height={80}
-								className="object-contain"
-								quality={85}
-								sizes="200px"
-								loading="lazy"
-							/>
-						</div>
-						<h2 className="font-display text-5xl md:text-6xl font-bold mb-6 text-primary">
-							OUR eBIRD ACCOUNT
-						</h2>
-						<Card className="shadow-xl">
-							<CardContent className="pt-6">
-								<p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-									Track our sightings and see what the club has spotted! We use
-									eBird to document our observations and contribute to citizen
-									science.
-								</p>
-								<Button size="lg" asChild>
-									<a
-										href="https://ebird.org/profile/ODM4NzkyOQ"
-										target="_blank"
-										rel="noopener noreferrer"
-									>
-										Visit Our eBird Profile
-									</a>
-								</Button>
-							</CardContent>
-						</Card>
-					</div>
-				</section>
-
-				<section id="trips" className="py-20 px-4 scroll-mt-24">
-					<div className="container mx-auto max-w-6xl relative z-20">
-						<div className="text-center mb-12">
-							<h2 className="font-display text-5xl md:text-6xl font-bold mb-4 text-primary">
-								LOCAL BIRDING TRIPS
-							</h2>
-							<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-								Explore the diverse birdlife in and around Charlottesville with our
-								routine outings
-							</p>
-						</div>
-
-						<div className="grid md:grid-cols-2 gap-6">
-							{trips.map((trip) => (
-												<Card
-													key={trip.name}
-													className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0"
-												>
-									<div className="relative h-48 overflow-hidden p-0 m-0">
-										<Image
-											src={trip.image || "/placeholder.svg"}
-											alt={trip.name}
-											fill
-											className="object-cover group-hover:scale-110 transition-transform duration-500"
-											quality={85}
-											sizes="(max-width: 768px) 100vw, 50vw"
-											loading="lazy"
-										/>
-										<Badge
-											className="absolute top-4 right-4 shadow-lg font-semibold text-sm"
-											style={{ backgroundColor: "#36834C", color: "white" }}
-										>
-											{trip.frequency}
-										</Badge>
-									</div>
-									<CardHeader>
-										<CardTitle className="font-display text-2xl">
-											{trip.name}
-										</CardTitle>
-										<CardDescription className="flex items-center gap-2">
-											<MapPin className="w-4 h-4" />
-											{trip.location}
-										</CardDescription>
-									</CardHeader>
-									<CardContent className="space-y-4">
-										<p className="text-muted-foreground">
-											{trip.description}
-										</p>
-
-										<div className="flex items-center gap-4 text-sm text-muted-foreground">
-											<div className="flex items-center gap-1">
-												<Compass className="w-4 h-4" />
-												<span>{trip.difficulty}</span>
-											</div>
-											<div className="flex items-center gap-1">
-												<MapPin className="w-4 h-4" />
-												<span>{trip.distance}</span>
-											</div>
-										</div>
-
-										<Button
-											className="w-full group/btn bg-transparent"
-											variant="outline"
-											asChild
-										>
-											<a
-												href={trip.allTrailsUrl}
-												target="_blank"
-												rel="noopener noreferrer"
-											>
-												View Trail on AllTrails
-												<ExternalLink className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-											</a>
-										</Button>
-									</CardContent>
-								</Card>
-							))}
-						</div>
-					</div>
-				</section>
-
+				{/* How to Join & Dues Section - Lighter background */}
 				<section
 					id="join"
 					className="py-20 px-4 bg-gradient-to-b from-muted to-background scroll-mt-24"
@@ -554,8 +436,129 @@ export default function HomePage() {
 					</div>
 				</section>
 
-				{/* Contact Section */}
-				<section className="py-20 px-4">
+				{/* Local Birding Trips Section - Darker background */}
+				<section id="trips" className="py-20 px-4 bg-muted">
+					<div className="container mx-auto max-w-6xl relative z-20">
+						<div className="text-center mb-12">
+							<h2 className="font-display text-5xl md:text-6xl font-bold mb-4 text-primary">
+								LOCAL BIRDING TRIPS
+							</h2>
+							<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+								Explore the diverse birdlife in and around Charlottesville with our
+								routine outings
+							</p>
+						</div>
+
+						<div className="grid md:grid-cols-2 gap-6">
+							{trips.map((trip) => (
+												<Card
+													key={trip.name}
+													className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0"
+												>
+									<div className="relative h-48 overflow-hidden p-0 m-0">
+										<Image
+											src={trip.image || "/placeholder.svg"}
+											alt={trip.name}
+											fill
+											className="object-cover group-hover:scale-110 transition-transform duration-500"
+											quality={85}
+											sizes="(max-width: 768px) 100vw, 50vw"
+											loading="lazy"
+										/>
+										<Badge
+											className="absolute top-4 right-4 shadow-lg font-semibold text-sm"
+											style={{ backgroundColor: "#36834C", color: "white" }}
+										>
+											{trip.frequency}
+										</Badge>
+									</div>
+									<CardHeader>
+										<CardTitle className="font-display text-2xl">
+											{trip.name}
+										</CardTitle>
+										<CardDescription className="flex items-center gap-2">
+											<MapPin className="w-4 h-4" />
+											{trip.location}
+										</CardDescription>
+									</CardHeader>
+									<CardContent className="space-y-4">
+										<p className="text-muted-foreground">
+											{trip.description}
+										</p>
+
+										<div className="flex items-center gap-4 text-sm text-muted-foreground">
+											<div className="flex items-center gap-1">
+												<Compass className="w-4 h-4" />
+												<span>{trip.difficulty}</span>
+											</div>
+											<div className="flex items-center gap-1">
+												<MapPin className="w-4 h-4" />
+												<span>{trip.distance}</span>
+											</div>
+										</div>
+
+										<Button
+											className="w-full group/btn bg-transparent"
+											variant="outline"
+											asChild
+										>
+											<a
+												href={trip.allTrailsUrl}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												View Trail on AllTrails
+												<ExternalLink className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+											</a>
+										</Button>
+									</CardContent>
+								</Card>
+							))}
+						</div>
+					</div>
+				</section>
+
+				{/* eBird Section - Lighter background */}
+				<section className="py-20 px-4 bg-background">
+					<div className="container mx-auto max-w-4xl text-center relative z-20">
+						<div className="flex justify-center mb-6">
+							<Image
+								src="/images/ebird-logo.png"
+								alt="eBird Logo"
+								width={200}
+								height={80}
+								className="object-contain"
+								quality={85}
+								sizes="200px"
+								loading="lazy"
+							/>
+						</div>
+						<h2 className="font-display text-5xl md:text-6xl font-bold mb-6 text-primary">
+							OUR eBIRD ACCOUNT
+						</h2>
+						<Card className="shadow-xl">
+							<CardContent className="pt-6">
+								<p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+									Track our sightings and see what the club has spotted! We use
+									eBird to document our observations and contribute to citizen
+									science.
+								</p>
+								<Button size="lg" asChild>
+									<a
+										href="https://ebird.org/profile/ODM4NzkyOQ"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										Visit Our eBird Profile
+									</a>
+								</Button>
+							</CardContent>
+						</Card>
+					</div>
+				</section>
+
+				{/* Contact Section - Darker background */}
+				<section className="py-20 px-4 bg-muted">
 					<div className="container mx-auto max-w-4xl relative z-20">
 						<h2 className="font-display text-5xl md:text-6xl font-bold mb-12 text-center text-primary">
 							GET IN TOUCH
