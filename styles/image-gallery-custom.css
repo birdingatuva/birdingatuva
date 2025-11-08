@@ -1,0 +1,6 @@
+/* Custom overlay for gallery modal buttons */
+.gallery-modal-btn:hover,
+.gallery-modal-btn:focus-visible {
+  background: #f3f3f2 !important; /* off-white, slightly darker than pure white */
+  color: var(--foreground) !important;
+}

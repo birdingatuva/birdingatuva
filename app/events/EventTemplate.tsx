@@ -3,6 +3,7 @@ import { Footer } from "@/components/footer";
 import { DecorativeBirds } from "@/components/decorative-birds";
 import { PageHeader } from "@/components/page-header";
 import { CloudinaryImage } from "@/components/cloudinary-image";
+import { ImageGallery } from "@/components/image-gallery";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Calendar, Clock } from "lucide-react";
 import React from "react";
@@ -13,6 +14,7 @@ export interface EventTemplateProps {
   title: string;
   description: string;
   image: string;
+  images?: string[]; // All images from the event
   location: string;
   dateDisplay: string;
   timeDisplay: string;
@@ -26,6 +28,7 @@ export default function EventTemplate({
   title,
   description,
   image,
+  images = [],
   location,
   dateDisplay,
   timeDisplay,
@@ -34,6 +37,8 @@ export default function EventTemplate({
   signupEmbedUrl,
   hasGoogleForm = false,
 }: EventTemplateProps) {
+  // Gallery images are all images except the first one (header image)
+  const galleryImages = images.length > 1 ? images.slice(1) : [];
   return (
     <div className="min-h-screen relative bg-background">
       <Navigation />
@@ -47,7 +52,7 @@ export default function EventTemplate({
           <div className="container mx-auto max-w-3xl relative z-20">
             <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
               {image ? (
-                <div className="relative h-72 overflow-hidden p-0 m-0">
+                <div className="relative h-72 overflow-hidden p-0 m-0 bg-muted">
                   <CloudinaryImage
                     src={image}
                     alt={`${title} Image`}
@@ -81,14 +86,30 @@ export default function EventTemplate({
                 <div className="mb-6 text-muted-foreground prose prose-neutral prose-lg max-w-none [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-0 [&_strong]:font-bold">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyMarkdown}</ReactMarkdown>
                 </div>
+                
+                {/* Image Gallery Section */}
+                {galleryImages.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="font-display text-xl font-bold mb-4 text-foreground">Gallery</h3>
+                    <ImageGallery images={galleryImages} title={title} />
+                  </div>
+                )}
+                
                 {hasGoogleForm && (signupUrl || signupEmbedUrl) ? (
                   <div className="mb-6">
                     <div className="bg-white/90 rounded-xl shadow-md border border-gray-100 p-6">
-                      <h3 className="font-display text-2xl font-bold text-black mb-4">
+                      <h3 className="font-display text-2xl font-bold mb-4">
                         {signupUrl ? (
-                          <a href={signupUrl} target="_blank" rel="noopener noreferrer">Sign Up</a>
+                          <a 
+                            href={signupUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:text-primary/80 underline decoration-2 underline-offset-4 transition-colors"
+                          >
+                            Sign Up
+                          </a>
                         ) : (
-                          <span>Sign Up</span>
+                          <span className="text-foreground">Sign Up</span>
                         )}
                       </h3>
                       {signupEmbedUrl && (

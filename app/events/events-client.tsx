@@ -91,7 +91,7 @@ export function EventsClient({ events }: EventsClientProps) {
                   } catch { /* ignore */ }
                   return (
                     <Card key={event.slug} className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
-                      <Link href={event.url} className="block relative h-48 overflow-hidden p-0 m-0">
+                      <Link href={event.url} className="block relative h-48 overflow-hidden p-0 m-0 bg-muted">
                         {event.imagePublicId ? (
                           <CloudinaryImage
                             src={event.imagePublicId}

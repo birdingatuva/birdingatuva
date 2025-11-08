@@ -30,6 +30,7 @@ export default async function OhillBirdingEvent() {
       title={record.title}
       description={description}
       image={image}
+      images={record.imagePublicIds}
       location={record.location}
       dateDisplay={dateDisplay}
       timeDisplay={timeDisplay}

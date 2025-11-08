@@ -29,6 +29,7 @@ export default async function EventPage(props: PageProps) {
       title={record.title}
       description={`${dateDisplay}${timeDisplay ? ` | ${timeDisplay}` : ""} | ${record.location}`}
       image={image}
+      images={record.imagePublicIds}
       location={record.location}
       dateDisplay={dateDisplay}
       timeDisplay={timeDisplay}
