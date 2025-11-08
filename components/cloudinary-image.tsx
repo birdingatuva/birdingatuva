@@ -14,16 +14,23 @@ interface CloudinaryImageProps {
 export function CloudinaryImage({
   src,
   alt,
-  width,
-  height,
+  width = 1200,
+  height = 800,
   className = '',
   fill = false,
 }: CloudinaryImageProps) {
+  // Don't render if no src provided
+  if (!src || src.trim() === '') {
+    return null
+  }
+
   return (
     <CldImage
       src={src}
       alt={alt}
-      {...(fill ? { fill: true } : { width, height })}
+      width={width}
+      height={height}
+      {...(fill ? { fill: true, sizes: "100vw" } : {})}
       className={className}
     />
   )

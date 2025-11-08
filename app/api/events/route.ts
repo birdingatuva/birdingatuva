@@ -2,12 +2,30 @@ import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { verifyAdminToken } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@vercel/postgres'
-import crypto from 'crypto'
+import { v2 as cloudinary } from 'cloudinary'
 
-// For Cloudinary upload
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+// Explicitly ensure Node.js runtime (required for Cloudinary SDK & Buffer access)
+export const runtime = 'nodejs'
+
+// Cloudinary configuration (use server-side env vars, do not rely on NEXT_PUBLIC here)
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY
 const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET
+
+if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET,
+    secure: true,
+  })
+} else {
+  console.warn('[events POST] Cloudinary env variables missing. Images will not be uploaded.', {
+    CLOUDINARY_CLOUD_NAME: !!CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY: !!CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET: !!CLOUDINARY_API_SECRET,
+  })
+}
 
 export async function POST(req: NextRequest) {
   console.log("=== API /api/events POST started ===");
@@ -23,101 +41,121 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData()
-  const title = formData.get('title') as string
-  const slug = formData.get('slug') as string
-  const startDate = formData.get('startDate') as string
-  const endDate = formData.get('endDate') as string
-  const startTime = formData.get('startTime') as string
-  const endTime = formData.get('endTime') as string
-  const location = formData.get('location') as string
-  const bodyMarkdown = formData.get('bodyMarkdown') as string
-  const signupUrl = formData.get('signupUrl') as string
-  const signupEmbedUrl = formData.get('signupEmbedUrl') as string
-  const hasGoogleForm = formData.get('hasGoogleForm') === 'true'
-  // Handle multiple images
-  const imageCount = Math.min(Number(formData.get('imageCount') || 0), MAX_IMAGE_COUNT)
-  const imageUrls: string[] = []
+    const title = (formData.get('title') as string) || ''
+  const baseSlugRaw = (formData.get('slug') as string) || ''
+  const baseSlug = baseSlugRaw.trim().toLowerCase()
+    const startDate = (formData.get('startDate') as string) || ''
+    const endDateRaw = (formData.get('endDate') as string) || ''
+    const startTimeRaw = (formData.get('startTime') as string) || ''
+    const endTimeRaw = (formData.get('endTime') as string) || ''
+    const location = (formData.get('location') as string) || ''
+    const bodyMarkdown = (formData.get('bodyMarkdown') as string) || ''
+    const signupUrlRaw = (formData.get('signupUrl') as string) || ''
+    const signupEmbedUrlRaw = (formData.get('signupEmbedUrl') as string) || ''
+    const hasGoogleForm = formData.get('hasGoogleForm') === 'true'
+
+    // Normalize optional fields to null instead of empty strings for DB
+    const endDate = endDateRaw && endDateRaw.trim() !== '' ? endDateRaw : null
+    const startTime = startTimeRaw && startTimeRaw.trim() !== '' ? startTimeRaw : null
+    const endTime = endTimeRaw && endTimeRaw.trim() !== '' ? endTimeRaw : null
+    const signupUrl = signupUrlRaw && signupUrlRaw.trim() !== '' ? signupUrlRaw : null
+    const signupEmbedUrl = signupEmbedUrlRaw && signupEmbedUrlRaw.trim() !== '' ? signupEmbedUrlRaw : null
+    // Handle multiple images
+    const imageCount = Math.min(Number(formData.get('imageCount') || 0), MAX_IMAGE_COUNT)
+  // We'll store Cloudinary public IDs (e.g., "ohill-birding-img1") in DB
+  const imagePublicIds: string[] = []
   
-  console.log(`Processing ${imageCount} images for event: ${slug}`)
-  
-  for (let i = 1; i <= imageCount; i++) {
-    const imageFile = formData.get(`image${i}`) as File | null
-    if (imageFile) {
-      if (imageFile.size > MAX_IMAGE_SIZE) {
-        console.log(`Skipping image${i}: too large (${imageFile.size} bytes)`)
-        continue // skip files over max size
+    // Create a unique slug if taken: base, base-2, base-3, ...
+    let slug = baseSlug
+    try {
+  const { rows } = await sql`SELECT slug FROM events WHERE lower(trim(slug)) = lower(${baseSlug}) OR lower(trim(slug)) LIKE lower(${baseSlug + '-%'});`
+      let exactExists = false
+      let maxNumericSuffix = 1
+      for (const r of rows) {
+        const s: string = (r as any).slug
+        if (s.trim().toLowerCase() === baseSlug) {
+          exactExists = true
+        } else if (s.trim().toLowerCase().startsWith(baseSlug + '-')) {
+          const tail = s.substring((baseSlug + '-').length)
+          if (/^\d+$/.test(tail)) {
+            const n = parseInt(tail, 10)
+            if (!Number.isNaN(n)) {
+              maxNumericSuffix = Math.max(maxNumericSuffix, n)
+            }
+          }
+        }
       }
-      
-      try {
-        const arrayBuffer = await imageFile.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-        const base64 = buffer.toString('base64')
-        
-        console.log(`Uploading image${i} to Cloudinary...`)
-        
-        // Build signed upload parameters for Cloudinary (requires API secret)
-        const timestamp = Math.floor(Date.now() / 1000)
-        const folder = `event-images/${slug}`
-        const public_id = `${slug}-img${i}`
-        const upload_preset = 'event-images'
-        const paramsToSign: Record<string, string | number> = {
-          folder,
-          public_id,
-          timestamp,
-          upload_preset,
+      if (exactExists) {
+        slug = `${baseSlug}-${maxNumericSuffix + 1}`
+      } else {
+        slug = baseSlug
+      }
+    } catch (e) {
+      console.warn('Slug uniqueness check failed; proceeding with base slug', e)
+      slug = baseSlug
+    }
+
+    console.log(`Processing ${imageCount} images for event: ${slug}`)
+
+    if (!(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)) {
+      if (imageCount > 0) {
+        console.error('Cloudinary not configured, skipping image uploads.')
+      }
+    } else {
+      for (let i = 1; i <= imageCount; i++) {
+        const imageFile = formData.get(`image${i}`) as File | null
+        if (!imageFile) continue
+        if (imageFile.size > MAX_IMAGE_SIZE) {
+          console.warn(`Skipping image${i}: too large (${imageFile.size} bytes)`)
+          continue
         }
-        const signString = Object.keys(paramsToSign)
-          .sort()
-          .map(k => `${k}=${paramsToSign[k]}`)
-          .join('&') + CLOUDINARY_API_SECRET
-        const signature = crypto.createHash('sha1').update(signString).digest('hex')
-
-        const form = new URLSearchParams()
-        form.append('file', `data:${imageFile.type};base64,${base64}`)
-        form.append('upload_preset', upload_preset)
-        form.append('public_id', public_id)
-        form.append('folder', folder)
-        form.append('timestamp', String(timestamp))
-        form.append('api_key', CLOUDINARY_API_KEY || '')
-        form.append('signature', signature)
-
-        const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: form.toString(),
-        })
-
-        const uploadJson = await uploadRes.json()
-        
-        if (uploadJson.secure_url) {
-          imageUrls.push(uploadJson.secure_url)
-          console.log(`Successfully uploaded image${i}: ${uploadJson.secure_url}`)
-        } else {
-          console.error(`Failed to upload image${i}:`, uploadJson)
+        try {
+          const arrayBuffer = await imageFile.arrayBuffer()
+            .catch(err => { throw new Error('Failed to read image file: ' + (err as Error).message) })
+          const buffer = Buffer.from(arrayBuffer)
+          const base64 = buffer.toString('base64')
+          console.log(`Uploading image${i} to Cloudinary via SDK...`)
+          const uploadRes = await cloudinary.uploader.upload(`data:${imageFile.type};base64,${base64}`,
+            {
+              // Keep delivery URL flat: set public_id only (no folder).
+              public_id: `${slug}-img${i}`,
+              // Organize in Media Library without affecting URL using asset_folder.
+              asset_folder: `event-images/${slug}`,
+              overwrite: true,
+              resource_type: 'image',
+              tags: [`event:${slug}`],
+            }
+          )
+          if (uploadRes?.public_id) {
+            // Persist only the public_id in DB for flexibility; UI can construct any URL style.
+            imagePublicIds.push(uploadRes.public_id)
+            console.log(`Uploaded image${i} -> public_id: ${uploadRes.public_id}`)
+          } else {
+            console.error(`Cloudinary upload returned no secure_url for image${i}`, uploadRes)
+          }
+        } catch (err) {
+          console.error(`Error uploading image${i}:`, err)
         }
-      } catch (error) {
-        console.error(`Error uploading image${i}:`, error)
       }
     }
-  }
-  
-  console.log(`Uploaded ${imageUrls.length} images total`)
 
-  // Insert into database (store imageUrls as JSON array)
-  try {
-    await sql`
-      INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form)
-      VALUES (
-        ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imageUrls)}, ${bodyMarkdown}, ${signupUrl}, ${signupEmbedUrl}, ${hasGoogleForm}
-      )
-    `
-    console.log(`Successfully inserted event: ${slug}`)
-    console.log("=== API /api/events POST completed successfully ===");
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('❌ Database insertion error:', error)
-    return NextResponse.json({ error: `Failed to save event to database: ${error}` }, { status: 500 })
-  }
+  console.log(`Uploaded ${imagePublicIds.length} images total`)
+
+    // Insert into database (store image public_ids as JSON array in image_urls column)
+    try {
+      await sql`
+        INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form)
+        VALUES (
+          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${signupEmbedUrl}, ${hasGoogleForm}
+        )
+      `
+      console.log(`Successfully inserted event: ${slug}`)
+      console.log("=== API /api/events POST completed successfully ===");
+      return NextResponse.json({ success: true, slug, imageCount: imagePublicIds.length, imagePublicIds })
+    } catch (error) {
+      console.error('❌ Database insertion error:', error)
+      return NextResponse.json({ error: `Failed to save event to database: ${error}` }, { status: 500 })
+    }
   } catch (outerError) {
     console.error('❌ API route error:', outerError);
     return NextResponse.json({ 

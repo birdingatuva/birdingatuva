@@ -68,6 +68,8 @@ export default function AdminPage() {
     hasGoogleForm: false,
   }
   const [form, setForm] = useState(initialForm)
+  const [displaySlug, setDisplaySlug] = useState<string>("")
+  const [checkingSlug, setCheckingSlug] = useState<boolean>(false)
   const [headerImage, setHeaderImage] = useState<File | null>(null)
   const [headerImagePreview, setHeaderImagePreview] = useState<string>("")
   const [additionalImages, setAdditionalImages] = useState<File[]>([])
@@ -318,6 +320,36 @@ export default function AdminPage() {
     });
   }
 
+  // Debounced slug availability check whenever slug changes
+  useEffect(() => {
+    if (!form.slug) {
+      setDisplaySlug("")
+      return
+    }
+    const controller = new AbortController()
+    const t = setTimeout(async () => {
+      try {
+        setCheckingSlug(true)
+        const res = await fetch(`/api/check-slug?base=${encodeURIComponent(form.slug)}`, { signal: controller.signal })
+        if (!res.ok) throw new Error(`status ${res.status}`)
+        const data: { uniqueSlug: string; isTaken: boolean } = await res.json()
+        setDisplaySlug(data.uniqueSlug)
+        // Always auto-apply increment since slug is not user-editable
+        if (data.uniqueSlug !== form.slug) {
+          setForm(prev => ({ ...prev, slug: data.uniqueSlug }))
+        }
+      } catch (e) {
+        // ignore aborts/errors; keep current display
+      } finally {
+        setCheckingSlug(false)
+      }
+    }, 300)
+    return () => {
+      controller.abort()
+      clearTimeout(t)
+    }
+  }, [form.slug])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("=== FORM SUBMISSION STARTED ===");
@@ -461,9 +493,33 @@ export default function AdminPage() {
                     <Input name="title" value={form.title} onChange={handleChange} required placeholder="e.g., Saturday Morning Bird Walk" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">URL Slug</label>
-                    <Input name="slug" value={form.slug} onChange={handleChange} required placeholder="e.g., saturday-morning-bird-walk" />
-                    <p className="text-xs text-muted-foreground">This will be used in the event URL</p>
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      URL Slug
+                      <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">Auto</span>
+                    </label>
+                    <div
+                      className="relative"
+                      role="textbox"
+                      aria-readonly="true"
+                    >
+                      <Input 
+                        value={form.slug} 
+                        placeholder="saturday-morning-bird-walk" 
+                        readOnly 
+                        className="font-mono pr-16 cursor-default opacity-100"
+                      />
+                      <span className="absolute top-1/2 -translate-y-1/2 right-3 text-[11px] text-muted-foreground select-none">
+                        locked
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Generated from the title. Dashes, lowercase, and numeric suffix if taken.</p>
+                    {form.slug && (
+                      <div className="text-xs mt-1 flex items-center gap-2">
+                        <span className="text-muted-foreground">Final URL:</span>
+                        <code className="px-1 py-[2px] rounded bg-muted/50 border border-border font-mono text-[11px]">/events/{displaySlug || form.slug}</code>
+                        {checkingSlug && <span className="text-[10px] opacity-70">checking…</span>}
+                      </div>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

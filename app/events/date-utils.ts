@@ -48,9 +48,10 @@ export function formatDisplayDate(startIso: string, endIso: string, timeZone = D
   }
 }
 
-// parse a time token in 24-hour HH:mm format and return a Date instant for that local time in the timezone
+// parse a time token in 24-hour HH:mm or HH:mm:ss format and return a Date instant for that local time in the timezone
 export function parseTimeToken(dateISO: string, token: string, timeZone = DEFAULT_TIMEZONE): Date | null {
-  const m = token.trim().match(/^(\d{1,2}):(\d{2})$/)
+  // Match both HH:mm and HH:mm:ss formats
+  const m = token.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
   if (!m) return null
   const hour = parseInt(m[1], 10)
   const minute = parseInt(m[2], 10)
@@ -66,7 +67,14 @@ export function formatTimeForDisplay(dateISO: string, time24: string | undefined
   if (!time24) return ''
   const dt = parseTimeToken(dateISO, time24, timeZone)
   if (!dt) return time24
-  const timeStr = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone })
+  // Format using timeStyle: 'short' to avoid seconds display
+  const timeStr = dt.toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit',
+    second: undefined,
+    hour12: true,
+    timeZone 
+  })
   // Do not append timezone abbreviations on the site; show local formatted time only.
   return timeStr
 }

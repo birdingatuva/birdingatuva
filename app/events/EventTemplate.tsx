@@ -17,9 +17,9 @@ export interface EventTemplateProps {
   dateDisplay: string;
   timeDisplay: string;
   bodyMarkdown: string;
-  // signupTitle removed from data model; use fixed label instead
   signupUrl: string;
   signupEmbedUrl?: string;
+  hasGoogleForm?: boolean;
 }
 
 export default function EventTemplate({
@@ -30,9 +30,9 @@ export default function EventTemplate({
   dateDisplay,
   timeDisplay,
   bodyMarkdown,
-  // signupTitle,
   signupUrl,
   signupEmbedUrl,
+  hasGoogleForm = false,
 }: EventTemplateProps) {
   return (
     <div className="min-h-screen relative bg-background">
@@ -46,14 +46,20 @@ export default function EventTemplate({
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
             <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
-              <div className="relative h-72 overflow-hidden p-0 m-0">
-                <CloudinaryImage
-                  src={image}
-                  alt={`${title} Image`}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-              </div>
+              {image ? (
+                <div className="relative h-72 overflow-hidden p-0 m-0">
+                  <CloudinaryImage
+                    src={image}
+                    alt={`${title} Image`}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                </div>
+              ) : (
+                <div className="relative h-32 bg-muted flex items-center justify-center text-muted-foreground">
+                  <span className="text-sm">No image</span>
+                </div>
+              )}
               <CardContent>
                 <h2 className="font-display text-2xl font-bold mb-2">{title}</h2>
                 <div className="flex items-center gap-2 text-muted-foreground mb-2">
@@ -65,35 +71,43 @@ export default function EventTemplate({
                     <Calendar className="w-4 h-4" />
                     <span>{dateDisplay}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{timeDisplay}</span>
-                  </div>
+                  {timeDisplay && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{timeDisplay}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="mb-6 text-muted-foreground prose prose-neutral prose-lg max-w-none [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-0 [&_strong]:font-bold">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyMarkdown}</ReactMarkdown>
                 </div>
-                <div className="mb-6">
-                  <div className="bg-white/90 rounded-xl shadow-md border border-gray-100 p-6">
-                    <h3 className="font-display text-2xl font-bold text-black mb-4">
-                      <a href={signupUrl} target="_blank" rel="noopener noreferrer">Sign Up</a>
-                    </h3>
-                    {signupEmbedUrl && (
-                      <iframe
-                        src={signupEmbedUrl}
-                        width="100%"
-                        height="600"
-                        title={`${title} Signup`}
-                        className="rounded-lg border border-gray-200"
-                        style={{ background: 'transparent', border: 'none' }}
-                        allowFullScreen
-                        loading="lazy"
-                      >
-                        Loading…
-                      </iframe>
-                    )}
+                {hasGoogleForm && (signupUrl || signupEmbedUrl) ? (
+                  <div className="mb-6">
+                    <div className="bg-white/90 rounded-xl shadow-md border border-gray-100 p-6">
+                      <h3 className="font-display text-2xl font-bold text-black mb-4">
+                        {signupUrl ? (
+                          <a href={signupUrl} target="_blank" rel="noopener noreferrer">Sign Up</a>
+                        ) : (
+                          <span>Sign Up</span>
+                        )}
+                      </h3>
+                      {signupEmbedUrl && (
+                        <iframe
+                          src={signupEmbedUrl}
+                          width="100%"
+                          height="600"
+                          title={`${title} Signup`}
+                          className="rounded-lg border border-gray-200"
+                          style={{ background: 'transparent', border: 'none' }}
+                          allowFullScreen
+                          loading="lazy"
+                        >
+                          Loading…
+                        </iframe>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </CardContent>
             </Card>
           </div>

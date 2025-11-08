@@ -1,27 +1,41 @@
-import { notFound } from "next/navigation";
-import { getEventBySlug } from "../events-data";
-import EventTemplate from "../EventTemplate";
+import { notFound } from "next/navigation"
+import EventTemplate from "../EventTemplate"
+import { getEvent } from "@/lib/events-db"
+import { formatDisplayDate, formatTimeForDisplay } from "../date-utils"
 
-export default function EventPage({ params }: { params: { slug: string } }) {
-  const event = getEventBySlug(params.slug);
-  if (!event) return notFound();
+interface PageProps { 
+  params: Promise<{ slug: string }> 
+}
 
-  const bodyMarkdown = event.bodyMarkdown || "Event details coming soon.";
-  const signupUrl = event.signupUrl || "";
-  const signupEmbedUrl = event.signupEmbedUrl || "";
+export default async function EventPage(props: PageProps) {
+  const params = await props.params
+  const record = await getEvent(params.slug)
+  if (!record) return notFound()
+
+  const bodyMarkdown = record.bodyMarkdown || "Event details coming soon."
+  const signupUrl = record.signupUrl || ""
+  const signupEmbedUrl = record.signupEmbedUrl || undefined
+  const dateDisplay = formatDisplayDate(record.startDate, record.endDate ?? record.startDate)
+  const timeDisplay = [
+    formatTimeForDisplay(record.startDate, record.startTime || undefined),
+    record.endTime ? formatTimeForDisplay(record.startDate, record.endTime || undefined) : null,
+  ].filter(Boolean).join(" - ")
+
+  // Use first image public id (if any) for hero image
+  const image = record.imagePublicIds[0] || ""
 
   return (
     <EventTemplate
-      title={event.title}
-      description={`${event.startDate}${event.endDate ? ` - ${event.endDate}` : ""} | ${event.startTime} - ${event.endTime} | ${event.location}`}
-      image={event.image}
-      location={event.location}
-      dateDisplay={event.startDate}
-      timeDisplay={`${event.startTime} - ${event.endTime}`}
+      title={record.title}
+      description={`${dateDisplay}${timeDisplay ? ` | ${timeDisplay}` : ""} | ${record.location}`}
+      image={image}
+      location={record.location}
+      dateDisplay={dateDisplay}
+      timeDisplay={timeDisplay}
       bodyMarkdown={bodyMarkdown}
-      
       signupUrl={signupUrl}
       signupEmbedUrl={signupEmbedUrl}
+      hasGoogleForm={record.hasGoogleForm}
     />
-  );
+  )
 }
