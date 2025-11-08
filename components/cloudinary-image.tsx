@@ -24,13 +24,17 @@ export function CloudinaryImage({
     return null
   }
 
+  // When fill is true, don't pass width/height
+  // When fill is false, use provided width/height or defaults
+  const imageProps = fill 
+    ? { fill: true, sizes: "100vw" }
+    : { width, height }
+
   return (
     <CldImage
       src={src}
       alt={alt}
-      width={width}
-      height={height}
-      {...(fill ? { fill: true, sizes: "100vw" } : {})}
+      {...imageProps}
       className={className}
     />
   )

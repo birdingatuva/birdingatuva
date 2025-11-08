@@ -8,7 +8,7 @@ export interface DbEventRow {
   start_time: string | null
   end_time: string | null
   location: string
-  image_urls: string | null // stored JSON array of public_ids
+  image_urls: string[] | string | null // jsonb array of public_ids (can be array or string depending on driver)
   body_markdown: string | null
   signup_url: string | null
   signup_embed_url: string | null
@@ -30,20 +30,37 @@ export interface EventRecord {
   imagePublicIds: string[]
 }
 
-function parseImagePublicIds(raw: string | null): string[] {
+function parseImagePublicIds(raw: string[] | string | null): string[] {
   if (!raw) return []
-  try {
-    const arr = JSON.parse(raw)
-    if (Array.isArray(arr)) {
-      return arr
-        .filter(x => typeof x === 'string')
-        .map((x: string) => x.trim())
+  
+  // If it's already an array (jsonb returned as native array)
+  if (Array.isArray(raw)) {
+    return raw
+      .filter(x => typeof x === 'string')
+      .map((x: string) => x.trim())
+      .filter(x => x.length > 0)
+  }
+  
+  // If it's a string, try to parse as JSON first
+  if (typeof raw === 'string') {
+    try {
+      const arr = JSON.parse(raw)
+      if (Array.isArray(arr)) {
+        return arr
+          .filter(x => typeof x === 'string')
+          .map((x: string) => x.trim())
+          .filter(x => x.length > 0)
+      }
+    } catch {
+      // If JSON parsing fails, treat as comma-separated string
+      return raw
+        .split(',')
+        .map(x => x.trim())
         .filter(x => x.length > 0)
     }
-    return []
-  } catch {
-    return []
   }
+  
+  return []
 }
 
 function normalizeDate(val: unknown): string {

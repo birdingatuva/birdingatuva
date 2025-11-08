@@ -47,6 +47,7 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "dompurify": "^3.3.0",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "8.5.1",
     "fs": "0.0.1-security",
     "input-otp": "1.4.1",
