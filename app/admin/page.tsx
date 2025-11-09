@@ -66,6 +66,7 @@ export default function AdminPage() {
     signupUrl: "",
     signupEmbedUrl: "",
     hasGoogleForm: false,
+    hidden: false,
   }
   const [form, setForm] = useState(initialForm)
   const [displaySlug, setDisplaySlug] = useState<string>("")
@@ -592,6 +593,17 @@ export default function AdminPage() {
                           className="w-4 h-4 rounded border-gray-300"
                         />
                         <label htmlFor="hasGoogleForm" className="text-sm font-medium cursor-pointer">Include embedded Google Form on event page</label>
+                      </div>
+                      <div className="flex items-center gap-3 pt-2">
+                        <input
+                          id="hidden"
+                          name="hidden"
+                          type="checkbox"
+                          checked={form.hidden}
+                          onChange={handleChange}
+                          className="w-4 h-4 rounded border-gray-300"
+                        />
+                        <label htmlFor="hidden" className="text-sm font-medium cursor-pointer">Hide this event (won't be publicly listed)</label>
                       </div>
                     </div>
                   </div>

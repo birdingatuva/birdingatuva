@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
     const bodyMarkdown = (formData.get('bodyMarkdown') as string) || ''
     const signupUrlRaw = (formData.get('signupUrl') as string) || ''
     const signupEmbedUrlRaw = (formData.get('signupEmbedUrl') as string) || ''
-    const hasGoogleForm = formData.get('hasGoogleForm') === 'true'
+  const hasGoogleForm = formData.get('hasGoogleForm') === 'true'
+  const hidden = formData.get('hidden') === 'true'
 
     // Normalize optional fields to null instead of empty strings for DB
     const endDate = endDateRaw && endDateRaw.trim() !== '' ? endDateRaw : null
@@ -144,9 +145,9 @@ export async function POST(req: NextRequest) {
     // Insert into database (store image public_ids as JSON array in image_urls column)
     try {
       await sql`
-        INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form)
+        INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form, hidden)
         VALUES (
-          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${signupEmbedUrl}, ${hasGoogleForm}
+          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${signupEmbedUrl}, ${hasGoogleForm}, ${hidden}
         )
       `
       console.log(`Successfully inserted event: ${slug}`)

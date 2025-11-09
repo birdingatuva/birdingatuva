@@ -13,6 +13,7 @@ export interface DbEventRow {
   signup_url: string | null
   signup_embed_url: string | null
   has_google_form: boolean | null
+  hidden?: boolean | null
 }
 
 export interface EventRecord {
@@ -28,6 +29,7 @@ export interface EventRecord {
   signupEmbedUrl: string | null
   hasGoogleForm: boolean
   imagePublicIds: string[]
+  hidden: boolean
 }
 
 function parseImagePublicIds(raw: string[] | string | null): string[] {
@@ -81,7 +83,7 @@ function normalizeDate(val: unknown): string {
 }
 
 export async function listEvents(): Promise<EventRecord[]> {
-  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form FROM events ORDER BY start_date DESC;`
+  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form, hidden FROM events WHERE hidden IS NOT TRUE ORDER BY start_date DESC;`
   return rows.map(r => {
     const row = r as unknown as DbEventRow
     const startDate = normalizeDate(row.start_date)
@@ -99,15 +101,17 @@ export async function listEvents(): Promise<EventRecord[]> {
       signupEmbedUrl: row.signup_embed_url,
       hasGoogleForm: !!row.has_google_form,
       imagePublicIds: parseImagePublicIds(row.image_urls),
+      hidden: !!row.hidden,
     }
   })
 }
 
 export async function getEvent(slug: string): Promise<EventRecord | null> {
   const s = (slug || '').trim()
-  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form FROM events WHERE lower(trim(slug)) = lower(${s}) LIMIT 1;`
+  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form, hidden FROM events WHERE lower(trim(slug)) = lower(${s}) LIMIT 1;`
   if (rows.length === 0) return null
   const r = rows[0] as unknown as DbEventRow
+  if (r.hidden === true) return null
   const startDate = normalizeDate(r.start_date)
   const endDateRaw = normalizeDate(r.end_date)
   return {
@@ -123,5 +127,6 @@ export async function getEvent(slug: string): Promise<EventRecord | null> {
     signupEmbedUrl: r.signup_embed_url,
     hasGoogleForm: !!r.has_google_form,
     imagePublicIds: parseImagePublicIds(r.image_urls),
+    hidden: !!r.hidden,
   }
 }
