@@ -18,7 +18,7 @@ const executives = [
 		major: "Computer Science",
 		year: "Class of 2026",
 		email: "president@uvabirdclub.virginia.edu",
-		bio: "Leading the club with passion for conservation and community building. Favorite bird: Peregrine Falcon.",
+		bio: "Leading the club with passion for conservation and community building . Favorite bird: Peregrine Falcon.",
 		image: "/images/exec-profiles/president.jpeg",
 	},
 	{
