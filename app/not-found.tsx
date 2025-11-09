@@ -21,7 +21,13 @@ export default function NotFound() {
             <Button variant="default" size="lg">Go Home</Button>
           </Link>
           <Link href="/events">
-            <Button variant="outline" size="lg">View Events</Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-foreground hover:text-foreground"
+            >
+              View Events
+            </Button>
           </Link>
         </div>
       </main>

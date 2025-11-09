@@ -64,7 +64,6 @@ export default function AdminPage() {
     location: "",
     bodyMarkdown: "",
     signupUrl: "",
-    signupEmbedUrl: "",
     hasGoogleForm: false,
     hidden: false,
   }
@@ -84,6 +83,27 @@ export default function AdminPage() {
   const [uploadError, setUploadError] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [birdImages, setBirdImages] = useState<string[]>([])
+  // Edit Events state
+  const [events, setEvents] = useState<Array<{
+    slug: string
+    title: string
+    startDate: string
+    endDate: string | null
+    startTime: string | null
+    endTime: string | null
+    location: string
+    imagePublicIds: string[]
+    hidden: boolean
+    signupUrl: string | null
+    hasGoogleForm: boolean
+    bodyMarkdown: string
+  }>>([])
+  const [loadingEvents, setLoadingEvents] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editingSlug, setEditingSlug] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
   const router = useRouter()
   const headerImageInputRef = useRef<HTMLInputElement>(null)
   const additionalImagesInputRef = useRef<HTMLInputElement>(null)
@@ -104,6 +124,24 @@ export default function AdminPage() {
     const interval = setInterval(checkAuth, 15000)
     return () => clearInterval(interval)
   }, [])
+
+  // Load events when authorized
+  useEffect(() => {
+    const loadEvents = async () => {
+      if (!isAuthorized) return
+      try {
+        setLoadingEvents(true)
+        const res = await fetch('/api/events?admin=true')
+        if (res.ok) {
+          const data = await res.json()
+          setEvents(data.events || [])
+        }
+      } finally {
+        setLoadingEvents(false)
+      }
+    }
+    loadEvents()
+  }, [isAuthorized])
 
   // Load bird images for decorative birds
   useEffect(() => {
@@ -311,7 +349,8 @@ export default function AdminPage() {
     }
     setForm((f) => {
       const updatedForm = { ...f, [name]: fieldValue };
-      if (name === "title") {
+      // Only generate slug from title if NOT in edit mode
+      if (name === "title" && !editMode) {
         updatedForm.slug = value
           .toLowerCase()
           .replace(/[^a-z0-9-\s]/g, "") // Remove invalid characters
@@ -323,6 +362,11 @@ export default function AdminPage() {
 
   // Debounced slug availability check whenever slug changes
   useEffect(() => {
+    if (editMode) {
+      // In edit mode, keep existing slug; skip uniqueness checks
+      setDisplaySlug(form.slug)
+      return
+    }
     if (!form.slug) {
       setDisplaySlug("")
       return
@@ -349,7 +393,7 @@ export default function AdminPage() {
       controller.abort()
       clearTimeout(t)
     }
-  }, [form.slug])
+  }, [form.slug, editMode])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -404,7 +448,7 @@ export default function AdminPage() {
 
     try {
       console.log("Sending POST request to /api/events");
-      const res = await fetch("/api/events", { method: "POST", body: fd });
+  const res = await fetch("/api/events", { method: "POST", body: fd });
 
       console.log("Response status:", res.status, res.statusText);
       
@@ -424,6 +468,8 @@ export default function AdminPage() {
         setTimeout(() => setSubmitted(false), 1500);
         setTimeout(() => setShowSuccessToast(false), 2000);
         router.refresh();
+        // reload events for list below
+        try { const r = await fetch('/api/events?admin=true'); if (r.ok) { const d = await r.json(); setEvents(d.events || []) } } catch {}
       } else {
         console.log("❌ Submission failed with status:", res.status);
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
@@ -444,6 +490,117 @@ export default function AdminPage() {
     }
   }
 
+  // Admin: start editing an event -> populate form and switch to editMode
+  const startEdit = (e: typeof events[number]) => {
+    setEditMode(true)
+    setEditingSlug(e.slug)
+    // Populate form fields
+    setForm({
+      title: e.title,
+      slug: e.slug, // keep slug read-only
+      startDate: e.startDate || "",
+      endDate: e.endDate || "",
+      startTime: e.startTime || "",
+      endTime: e.endTime || "",
+      location: e.location,
+      bodyMarkdown: e.bodyMarkdown || "",
+      signupUrl: e.signupUrl || "",
+      hasGoogleForm: !!e.hasGoogleForm,
+      hidden: !!e.hidden,
+    })
+    // Reset images (we won't auto-load existing images as files; keep previews empty)
+    setHeaderImage(null)
+    setHeaderImagePreview("")
+    setAdditionalImages([])
+    setAdditionalImagePreviews([])
+    // Clear any saved local draft since we're editing existing
+    localStorage.removeItem("adminFormData")
+    localStorage.removeItem("adminHeaderImagePreview")
+    localStorage.removeItem("adminAdditionalImagePreviews")
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Save changes for edited event (without re-uploading images unless provided)
+  const saveChanges = async () => {
+    if (!editingSlug) return
+    try {
+      setSubmitting(true)
+      setError("")
+      // Build payload from form. Only include fields we allow to update.
+      const payload: any = {
+        title: form.title,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+        startTime: form.startTime || null,
+        endTime: form.endTime || null,
+        location: form.location,
+        bodyMarkdown: form.bodyMarkdown || '',
+        signupUrl: form.signupUrl || null,
+        hasGoogleForm: !!form.hasGoogleForm,
+        hidden: !!form.hidden,
+      }
+      // Note: Editing images via re-upload not implemented here; could be added later
+      const res = await fetch(`/api/events/${encodeURIComponent(editingSlug)}` , {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        setShowSuccessToast(true)
+        setTimeout(() => setShowSuccessToast(false), 1800)
+        // Refresh list and exit edit mode
+        try { const r = await fetch('/api/events?admin=true'); if (r.ok) { const d = await r.json(); setEvents(d.events || []) } } catch {}
+        setEditMode(false)
+        setEditingSlug(null)
+        setForm(initialForm)
+      } else {
+        const err = await res.json().catch(() => ({ error: 'Update failed' }))
+        setError(err.error || 'Update failed')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const toggleHidden = async (slug: string, nextHidden: boolean) => {
+    // optimistic update
+    setEvents(prev => prev.map(ev => ev.slug === slug ? { ...ev, hidden: nextHidden } : ev))
+    const res = await fetch(`/api/events/${encodeURIComponent(slug)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hidden: nextHidden }),
+    })
+    if (!res.ok) {
+      // revert
+      setEvents(prev => prev.map(ev => ev.slug === slug ? { ...ev, hidden: !nextHidden } : ev))
+    }
+  }
+
+  const requestDelete = (slug: string) => {
+    setDeletingSlug(slug)
+    setDeleteConfirmText("")
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (deleteConfirmText.trim().toLowerCase() !== 'delete' || !deletingSlug) return
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(deletingSlug)}`, { method: 'DELETE' })
+      if (res.ok) {
+        setEvents(prev => prev.filter(e => e.slug !== deletingSlug))
+        setShowDeleteModal(false)
+        setDeletingSlug(null)
+      } else {
+        const err = await res.json().catch(() => ({ error: 'Delete failed' }))
+        alert(err.error || 'Delete failed')
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Delete failed')
+    }
+  }
+
   // Check if user is logged in
   if (!isAuthorized) {
     return (
@@ -459,6 +616,14 @@ export default function AdminPage() {
       </div>
     )
   }
+
+  const clearForm = () => {
+    setForm(initialForm);
+    setHeaderImage(null);
+    setHeaderImagePreview("");
+    setAdditionalImages([]);
+    setAdditionalImagePreviews([]);
+  };
 
   return (
     <div className="flex-1 relative flex flex-col">
@@ -477,8 +642,11 @@ export default function AdminPage() {
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-4xl relative z-20">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">Add New Event</CardTitle>
+              <CardHeader className="flex justify-between items-center">
+                <CardTitle className="text-2xl">{editMode ? 'Edit Event' : 'Add New Event'}</CardTitle>
+                <Button onClick={clearForm} size="sm" variant={"outline"} className="hover:bg-primary hover:text-foreground">
+                  Clear Form
+                </Button>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -548,7 +716,12 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Start Time (Optional)</label>
-                      <Input name="startTime" type="time" value={form.startTime} onChange={handleChange} />
+                      <Input 
+                        name="startTime" 
+                        type="time" 
+                        value={form.startTime.slice(0, 5)} 
+                        onChange={handleChange} 
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">End Time (Optional)</label>
@@ -578,10 +751,6 @@ export default function AdminPage() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Signup URL</label>
                         <Input name="signupUrl" value={form.signupUrl} onChange={handleChange} placeholder="https://forms.gle/..." />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Signup Embed URL</label>
-                        <Input name="signupEmbedUrl" value={form.signupEmbedUrl} onChange={handleChange} placeholder="https://docs.google.com/forms/d/e/..." />
                       </div>
                       <div className="flex items-center gap-3 pt-2">
                         <input
@@ -613,7 +782,7 @@ export default function AdminPage() {
                     
                     {/* Header Image Upload */}
                     <div className="space-y-2 mb-6">
-                      <label className="text-sm font-medium">Event Header Image (Required)</label>
+                      <label className="text-sm font-medium">Event Header Image {editMode ? '(Optional to change)' : '(Required)'}</label>
                       <p className="text-xs text-muted-foreground mb-3">This will be the main image displayed for your event</p>
                       
                       {!headerImagePreview ? (
@@ -774,13 +943,77 @@ export default function AdminPage() {
                   )}
 
                   <div className="flex gap-3 pt-4">
-                    <Button type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
-                      {submitting ? "Submitting..." : submitted ? "✓ Submitted!" : "Create Event"}
-                    </Button>
+                    {editMode ? (
+                      <>
+                        <Button type="button" onClick={saveChanges} disabled={submitting} className="flex-1" size="lg">
+                          {submitting ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                        <Button type="button" variant="outline" className="hover:bg-primary hover:text-foreground" size="lg" onClick={() => { setEditMode(false); setEditingSlug(null); setForm(initialForm); }}>
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
+                        {submitting ? "Submitting..." : submitted ? "✓ Submitted!" : "Create Event"}
+                      </Button>
+                    )}
                   </div>
                 </form>
               </CardContent>
             </Card>
+            {/* Edit Events Section */}
+            <Card className="mt-10">
+              <CardHeader>
+                <CardTitle className="text-2xl">Edit Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingEvents ? (
+                  <div className="text-sm text-muted-foreground">Loading events…</div>
+                ) : events.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No events found.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {events.map((ev) => (
+                      <div key={ev.slug} className="flex items-center gap-4 p-3 border rounded-lg">
+                        <div className="relative w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
+                          {ev.imagePublicIds[0] ? (
+                            <img src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,g_auto,f_auto,q_auto,w_256,h_160/${ev.imagePublicIds[0]}.webp`} alt={ev.title} className="object-cover w-full h-full" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold truncate">{ev.title}</div>
+                          <div className="text-xs text-muted-foreground truncate">{ev.startDate}{ev.endDate ? ` - ${ev.endDate}` : ''} {ev.startTime ? ` | ${ev.startTime.slice(0, 5)}` : ''}{ev.endTime ? ` - ${ev.endTime.slice(0, 5)}` : ''} | {ev.location}</div>
+                          <label className="text-xs flex items-center gap-2 mt-1">
+                            <input type="checkbox" checked={!!ev.hidden} onChange={(e) => toggleHidden(ev.slug, e.target.checked)} />
+                            Hide from public view
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" onClick={() => startEdit(ev)}>Edit</Button>
+                          <Button size="sm" variant="destructive" onClick={() => requestDelete(ev.slug)}>Delete</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            {/* Delete confirmation modal (matches login modal styling) */}
+            {showDeleteModal && (
+              <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowDeleteModal(false)}>
+                <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-lg border w-full max-w-sm flex flex-col relative" style={{ position: 'fixed', bottom: '40%', left: '50%', transform: 'translateX(-50%)' }}>
+                  <h3 className="text-lg font-bold mb-2">Delete Event</h3>
+                  <p className="text-sm text-muted-foreground mb-4">This will permanently delete the event and its images. Type "delete" to confirm.</p>
+                  <Input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder="Type delete" />
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" size="lg" className="hover:bg-primary hover:text-foreground" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={confirmDelete} disabled={deleteConfirmText.trim().toLowerCase() !== 'delete'}>Delete</Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </main>

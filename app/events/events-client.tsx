@@ -67,78 +67,85 @@ export function EventsClient({ events }: EventsClientProps) {
               </aside>
               {/* Events Grid */}
               <div className="lg:col-span-3 grid md:grid-cols-2 gap-6">
-                {events.map(event => {
-                  const now = new Date()
-                  let status: 'Upcoming' | 'Current' | 'Past' = 'Upcoming'
-                  const displayDate = formatDisplayDate(event.startDate, event.endDate ?? event.startDate)
-                  try {
-                    const start = event.startTime ? parseTimeToken(event.startDate, event.startTime) : null
-                    const end = event.endTime ? parseTimeToken(event.startDate, event.endTime) : null
-                    if (start && end) {
-                      if (now > end) status = 'Past'
-                      else if (now >= start && now <= end) status = 'Current'
-                    } else {
-                      const eventDate = isoToZonedDate(event.startDate, DEFAULT_TIMEZONE)
-                      const todayIso = new Date().toISOString().slice(0, 10)
-                      const today = isoToZonedDate(todayIso, DEFAULT_TIMEZONE)
-                      if (eventDate.getTime() < now.getTime()) status = 'Past'
-                      if (
-                        eventDate.getUTCFullYear() === today.getUTCFullYear() &&
-                        eventDate.getUTCMonth() === today.getUTCMonth() &&
-                        eventDate.getUTCDate() === today.getUTCDate()
-                      ) status = 'Current'
-                    }
-                  } catch { /* ignore */ }
-                  return (
-                    <Card key={event.slug} className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
-                      <Link href={event.url} className="block relative h-48 overflow-hidden p-0 m-0 bg-muted">
-                        {event.imagePublicId ? (
-                          <CloudinaryImage
-                            src={event.imagePublicId}
-                            alt={event.title}
-                            fill
-                            className={`object-cover group-hover:scale-110 transition-transform duration-500 ${status === 'Past' ? 'saturate-[0.3]' : ''}`}
-                          />
-                        ) : (
-                          <div className={`absolute inset-0 bg-muted flex items-center justify-center text-muted-foreground ${status === 'Past' ? 'saturate-[0.3]' : ''}`}>
-                            <span className="text-sm">No image</span>
-                          </div>
-                        )}
-                        <Badge className="absolute top-4 right-4 shadow-lg font-semibold text-sm" style={{ backgroundColor: '#36834C', color: 'white' }}>
-                          {status}
-                        </Badge>
-                      </Link>
-                      <CardHeader>
-                        <CardTitle className="font-display text-2xl">
-                          <Link href={event.url} className="hover:no-underline focus:no-underline">
-                            {event.title}
-                          </Link>
-                        </CardTitle>
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                          <MapPin className="w-4 h-4" />
-                          {event.location}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-start justify-between text-sm text-muted-foreground">
-                          <div className="flex gap-1 pr-2 max-w-[70%]">
-                            <Calendar className="w-4 h-4 mt-[0.0625rem] flex-shrink-0" />
-                            <span className="leading-tight whitespace-pre-line">{displayDate}</span>
-                          </div>
-                          {event.startTime && (
-                            <div className="flex gap-1 text-right">
-                              <Clock className="w-4 h-4 mt-[0.0625rem] flex-shrink-0" />
-                              <span className="leading-tight">
-                                {formatTimeForDisplay(event.startDate, event.startTime ?? undefined)}
-                                {event.endTime ? ` - ${formatTimeForDisplay(event.startDate, event.endTime ?? undefined)}` : ''}
-                              </span>
+                {events.length === 0 ? (
+                  <div className="col-span-full flex flex-col items-center justify-center py-24 text-center">
+                    <h1 className="font-display text-5xl font-bold mb-4 text-primary">No Events Scheduled</h1>
+                    <p className="text-lg mb-6 text-muted-foreground max-w-md mx-auto">There are currently no upcoming events. Please check back soon for new birding trips and club activities!</p>
+                  </div>
+                ) : (
+                  events.map(event => {
+                    const now = new Date()
+                    let status: 'Upcoming' | 'Current' | 'Past' = 'Upcoming'
+                    const displayDate = formatDisplayDate(event.startDate, event.endDate ?? event.startDate)
+                    try {
+                      const start = event.startTime ? parseTimeToken(event.startDate, event.startTime) : null
+                      const end = event.endTime ? parseTimeToken(event.startDate, event.endTime) : null
+                      if (start && end) {
+                        if (now > end) status = 'Past'
+                        else if (now >= start && now <= end) status = 'Current'
+                      } else {
+                        const eventDate = isoToZonedDate(event.startDate, DEFAULT_TIMEZONE)
+                        const todayIso = new Date().toISOString().slice(0, 10)
+                        const today = isoToZonedDate(todayIso, DEFAULT_TIMEZONE)
+                        if (eventDate.getTime() < now.getTime()) status = 'Past'
+                        if (
+                          eventDate.getUTCFullYear() === today.getUTCFullYear() &&
+                          eventDate.getUTCMonth() === today.getUTCMonth() &&
+                          eventDate.getUTCDate() === today.getUTCDate()
+                        ) status = 'Current'
+                      }
+                    } catch { /* ignore */ }
+                    return (
+                      <Card key={event.slug} className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
+                        <Link href={event.url} className="block relative h-48 overflow-hidden p-0 m-0 bg-muted">
+                          {event.imagePublicId ? (
+                            <CloudinaryImage
+                              src={event.imagePublicId}
+                              alt={event.title}
+                              fill
+                              className={`object-cover group-hover:scale-110 transition-transform duration-500 ${status === 'Past' ? 'saturate-[0.3]' : ''}`}
+                            />
+                          ) : (
+                            <div className={`absolute inset-0 bg-muted flex items-center justify-center text-muted-foreground ${status === 'Past' ? 'saturate-[0.3]' : ''}`}>
+                              <span className="text-sm">No image</span>
                             </div>
                           )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+                          <Badge className="absolute top-4 right-4 shadow-lg font-semibold text-sm" style={{ backgroundColor: '#36834C', color: 'white' }}>
+                            {status}
+                          </Badge>
+                        </Link>
+                        <CardHeader>
+                          <CardTitle className="font-display text-2xl">
+                            <Link href={event.url} className="hover:no-underline focus:no-underline">
+                              {event.title}
+                            </Link>
+                          </CardTitle>
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <MapPin className="w-4 h-4" />
+                            {event.location}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-start justify-between text-sm text-muted-foreground">
+                            <div className="flex gap-1 pr-2 max-w-[70%]">
+                              <Calendar className="w-4 h-4 mt-[0.0625rem] flex-shrink-0" />
+                              <span className="leading-tight whitespace-pre-line">{displayDate}</span>
+                            </div>
+                            {event.startTime && (
+                              <div className="flex gap-1 text-right">
+                                <Clock className="w-4 h-4 mt-[0.0625rem] flex-shrink-0" />
+                                <span className="leading-tight">
+                                  {formatTimeForDisplay(event.startDate, event.startTime ?? undefined)}
+                                  {event.endTime ? ` - ${formatTimeForDisplay(event.startDate, event.endTime ?? undefined)}` : ''}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })
+                )}
               </div>
             </div>
           </div>

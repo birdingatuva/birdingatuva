@@ -20,7 +20,6 @@ export interface EventTemplateProps {
   timeDisplay: string;
   bodyMarkdown: string;
   signupUrl: string;
-  signupEmbedUrl?: string;
   hasGoogleForm?: boolean;
 }
 
@@ -34,7 +33,6 @@ export default function EventTemplate({
   timeDisplay,
   bodyMarkdown,
   signupUrl,
-  signupEmbedUrl,
   hasGoogleForm = false,
 }: EventTemplateProps) {
   // Gallery images are all images except the first one (header image)
@@ -95,37 +93,31 @@ export default function EventTemplate({
                   </div>
                 )}
                 
-                {hasGoogleForm && (signupUrl || signupEmbedUrl) ? (
+                {hasGoogleForm && signupUrl ? (
                   <div className="mb-6">
                     <div className="bg-white/90 rounded-xl shadow-md border border-gray-100 p-6">
                       <h3 className="font-display text-2xl font-bold mb-4">
-                        {signupUrl ? (
-                          <a 
-                            href={signupUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary hover:text-primary/80 underline decoration-2 underline-offset-4 transition-colors"
-                          >
-                            Sign Up
-                          </a>
-                        ) : (
-                          <span className="text-foreground">Sign Up</span>
-                        )}
-                      </h3>
-                      {signupEmbedUrl && (
-                        <iframe
-                          src={signupEmbedUrl}
-                          width="100%"
-                          height="600"
-                          title={`${title} Signup`}
-                          className="rounded-lg border border-gray-200"
-                          style={{ background: 'transparent', border: 'none' }}
-                          allowFullScreen
-                          loading="lazy"
+                        <a 
+                          href={signupUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary/80 underline decoration-2 underline-offset-4 transition-colors"
                         >
-                          Loading…
-                        </iframe>
-                      )}
+                          Sign Up
+                        </a>
+                      </h3>
+                      <iframe
+                        src={signupUrl}
+                        width="100%"
+                        height="600"
+                        title={`${title} Signup`}
+                        className="rounded-lg border border-gray-200"
+                        style={{ background: 'transparent', border: 'none' }}
+                        allowFullScreen
+                        loading="lazy"
+                      >
+                        Loading…
+                      </iframe>
                     </div>
                   </div>
                 ) : null}

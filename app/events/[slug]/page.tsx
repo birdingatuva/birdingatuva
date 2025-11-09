@@ -14,7 +14,6 @@ export default async function EventPage(props: PageProps) {
 
   const bodyMarkdown = record.bodyMarkdown || "Event details coming soon."
   const signupUrl = record.signupUrl || ""
-  const signupEmbedUrl = record.signupEmbedUrl || undefined
   const dateDisplay = formatDisplayDate(record.startDate, record.endDate ?? record.startDate)
   const timeDisplay = [
     formatTimeForDisplay(record.startDate, record.startTime || undefined),
@@ -35,7 +34,6 @@ export default async function EventPage(props: PageProps) {
       timeDisplay={timeDisplay}
       bodyMarkdown={bodyMarkdown}
       signupUrl={signupUrl}
-      signupEmbedUrl={signupEmbedUrl}
       hasGoogleForm={record.hasGoogleForm}
     />
   )

@@ -11,7 +11,6 @@ export interface DbEventRow {
   image_urls: string[] | string | null // jsonb array of public_ids (can be array or string depending on driver)
   body_markdown: string | null
   signup_url: string | null
-  signup_embed_url: string | null
   has_google_form: boolean | null
   hidden?: boolean | null
 }
@@ -26,7 +25,6 @@ export interface EventRecord {
   location: string
   bodyMarkdown: string
   signupUrl: string | null
-  signupEmbedUrl: string | null
   hasGoogleForm: boolean
   imagePublicIds: string[]
   hidden: boolean
@@ -83,7 +81,7 @@ function normalizeDate(val: unknown): string {
 }
 
 export async function listEvents(): Promise<EventRecord[]> {
-  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form, hidden FROM events WHERE hidden IS NOT TRUE ORDER BY start_date DESC;`
+  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, has_google_form, hidden FROM events WHERE hidden IS NOT TRUE ORDER BY start_date DESC;`
   return rows.map(r => {
     const row = r as unknown as DbEventRow
     const startDate = normalizeDate(row.start_date)
@@ -98,7 +96,6 @@ export async function listEvents(): Promise<EventRecord[]> {
       location: row.location,
       bodyMarkdown: row.body_markdown || '',
       signupUrl: row.signup_url,
-      signupEmbedUrl: row.signup_embed_url,
       hasGoogleForm: !!row.has_google_form,
       imagePublicIds: parseImagePublicIds(row.image_urls),
       hidden: !!row.hidden,
@@ -108,7 +105,7 @@ export async function listEvents(): Promise<EventRecord[]> {
 
 export async function getEvent(slug: string): Promise<EventRecord | null> {
   const s = (slug || '').trim()
-  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form, hidden FROM events WHERE lower(trim(slug)) = lower(${s}) LIMIT 1;`
+  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, has_google_form, hidden FROM events WHERE lower(trim(slug)) = lower(${s}) LIMIT 1;`
   if (rows.length === 0) return null
   const r = rows[0] as unknown as DbEventRow
   if (r.hidden === true) return null
@@ -124,9 +121,33 @@ export async function getEvent(slug: string): Promise<EventRecord | null> {
     location: r.location,
     bodyMarkdown: r.body_markdown || '',
     signupUrl: r.signup_url,
-    signupEmbedUrl: r.signup_embed_url,
     hasGoogleForm: !!r.has_google_form,
     imagePublicIds: parseImagePublicIds(r.image_urls),
     hidden: !!r.hidden,
   }
 }
+
+// Admin helper: list ALL events including hidden ones
+export async function listAllEvents(): Promise<EventRecord[]> {
+  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, has_google_form, hidden FROM events ORDER BY start_date DESC;`
+  return rows.map(r => {
+    const row = r as unknown as DbEventRow
+    const startDate = normalizeDate(row.start_date)
+    const endDateRaw = normalizeDate(row.end_date)
+    return {
+      slug: (row.slug || '').trim(),
+      title: row.title,
+      startDate,
+      endDate: endDateRaw || null,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      location: row.location,
+      bodyMarkdown: row.body_markdown || '',
+      signupUrl: row.signup_url,
+      hasGoogleForm: !!row.has_google_form,
+      imagePublicIds: parseImagePublicIds(row.image_urls),
+      hidden: !!row.hidden,
+    }
+  })
+}
+

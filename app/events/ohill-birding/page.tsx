@@ -36,7 +36,6 @@ export default async function OhillBirdingEvent() {
       timeDisplay={timeDisplay}
       bodyMarkdown={bodyMarkdown}
       signupUrl={record.signupUrl || ''}
-      signupEmbedUrl={record.signupEmbedUrl || undefined}
       hasGoogleForm={record.hasGoogleForm}
     />
   )

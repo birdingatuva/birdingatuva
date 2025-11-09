@@ -1,5 +1,6 @@
 import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { verifyAdminToken } from '@/lib/auth'
+import { listEvents, listAllEvents } from '@/lib/events-db'
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@vercel/postgres'
 import { v2 as cloudinary } from 'cloudinary'
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     const location = (formData.get('location') as string) || ''
     const bodyMarkdown = (formData.get('bodyMarkdown') as string) || ''
     const signupUrlRaw = (formData.get('signupUrl') as string) || ''
-    const signupEmbedUrlRaw = (formData.get('signupEmbedUrl') as string) || ''
+  // signupEmbedUrl removed
   const hasGoogleForm = formData.get('hasGoogleForm') === 'true'
   const hidden = formData.get('hidden') === 'true'
 
@@ -60,11 +61,11 @@ export async function POST(req: NextRequest) {
     const startTime = startTimeRaw && startTimeRaw.trim() !== '' ? startTimeRaw : null
     const endTime = endTimeRaw && endTimeRaw.trim() !== '' ? endTimeRaw : null
     const signupUrl = signupUrlRaw && signupUrlRaw.trim() !== '' ? signupUrlRaw : null
-    const signupEmbedUrl = signupEmbedUrlRaw && signupEmbedUrlRaw.trim() !== '' ? signupEmbedUrlRaw : null
+  // signupEmbedUrl removed
     // Handle multiple images
     const imageCount = Math.min(Number(formData.get('imageCount') || 0), MAX_IMAGE_COUNT)
   // We'll store Cloudinary public IDs (e.g., "ohill-birding-img1") in DB
-  const imagePublicIds: string[] = []
+  let imagePublicIds: string[] = [];
   
     // Create a unique slug if taken: base, base-2, base-3, ...
     let slug = baseSlug
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
       let exactExists = false
       let maxNumericSuffix = 1
       for (const r of rows) {
-        const s: string = (r as any).slug
+        const s: string = (r as any).slug;
         if (s.trim().toLowerCase() === baseSlug) {
           exactExists = true
         } else if (s.trim().toLowerCase().startsWith(baseSlug + '-')) {
@@ -145,9 +146,9 @@ export async function POST(req: NextRequest) {
     // Insert into database (store image public_ids as JSON array in image_urls column)
     try {
       await sql`
-        INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, signup_embed_url, has_google_form, hidden)
+        INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, has_google_form, hidden)
         VALUES (
-          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${signupEmbedUrl}, ${hasGoogleForm}, ${hidden}
+          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${hasGoogleForm}, ${hidden}
         )
       `
       console.log(`Successfully inserted event: ${slug}`)
@@ -162,5 +163,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       error: `Server error: ${outerError instanceof Error ? outerError.message : 'Unknown error'}` 
     }, { status: 500 })
+  }
+}
+
+// GET: list events. If admin=true and auth valid -> include hidden. Else public list.
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const isAdminRequested = searchParams.get('admin') === 'true'
+    let events
+    if (isAdminRequested) {
+      const cookieToken = req.cookies.get('admin_jwt')?.value || ''
+      const valid = cookieToken ? verifyAdminToken(cookieToken) : null
+      if (valid) {
+        events = await listAllEvents()
+      } else {
+        // unauthorized admin request -> fall back to public list
+        events = await listEvents()
+      }
+    } else {
+      events = await listEvents()
+    }
+    return NextResponse.json({ events })
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed to list events' }, { status: 500 })
   }
 }
