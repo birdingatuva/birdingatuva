@@ -1,6 +1,6 @@
 # Birding at UVA Club Website
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://birdingatuva.vercel.app)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://birdingatuva.org)
 
 ## Overview
 
@@ -10,7 +10,7 @@ This is the official website for the Birding Club at the University of Virginia.
 
 The project is hosted at:
 
-**[https://birdingatuva.vercel.app](https://birdingatuva.vercel.app)**
+**[https://birdingatuva.org](https://birdingatuva.org)**
 
 ## Run locally
 
@@ -39,5 +39,3 @@ pnpm start
 ```bash
 pnpm dev
 ```
-
-If you use a different package manager (npm or yarn) tell me and I can add equivalent commands.
