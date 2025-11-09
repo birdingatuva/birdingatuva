@@ -555,7 +555,13 @@ export default function AdminPage() {
                         name="endTime" 
                         type="time" 
                         value={form.endTime} 
-                        onChange={handleChange}
+                        onChange={(e) => {
+                          if (!form.startTime && e.target.value) {
+                            setError('Please select a start time before setting an end time.');
+                            return;
+                          }
+                          handleChange(e);
+                        }}
                         min={form.startTime || undefined}
                       />
                     </div>
