@@ -18,12 +18,12 @@ const faqCategories = [
       {
         question: "How do I join the club?",
         answer:
-          "Simply attend one of our meetings or trips! Semester dues are $10, which you can pay with cash or Venmo at or before your first trip. Follow us on Instagram or join our GroupMe (links on the home page) for event announcements and trip details.",
+          "Simply attend one of our meetings or trips! Semester dues are $7, which you can pay with cash or Venmo at or before your first trip. Follow us on Instagram or join our GroupMe (links on the home page) for event announcements and trip details.",
       },
       {
         question: "Is there a membership fee?",
         answer:
-          "Yes, semester dues are $10, which you can pay with cash or Venmo at or before your first trip. Your dues cover gas reimbursement for drivers on local trips, so everyone can participate. Additional fees may apply for longer-distance trips to cover transportation costs.",
+          "Yes, semester dues are $7, which you can pay with cash or Venmo at or before your first trip. Your dues cover gas reimbursement for drivers on local trips, so everyone can participate. Additional fees may apply for longer-distance trips to cover transportation costs.",
       },
       {
         question: "Do I need birding knowledge to join?",

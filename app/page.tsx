@@ -407,7 +407,7 @@ export default function HomePage() {
 													Semester Dues
 												</p>
 												<p className="font-display font-bold text-5xl text-accent">
-													$10
+													$7
 												</p>
 											</div>
 											<div className="space-y-3 text-sm">
