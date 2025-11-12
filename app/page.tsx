@@ -107,14 +107,11 @@ export default function HomePage() {
 					<div className="relative z-20 text-center px-4 max-w-5xl mx-auto animate-fade-in-up">
 						<div className="mb-8 flex justify-center">
 							<div className="relative w-40 h-40 md:w-48 md:h-48 drop-shadow-2xl">
-								<Image
-									src="/images/club-logo.png"
+								<CloudinaryImage
+									src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/home-page/logo-transparent`}
 									alt="Birding at UVA Logo"
 									fill
 									className="object-contain filter drop-shadow-[0_4px_20px_rgba(0,0,0,0.9)] drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
-									priority
-									quality={90}
-									sizes="(max-width: 768px) 160px, 192px"
 								/>
 							</div>
 						</div>
@@ -157,7 +154,7 @@ export default function HomePage() {
 							<div className="md:order-1 order-2 space-y-3">
 								<div className="relative h-auto md:h-[400px] rounded-2xl overflow-hidden shadow-lg">
 									<CloudinaryImage
-										src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/about-us/about-us`}
+										src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/home-page/about-us`}
 										alt="Club members during bird banding activity"
 										fill
 										className="object-contain md:object-cover !relative !h-auto md:!absolute md:!h-full"
@@ -517,15 +514,12 @@ export default function HomePage() {
 				<section className="py-20 px-4 bg-background">
 					<div className="container mx-auto max-w-4xl text-center relative z-20">
 						<div className="flex justify-center mb-6">
-							<Image
-								src="/images/ebird-logo.png"
+							<CloudinaryImage
+								src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/home-page/ebird`}
 								alt="eBird Logo"
 								width={200}
 								height={80}
 								className="object-contain"
-								quality={85}
-								sizes="200px"
-								loading="lazy"
 							/>
 						</div>
 						<h2 className="font-display text-5xl md:text-6xl font-bold mb-6 text-primary">
