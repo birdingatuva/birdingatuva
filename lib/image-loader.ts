@@ -57,13 +57,27 @@ export default function wsrvImageLoader({ src, width, quality }: ImageLoaderProp
     return src
   }
   
-  // For production/preview deployments, use wsrv.nl
+  // For Cloudinary URLs, use Cloudinary directly (it's already optimized)
+  // Don't route through wsrv.nl as it adds unnecessary latency
+  if (src.includes('cloudinary.com') || src.includes('res.cloudinary.com')) {
+    return src
+  }
+  
+  // For other external CDN URLs, use them directly
+  if (src.startsWith('http://') || src.startsWith('https://')) {
+    // Check if it's already from a CDN (avoid double-proxying)
+    if (src.includes('cdn.') || src.includes('cloudfront.net')) {
+      return src
+    }
+    // For other external URLs, you can optionally route through wsrv.nl
+    const imageUrl = src.replace(/^https?:\/\//, '')
+    return buildWsrvUrl(imageUrl, width, quality)
+  }
+  
+  // For production/preview deployments with local images, use wsrv.nl
   let imageUrl: string
   
-  if (src.startsWith('http://') || src.startsWith('https://')) {
-    // Remove the protocol for wsrv.nl (it will handle it)
-    imageUrl = src.replace(/^https?:\/\//, '')
-  } else if (src.startsWith('/')) {
+  if (src.startsWith('/')) {
     // For absolute paths, prepend the deployment domain
     imageUrl = `${domain}${src}`
   } else {
@@ -71,6 +85,10 @@ export default function wsrvImageLoader({ src, width, quality }: ImageLoaderProp
     imageUrl = `${domain}/${src}`
   }
   
+  return buildWsrvUrl(imageUrl, width, quality)
+}
+
+function buildWsrvUrl(imageUrl: string, width: number, quality?: number): string {
   // Build wsrv.nl URL with parameters
   const params = new URLSearchParams()
   
