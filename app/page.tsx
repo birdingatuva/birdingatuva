@@ -4,6 +4,7 @@ import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { HeroSlideshow } from "@/components/hero-slideshow"
+import { CloudinaryImage } from "@/components/cloudinary-image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,7 +20,7 @@ const trips = [
 			"Varied habitats perfect for spotting warblers, woodpeckers, and waterfowl throughout the seasons.",
 		frequency: "Weekly",
 		location: "215-acre preserve",
-		image: "/images/local-trips/ivy-creek.png",
+		image: "local-trip-images/ivy-creek",
 		allTrailsUrl:
 			"https://www.alltrails.com/trail/us/virginia/ivy-creek-natural-area-loop",
 		difficulty: "Easy",
@@ -31,7 +32,7 @@ const trips = [
 			"Experience thrushes, vireos, and raptors soaring over the Blue Ridge Mountains.",
 		frequency: "Seasonal",
 		location: "High-elevation birding",
-		image: "/images/local-trips/shenandoah.png",
+		image: "local-trip-images/shenandoah",
 		allTrailsUrl:
 			"https://www.alltrails.com/parks/us/virginia/shenandoah-national-park",
 		difficulty: "Moderate",
@@ -43,7 +44,7 @@ const trips = [
 			"Walk along the river to spot herons, kingfishers, and a variety of songbirds.",
 		frequency: "Weekly",
 		location: "River corridor",
-		image: "/images/local-trips/rivanna.png",
+		image: "local-trip-images/rivanna",
 		allTrailsUrl: "https://www.alltrails.com/trail/us/virginia/rivanna-trail",
 		difficulty: "Easy",
 		distance: "20 mi",
@@ -54,7 +55,7 @@ const trips = [
 			"Beginner-friendly outings to observe birds right on campus. Perfect for busy students!",
 		frequency: "Bi-weekly",
 		location: "Campus birding",
-		image: "/images/local-trips/ohill.png",
+		image: "local-trip-images/ohill",
 		allTrailsUrl:
 			"https://www.alltrails.com/trail/us/virginia/observatory-hill-loop",
 		difficulty: "Easy",
@@ -63,17 +64,16 @@ const trips = [
 ]
 
 export default function HomePage() {
-	const heroImagesDir = path.join(process.cwd(), "public/images/hero-backgrounds")
-	const heroImages = fs.readdirSync(heroImagesDir).filter((file) => {
-		const ext = path.extname(file).toLowerCase()
-		const filePath = path.join(heroImagesDir, file)
-		const isFile = fs.statSync(filePath).isFile()
-		return (
-			isFile &&
-			[".jpg", ".jpeg", ".png", ".webp"].includes(ext) &&
-			!file.startsWith(".")
-		)
-	})
+	// Use Cloudinary images for hero slideshow
+	// These correspond to the images uploaded to the hero-backgrounds folder
+	const heroImages = [
+		"hero-backgrounds/IMG_3169-CR3",
+		"hero-backgrounds/IMG_3543-CR3",
+		"hero-backgrounds/IMG_4304-CR3",
+		"hero-backgrounds/IMG_5559-CR3",
+		"hero-backgrounds/IMG_7988_DxO",
+		"hero-backgrounds/IMG_8170_DxO",
+	]
 
 	const flyingDir = path.join(process.cwd(), "public/images/flying-birds")
 	let birdImages: string[] = []
@@ -155,14 +155,11 @@ export default function HomePage() {
 						<div className="grid md:grid-cols-2 gap-12 items-center">
 							<div className="md:order-1 order-2 space-y-3">
 								<div className="relative h-auto md:h-[400px] rounded-2xl overflow-hidden shadow-lg">
-									<Image
-										src="/images/about-us.jpeg"
+									<CloudinaryImage
+										src="about-us/about-us"
 										alt="Club members during bird banding activity"
 										fill
 										className="object-contain md:object-cover !relative !h-auto md:!absolute md:!h-full"
-										quality={85}
-										sizes="(max-width: 768px) 100vw, 50vw"
-										loading="lazy"
 									/>
 								</div>
 								<p className="text-sm text-center text-muted-foreground italic">
@@ -456,14 +453,11 @@ export default function HomePage() {
 													className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0"
 												>
 									<div className="relative h-48 overflow-hidden p-0 m-0">
-										<Image
-											src={trip.image || "/placeholder.svg"}
+										<CloudinaryImage
+											src={trip.image}
 											alt={trip.name}
 											fill
 											className="object-cover group-hover:scale-110 transition-transform duration-500"
-											quality={85}
-											sizes="(max-width: 768px) 100vw, 50vw"
-											loading="lazy"
 										/>
 										<Badge
 											className="absolute top-4 right-4 shadow-lg font-semibold text-sm"

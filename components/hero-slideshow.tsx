@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import Image from "next/image"
+import { CldImage } from "next-cloudinary"
 
 interface HeroSlideshowProps {
   images: string[]
@@ -65,13 +65,12 @@ export function HeroSlideshow({ images }: HeroSlideshowProps) {
             }}
           >
             {shouldRender && (
-              <Image
-                src={`/images/hero-backgrounds/${imageName}`}
+              <CldImage
+                src={imageName}
                 alt=""
                 fill
                 className="object-cover brightness-75"
                 priority={index === 0}
-                quality={85}
                 sizes="100vw"
                 loading={index === 0 ? "eager" : "lazy"}
               />
