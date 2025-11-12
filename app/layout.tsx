@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   title: "Birding at UVA",
   description: "Birding Club at the University of Virginia  - Join us for birding trips, education, and community",
   icons: {
-    icon: "/images/club-logo.png",
+    icon: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`,
   },
 }
 
@@ -43,16 +43,16 @@ export default function RootLayout({
       <head>
         <title>Birding at UVA</title>
         <meta name="description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
-        <link rel="icon" href="/images/club-logo.png" type="image/png" />
+        <link rel="icon" href={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`} type="image/png" />
         <meta property="og:title" content="Birding at UVA" />
         <meta property="og:description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
-        <meta property="og:image" content="/images/club-logo.png" />
+        <meta property="og:image" content={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`} />
         <meta property="og:url" content="https://birdingatuva.org" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Birding at UVA" />
         <meta name="twitter:description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
-        <meta name="twitter:image" content="/images/club-logo.png" />
+        <meta name="twitter:image" content={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`} />
         <link rel="canonical" href="https://birdingatuva.org" />
         {/* Structured Data: Organization */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -60,7 +60,7 @@ export default function RootLayout({
           "@type": "Organization",
           "name": "Birding at UVA",
           "url": "https://birdingatuva.org",
-          "logo": "https://birdingatuva.org/images/club-logo.png",
+          "logo": `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`,
           "sameAs": [
             "https://instagram.com/birdingatuva",
             "https://linktr.ee/birdingatuva"

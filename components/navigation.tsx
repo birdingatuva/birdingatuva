@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 // Previous localStorage token helpers removed; now rely on HttpOnly cookie + session endpoint.
 import { Button } from "@/components/ui/button"
+import { CloudinaryImage } from "@/components/cloudinary-image"
 
 export function Navigation() {
   const pathname = usePathname()
@@ -109,15 +110,15 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Name */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity md:-ml-12">
-            <Image
-              src="/images/club-logo.png"
-              alt="Birding at UVA Logo"
-              width={50}
-              height={50}
-              className="rounded-full"
-              quality={90}
-              sizes="50px"
-            />
+            <div className="relative w-[50px] h-[50px] rounded-full overflow-hidden">
+              <CloudinaryImage
+                src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`}
+                alt="Birding at UVA Logo"
+                width={50}
+                height={50}
+                className="object-cover"
+              />
+            </div>
             <div className="flex flex-col">
               <span className="font-sans text-lg sm:text-xl md:text-2xl font-semibold tracking-wide">
                 Birding at UVA
