@@ -1,6 +1,7 @@
 "use client"
 import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { useState, useRef, useEffect } from "react"
+import { dedupeJson } from '@/lib/fetch-dedupe'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -114,8 +115,8 @@ export default function AdminPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/admin-session')
-        setIsAuthorized(res.ok)
+        const data = await dedupeJson<{ authenticated: boolean }>('/api/admin-session')
+        setIsAuthorized(!!data.authenticated)
       } catch {
         setIsAuthorized(false)
       }
@@ -131,11 +132,10 @@ export default function AdminPage() {
       if (!isAuthorized) return
       try {
         setLoadingEvents(true)
-        const res = await fetch('/api/events?admin=true')
-        if (res.ok) {
-          const data = await res.json()
-          setEvents(data.events || [])
-        }
+        const data = await dedupeJson<{ events: any[] }>('/api/events?admin=true')
+        setEvents(data.events || [])
+      } catch {
+        // ignore
       } finally {
         setLoadingEvents(false)
       }
@@ -469,7 +469,7 @@ export default function AdminPage() {
         setTimeout(() => setShowSuccessToast(false), 2000);
         router.refresh();
         // reload events for list below
-        try { const r = await fetch('/api/events?admin=true'); if (r.ok) { const d = await r.json(); setEvents(d.events || []) } } catch {}
+  try { const d = await dedupeJson<{ events: any[] }>('/api/events?admin=true'); setEvents(d.events || []) } catch {}
       } else {
         console.log("❌ Submission failed with status:", res.status);
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
@@ -549,7 +549,7 @@ export default function AdminPage() {
         setShowSuccessToast(true)
         setTimeout(() => setShowSuccessToast(false), 1800)
         // Refresh list and exit edit mode
-        try { const r = await fetch('/api/events?admin=true'); if (r.ok) { const d = await r.json(); setEvents(d.events || []) } } catch {}
+  try { const d = await dedupeJson<{ events: any[] }>('/api/events?admin=true'); setEvents(d.events || []) } catch {}
         setEditMode(false)
         setEditingSlug(null)
         setForm(initialForm)
@@ -567,7 +567,7 @@ export default function AdminPage() {
   const toggleHidden = async (slug: string, nextHidden: boolean) => {
     // optimistic update
     setEvents(prev => prev.map(ev => ev.slug === slug ? { ...ev, hidden: nextHidden } : ev))
-    const res = await fetch(`/api/events/${encodeURIComponent(slug)}`, {
+  const res = await fetch(`/api/events/${encodeURIComponent(slug)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ hidden: nextHidden }),

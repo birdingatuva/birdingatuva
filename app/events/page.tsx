@@ -1,4 +1,4 @@
-export const revalidate = 0
+export const revalidate = 300
 import { EventsClient } from "./events-client"
 import { listEvents } from "@/lib/events-db"
 

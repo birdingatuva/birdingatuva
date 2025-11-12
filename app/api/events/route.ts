@@ -172,11 +172,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const isAdminRequested = searchParams.get('admin') === 'true'
     let events
+    let isPrivate = false
     if (isAdminRequested) {
       const cookieToken = req.cookies.get('admin_jwt')?.value || ''
       const valid = cookieToken ? verifyAdminToken(cookieToken) : null
       if (valid) {
         events = await listAllEvents()
+        isPrivate = true // do not cache private/admin view
       } else {
         // unauthorized admin request -> fall back to public list
         events = await listEvents()
@@ -184,7 +186,19 @@ export async function GET(req: NextRequest) {
     } else {
       events = await listEvents()
     }
-    return NextResponse.json({ events })
+    // For public responses, instruct CDN to cache & allow stale while revalidate.
+    // For private (admin) responses, disable caching.
+    const headers: Record<string, string> = {
+      // Vary on Cookie since auth depends on cookie presence; ensures CDN doesn't
+      // serve cached public response to an authenticated admin (or vice versa).
+      'Vary': 'Cookie'
+    }
+    if (isPrivate) {
+      headers['Cache-Control'] = 'no-store'
+    } else {
+      headers['Cache-Control'] = 's-maxage=300, stale-while-revalidate=86400'
+    }
+    return NextResponse.json({ events }, { headers })
   } catch (e) {
     return NextResponse.json({ error: 'Failed to list events' }, { status: 500 })
   }

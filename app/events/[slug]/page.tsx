@@ -1,3 +1,4 @@
+export const revalidate = 300
 import { notFound } from "next/navigation"
 import EventTemplate from "../EventTemplate"
 import { getEvent } from "@/lib/events-db"

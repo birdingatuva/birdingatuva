@@ -1,3 +1,4 @@
+export const revalidate = 300
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { DecorativeBirds } from "@/components/decorative-birds";

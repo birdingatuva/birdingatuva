@@ -1,3 +1,4 @@
+export const dynamic = 'force-static'
 import fs from "fs"
 import path from "path"
 import { FAQClient } from "./faq-client"
