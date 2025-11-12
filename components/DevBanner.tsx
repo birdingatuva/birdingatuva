@@ -4,17 +4,16 @@ import React from "react"
 
 function isDevEnv() {
   if (typeof window !== "undefined") {
-    // Check for localhost or .vercel.app preview URLs
     const host = window.location.hostname
+    
+    // Check for localhost
     if (host === "localhost" || host === "127.0.0.1") return true
-    if (host.endsWith(".vercel.app")) return true // Vercel preview
+    
+    // Check for dev subdomain
+    if (host === "dev.birdingatuva.org") return true
+    
+    if (host.includes(".birdingatuva.org") && host !== "www.birdingatuva.org") return true
   }
-  // Also check Vercel env vars at build time
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    const url = process.env.NEXT_PUBLIC_SITE_URL
-    if (url.includes("localhost") || url.includes("vercel.app")) return true
-  }
-  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") return true
   return false
 }
 
