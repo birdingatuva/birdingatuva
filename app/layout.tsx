@@ -71,12 +71,14 @@ export default function RootLayout({
         {/* AppShell is a client component that renders DevBanner and wraps the app */}
         <AppShell>
           <div className="min-h-screen flex flex-col">
-            {/* Temporary banner for announcements. Comment out this section when the banner is not needed. */}
-            <div className="bg-yellow-100 border-b border-yellow-300 py-4 text-center rounded-md shadow-md">
-              <h2 className="text-2xl font-bold text-yellow-800">Birding Club Interest Meetings!</h2>
-              <p className="text-yellow-700">Wed Nov 5, 6:30pm-7:30pm at Gibson 142</p>
-              <p className="text-yellow-700">Tue Nov 11, 6:30pm-7:30pm at New Cabell 232</p>
-            </div>
+            {/**
+             * Temporary banner for announcements. Commented out when not needed.
+             * <div className="bg-yellow-100 border-b border-yellow-300 py-4 text-center rounded-md shadow-md">
+             *   <h2 className="text-2xl font-bold text-yellow-800">Birding Club Interest Meetings!</h2>
+             *   <p className="text-yellow-700">Wed Nov 5, 6:30pm-7:30pm at Gibson 142</p>
+             *   <p className="text-yellow-700">Tue Nov 11, 6:30pm-7:30pm at New Cabell 232</p>
+             * </div>
+             */}
             {children}
           </div>
   </AppShell>
