@@ -37,6 +37,8 @@ export default function EventTemplate({
 }: EventTemplateProps) {
   // Gallery images are all images except the first one (header image)
   const galleryImages = images.length > 1 ? images.slice(1) : [];
+  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva';
+  
   return (
     <div className="min-h-screen relative bg-background">
       <Navigation />
@@ -52,7 +54,7 @@ export default function EventTemplate({
               {image ? (
                 <div className="relative h-72 overflow-hidden p-0 m-0 bg-muted">
                   <CloudinaryImage
-                    src={image}
+                    src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${image}`}
                     alt={`${title} Image`}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-500"

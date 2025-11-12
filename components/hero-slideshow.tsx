@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import { CldImage } from "next-cloudinary"
+import Image from "next/image"
 
 interface HeroSlideshowProps {
   images: string[]
@@ -65,7 +65,7 @@ export function HeroSlideshow({ images }: HeroSlideshowProps) {
             }}
           >
             {shouldRender && (
-              <CldImage
+              <Image
                 src={imageName}
                 alt=""
                 fill

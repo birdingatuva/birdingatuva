@@ -17,6 +17,8 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [direction, setDirection] = useState<'left' | 'right'>('right')
+  
+  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'
 
   useEffect(() => {
     setMounted(true)
@@ -70,7 +72,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
           {/* Preview image */}
           <div className="relative h-56 w-full sm:h-72 md:h-80">
             <CloudinaryImage
-              src={images[0]}
+              src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${images[0]}`}
               alt={`${title} - Gallery preview`}
               fill
               className="object-cover"
@@ -150,7 +152,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                 }`}
               >
                 <CloudinaryImage
-                  src={images[selectedIndex]}
+                  src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${images[selectedIndex]}`}
                   alt={`${title} - Image ${selectedIndex + 1}`}
                   fill
                   className="object-contain"
@@ -229,7 +231,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                       aria-label={`Go to image ${index + 1}`}
                     >
                       <CloudinaryImage
-                        src={imageId}
+                        src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${imageId}`}
                         alt={`Thumbnail ${index + 1}`}
                         fill
                         className="object-cover"

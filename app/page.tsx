@@ -64,15 +64,16 @@ const trips = [
 ]
 
 export default function HomePage() {
-	// Use Cloudinary images for hero slideshow
-	// These correspond to the images uploaded to the hero-backgrounds folder
+	// Use Cloudinary images for hero slideshow - now using direct URLs
+	// These will be processed by wsrv.nl instead of Cloudinary transformations
+	const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'
 	const heroImages = [
-		"hero-backgrounds/IMG_3169-CR3",
-		"hero-backgrounds/IMG_3543-CR3",
-		"hero-backgrounds/IMG_4304-CR3",
-		"hero-backgrounds/IMG_5559-CR3",
-		"hero-backgrounds/IMG_7988_DxO",
-		"hero-backgrounds/IMG_8170_DxO",
+		`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/hero-backgrounds/IMG_3169-CR3`,
+		`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/hero-backgrounds/IMG_3543-CR3`,
+		`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/hero-backgrounds/IMG_4304-CR3`,
+		`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/hero-backgrounds/IMG_5559-CR3`,
+		`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/hero-backgrounds/IMG_7988_DxO`,
+		`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/hero-backgrounds/IMG_8170_DxO`,
 	]
 
 	const flyingDir = path.join(process.cwd(), "public/images/flying-birds")
@@ -156,7 +157,7 @@ export default function HomePage() {
 							<div className="md:order-1 order-2 space-y-3">
 								<div className="relative h-auto md:h-[400px] rounded-2xl overflow-hidden shadow-lg">
 									<CloudinaryImage
-										src="about-us/about-us"
+										src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/about-us/about-us`}
 										alt="Club members during bird banding activity"
 										fill
 										className="object-contain md:object-cover !relative !h-auto md:!absolute md:!h-full"
@@ -454,7 +455,7 @@ export default function HomePage() {
 												>
 									<div className="relative h-48 overflow-hidden p-0 m-0">
 										<CloudinaryImage
-											src={trip.image}
+											src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${trip.image}`}
 											alt={trip.name}
 											fill
 											className="object-cover group-hover:scale-110 transition-transform duration-500"

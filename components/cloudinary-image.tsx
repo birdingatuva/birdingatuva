@@ -1,6 +1,6 @@
 "use client"
 
-import { CldImage } from 'next-cloudinary'
+import Image from "next/image"
 
 interface CloudinaryImageProps {
   src: string
@@ -27,11 +27,11 @@ export function CloudinaryImage({
   // When fill is true, don't pass width/height
   // When fill is false, use provided width/height or defaults
   const imageProps = fill 
-    ? { fill: true, sizes: "100vw" }
+    ? { fill: true as const, sizes: "100vw" }
     : { width, height }
 
   return (
-    <CldImage
+    <Image
       src={src}
       alt={alt}
       {...imageProps}

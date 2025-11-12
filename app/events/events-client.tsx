@@ -95,12 +95,15 @@ export function EventsClient({ events }: EventsClientProps) {
                         ) status = 'Current'
                       }
                     } catch { /* ignore */ }
+                    
+                    const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'
+                    
                     return (
                       <Card key={event.slug} className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
                         <Link href={event.url} className="block relative h-48 overflow-hidden p-0 m-0 bg-muted">
                           {event.imagePublicId ? (
                             <CloudinaryImage
-                              src={event.imagePublicId}
+                              src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${event.imagePublicId}`}
                               alt={event.title}
                               fill
                               className={`object-cover group-hover:scale-110 transition-transform duration-500 ${status === 'Past' ? 'saturate-[0.3]' : ''}`}

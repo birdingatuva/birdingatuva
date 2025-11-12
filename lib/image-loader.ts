@@ -57,10 +57,12 @@ export default function wsrvImageLoader({ src, width, quality }: ImageLoaderProp
     return src
   }
   
-  // For Cloudinary URLs, use Cloudinary directly (it's already optimized)
-  // Don't route through wsrv.nl as it adds unnecessary latency
+  // For Cloudinary URLs, route through wsrv.nl for free optimization
+  // This avoids Cloudinary's paid transformation costs
   if (src.includes('cloudinary.com') || src.includes('res.cloudinary.com')) {
-    return src
+    // Extract just the URL without protocol
+    const imageUrl = src.replace(/^https?:\/\//, '')
+    return buildWsrvUrl(imageUrl, width, quality)
   }
   
   // For other external CDN URLs, use them directly
