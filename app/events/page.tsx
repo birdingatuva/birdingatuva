@@ -1,4 +1,5 @@
-export const revalidate = 300
+export const dynamic = 'force-static'
+export const revalidate = false
 import { EventsClient } from "./events-client"
 import { listEvents } from "@/lib/events-db"
 

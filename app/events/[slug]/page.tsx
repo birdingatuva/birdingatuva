@@ -1,11 +1,21 @@
-export const revalidate = 300
+export const dynamic = 'force-static'
+export const revalidate = false
+export const dynamicParams = true // Allow dynamic slug paths not in generateStaticParams
 import { notFound } from "next/navigation"
 import EventTemplate from "../EventTemplate"
-import { getEvent } from "@/lib/events-db"
+import { getEvent, listEvents } from "@/lib/events-db"
 import { formatDisplayDate, formatTimeForDisplay } from "../date-utils"
 
 interface PageProps { 
   params: Promise<{ slug: string }> 
+}
+
+// Generate static params for all existing events at build time
+export async function generateStaticParams() {
+  const events = await listEvents()
+  return events.map((event) => ({
+    slug: event.slug,
+  }))
 }
 
 export default async function EventPage(props: PageProps) {

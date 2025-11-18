@@ -1,10 +1,10 @@
 import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { verifyAdminToken } from '@/lib/auth'
 import { listEvents, listAllEvents } from '@/lib/events-db'
+import { revalidateEvents } from '@/lib/revalidate'
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@vercel/postgres'
 import { v2 as cloudinary } from 'cloudinary'
-import { revalidatePath } from 'next/cache'
 
 // Explicitly ensure Node.js runtime (required for Cloudinary SDK & Buffer access)
 export const runtime = 'nodejs'
@@ -153,13 +153,8 @@ export async function POST(req: NextRequest) {
         )
       `
       console.log(`Successfully inserted event: ${slug}`)
-      // Invalidate cached pages so the site reflects the new/updated content immediately.
-      try {
-        revalidatePath('/events')
-        revalidatePath(`/events/${slug}`)
-      } catch (e) {
-        console.warn('revalidatePath failed', e)
-      }
+      // Trigger on-demand revalidation only when database is updated
+      revalidateEvents(slug)
       console.log("=== API /api/events POST completed successfully ===");
       return NextResponse.json({ success: true, slug, imageCount: imagePublicIds.length, imagePublicIds })
     } catch (error) {

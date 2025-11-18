@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
+import { revalidateEvents } from '@/lib/revalidate'
 import { sql } from '@vercel/postgres'
 import { verifyAdminToken } from '@/lib/auth'
 
@@ -48,12 +48,8 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
     const query = `UPDATE events SET ${fields.join(', ')} WHERE lower(trim(slug)) = lower(trim($${fields.length + 1})) RETURNING slug;`
     const result = await sql.query(query, values)
     const updatedSlug = result.rows[0]?.slug || slug
-    try {
-      revalidatePath('/events')
-      revalidatePath(`/events/${updatedSlug}`)
-    } catch (e) {
-      console.warn('revalidatePath failed', e)
-    }
+    // Trigger on-demand revalidation only when database is updated
+    revalidateEvents(updatedSlug)
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error('PUT /api/events/[slug] error', e)
@@ -94,12 +90,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { slug: str
 
     // Delete row first
     await sql`DELETE FROM events WHERE lower(trim(slug)) = lower(${slug});`
-    try {
-      revalidatePath('/events')
-      revalidatePath(`/events/${slug}`)
-    } catch (e) {
-      console.warn('revalidatePath failed', e)
-    }
+    // Trigger on-demand revalidation only when database is updated
+    revalidateEvents(slug)
 
     // Attempt Cloudinary cleanup (ignore errors to avoid failing full delete)
     if (cloudinary.config().cloud_name && imagePublicIds.length) {
