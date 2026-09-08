@@ -5,7 +5,6 @@ import { dedupeJson } from '@/lib/fetch-dedupe'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import Image from "next/image"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
@@ -13,8 +12,7 @@ import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Upload, X, ImageIcon } from "lucide-react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
 
@@ -75,7 +73,6 @@ export default function AdminPage() {
   const [headerImagePreview, setHeaderImagePreview] = useState<string>("")
   const [additionalImages, setAdditionalImages] = useState<File[]>([])
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([])
-  const [showMarkdown, setShowMarkdown] = useState(false) // Default to showing preview
   const [password, setPassword] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -897,42 +894,11 @@ export default function AdminPage() {
                   <div className="border-t pt-6">
                     <h3 className="text-lg font-semibold mb-4">Event Description</h3>
                     <div className="space-y-2">
-                      <div className="flex gap-2 mb-3">
-                        <Button 
-                          type="button" 
-                          size="sm" 
-                          variant={!showMarkdown ? "default" : "outline"} 
-                          onClick={() => setShowMarkdown(false)}
-                          className={!showMarkdown ? "hover:bg-primary hover:text-primary-foreground cursor-default" : "hover:text-foreground"}
-                        >
-                          Preview
-                        </Button>
-                        <Button 
-                          type="button" 
-                          size="sm" 
-                          variant={showMarkdown ? "default" : "outline"} 
-                          onClick={() => setShowMarkdown(true)}
-                          className={showMarkdown ? "hover:bg-primary hover:text-primary-foreground cursor-default" : "hover:text-foreground"}
-                        >
-                          Edit Markdown
-                        </Button>
-                      </div>
-                      {showMarkdown ? (
-                        <Textarea
-                          name="bodyMarkdown"
-                          value={form.bodyMarkdown}
-                          onChange={handleChange}
-                          rows={12}
-                          placeholder="Enter event description in Markdown format..."
-                          className="font-mono text-sm"
-                        />
-                      ) : (
-                        <div className="prose prose-neutral prose-base dark:prose-invert max-w-none border rounded-lg p-6 bg-muted/20 min-h-[12rem] overflow-auto [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_li]:mb-0 [&_strong]:font-bold">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {form.bodyMarkdown || '*No content yet*'}
-                          </ReactMarkdown>
-                        </div>
-                      )}
+                      <LexicalMarkdownEditor
+                        value={form.bodyMarkdown}
+                        onChange={(bodyMarkdown) => setForm((current) => ({ ...current, bodyMarkdown }))}
+                        placeholder="Describe the event..."
+                      />
                     </div>
                   </div>
 
