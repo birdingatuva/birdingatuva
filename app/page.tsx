@@ -14,56 +14,6 @@ import fs from "fs"
 import path from "path"
 import { LinktreeIcon } from "@/components/icons/LinktreeIcon"
 
-const trips = [
-	{
-		name: "Ivy Creek Natural Area",
-		description:
-			"Varied habitats perfect for spotting warblers, woodpeckers, and waterfowl throughout the seasons.",
-		frequency: "Weekly",
-		location: "215-acre preserve",
-		image: "local-trip-images/ivy-creek",
-		allTrailsUrl:
-			"https://www.alltrails.com/trail/us/virginia/ivy-creek-natural-area-loop",
-		difficulty: "Easy",
-		distance: "2.5 mi",
-	},
-	{
-		name: "Shenandoah National Park",
-		description:
-			"Experience thrushes, vireos, and raptors soaring over the Blue Ridge Mountains.",
-		frequency: "Seasonal",
-		location: "High-elevation birding",
-		image: "local-trip-images/shenandoah",
-		allTrailsUrl:
-			"https://www.alltrails.com/parks/us/virginia/shenandoah-national-park",
-		difficulty: "Moderate",
-		distance: "Various",
-	},
-	{
-		name: "Rivanna River Trail",
-		description:
-			"Walk along the river to spot herons, kingfishers, and a variety of songbirds.",
-		frequency: "Weekly",
-		location: "River corridor",
-		image: "local-trip-images/rivanna",
-		allTrailsUrl: "https://www.alltrails.com/trail/us/virginia/rivanna-trail",
-		difficulty: "Easy",
-		distance: "20 mi",
-	},
-	{
-		name: "UVA Grounds & Observatory Hill",
-		description:
-			"Beginner-friendly outings to observe birds right on campus. Perfect for busy students!",
-		frequency: "Bi-weekly",
-		location: "Campus birding",
-		image: "local-trip-images/ohill",
-		allTrailsUrl:
-			"https://www.alltrails.com/trail/us/virginia/observatory-hill-loop",
-		difficulty: "Easy",
-		distance: "1.2 mi",
-	},
-]
-
 export default function HomePage() {
 	// Use Cloudinary images for hero slideshow - now using direct URLs
 	// These will be processed by wsrv.nl instead of Cloudinary transformations
@@ -98,7 +48,7 @@ export default function HomePage() {
 			<div className="min-h-screen relative bg-background" style={{background: 'var(--background)'}}>
 			<Navigation />
 
-			<main className="relative z-20">
+			<main className="relative z-20 home-main">
 				<DecorativeBirds images={birdImages} />
 				<section className="relative min-h-[65vh] flex items-center justify-center overflow-hidden">
 					<HeroSlideshow images={heroImages} />
@@ -220,18 +170,11 @@ export default function HomePage() {
 				</section>
 
 				{/* How to Join & Dues Section - Lighter background */}
-				<section
-					id="join"
-					className="py-20 px-4 bg-gradient-to-b from-muted to-background scroll-mt-24"
-				>
+				<section id="join" className="py-20 px-4 scroll-mt-24">
 					<div className="container mx-auto max-w-6xl relative z-20">
 						<h2 className="font-display text-5xl md:text-6xl font-bold mb-4 text-center text-primary">
 							HOW TO JOIN
 						</h2>
-						<p className="text-center text-lg text-muted-foreground mb-12 max-w-2xl mx-auto">
-							Getting started is easy! Follow these three simple steps to become
-							part of our birding community.
-						</p>
 
 						<div className="relative">
 							{/* Connecting line */}
@@ -423,87 +366,8 @@ export default function HomePage() {
 					</div>
 				</section>
 
-				{/* Local Birding Trips Section - Darker background */}
-				<section id="trips" className="py-20 px-4 bg-muted">
-					<div className="container mx-auto max-w-6xl relative z-20">
-						<div className="text-center mb-12">
-							<h2 className="font-display text-5xl md:text-6xl font-bold mb-4 text-primary">
-								LOCAL BIRDING TRIPS
-							</h2>
-							<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-								Explore the diverse birdlife in and around Charlottesville with our
-								routine outings
-							</p>
-						</div>
-
-						<div className="grid md:grid-cols-2 gap-6">
-							{trips.map((trip) => (
-												<Card
-													key={trip.name}
-													className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0"
-												>
-									<div className="relative h-48 overflow-hidden p-0 m-0">
-										<CloudinaryImage
-											src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${trip.image}`}
-											alt={trip.name}
-											fill
-											className="object-cover group-hover:scale-110 transition-transform duration-500"
-										/>
-										<Badge
-											className="absolute top-4 right-4 shadow-lg font-semibold text-sm"
-											style={{ backgroundColor: "#36834C", color: "white" }}
-										>
-											{trip.frequency}
-										</Badge>
-									</div>
-									<CardHeader>
-										<CardTitle className="font-display text-2xl">
-											{trip.name}
-										</CardTitle>
-										<CardDescription className="flex items-center gap-2">
-											<MapPin className="w-4 h-4" />
-											{trip.location}
-										</CardDescription>
-									</CardHeader>
-									<CardContent className="space-y-4">
-										<p className="text-muted-foreground">
-											{trip.description}
-										</p>
-
-										<div className="flex items-center gap-4 text-sm text-muted-foreground">
-											<div className="flex items-center gap-1">
-												<Compass className="w-4 h-4" />
-												<span>{trip.difficulty}</span>
-											</div>
-											<div className="flex items-center gap-1">
-												<MapPin className="w-4 h-4" />
-												<span>{trip.distance}</span>
-											</div>
-										</div>
-
-										<Button
-											className="w-full group/btn bg-transparent"
-											variant="outline"
-											asChild
-										>
-											<a
-												href={trip.allTrailsUrl}
-												target="_blank"
-												rel="noopener noreferrer"
-											>
-												View Trail on AllTrails
-												<ExternalLink className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-											</a>
-										</Button>
-									</CardContent>
-								</Card>
-							))}
-						</div>
-					</div>
-				</section>
-
 				{/* eBird Section - Lighter background */}
-				<section className="py-20 px-4 bg-background">
+				<section className="py-20 px-4">
 					<div className="container mx-auto max-w-4xl text-center relative z-20">
 						<div className="flex justify-center mb-6">
 							<CloudinaryImage
@@ -539,7 +403,7 @@ export default function HomePage() {
 				</section>
 
 				{/* Contact Section - Darker background */}
-				<section className="py-20 px-4 bg-muted">
+				<section className="py-20 px-4">
 					<div className="container mx-auto max-w-4xl relative z-20">
 						<h2 className="font-display text-5xl md:text-6xl font-bold mb-12 text-center text-primary">
 							GET IN TOUCH

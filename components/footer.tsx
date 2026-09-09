@@ -7,8 +7,8 @@ export function Footer() {
       <div className="container mx-auto px-4 text-center relative z-30">
         <p className="text-sm">
           Created by Brian Alewine{" "}
-          <a href="mailto:rpt2fx@virginia.edu" className="underline hover:text-secondary transition-colors">
-            rpt2fx@virginia.edu
+          <a href="mailto:balewine@virginia.edu" className="underline hover:text-secondary transition-colors">
+            balewine@virginia.edu
           </a>
         </p>
         <p className="text-xs mt-4 max-w-4xl mx-auto">
