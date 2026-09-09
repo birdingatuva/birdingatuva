@@ -83,7 +83,7 @@ export default function EventTemplate({
                     </div>
                   )}
                 </div>
-                <div className="mb-6 text-muted-foreground prose prose-neutral prose-lg max-w-none [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-0 [&_strong]:font-bold">
+                <div className="mb-6 text-muted-foreground prose prose-neutral prose-lg max-w-none [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-blue-800 dark:[&_a]:hover:text-blue-300 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-0 [&_strong]:font-bold">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyMarkdown}</ReactMarkdown>
                 </div>
                 
