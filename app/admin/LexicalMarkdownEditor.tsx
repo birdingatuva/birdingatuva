@@ -9,7 +9,7 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin"
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
-import { $convertFromMarkdownString, $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown"
+import { $convertFromMarkdownString, $convertToMarkdownString, LINK, TRANSFORMERS, type TextMatchTransformer } from "@lexical/markdown"
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode, $isQuoteNode, HeadingNode, QuoteNode } from "@lexical/rich-text"
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, ListItemNode, ListNode, REMOVE_LIST_COMMAND, $isListNode } from "@lexical/list"
 import { $setBlocksType } from "@lexical/selection"
@@ -63,6 +63,20 @@ const theme = {
 const emailMatcher = createLinkMatcherWithRegExp(/[\w.!#$%&'*+/=?^`{|}~-]+@[\w-]+(?:\.[\w-]+)+/i, (text) => `mailto:${text}`)
 const urlMatcher = createLinkMatcherWithRegExp(/(?:(?:https?:\/\/|www\.)[^\s<]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/i, (text) => /^(?:https?:\/\/)/i.test(text) ? text : `https://${text}`)
 const OPEN_LINK_EDITOR_COMMAND = createCommand("OPEN_LINK_EDITOR")
+
+const AUTO_LINK_MARKDOWN_TRANSFORMER: TextMatchTransformer = {
+  ...LINK,
+  export: (node, exportChildren) => {
+    if (!$isAutoLinkNode(node)) return null
+    return `[${exportChildren(node)}](${node.getURL()})`
+  },
+}
+
+const MARKDOWN_TRANSFORMERS = [
+  ...TRANSFORMERS.filter((transformer) => transformer !== LINK),
+  AUTO_LINK_MARKDOWN_TRANSFORMER,
+  LINK,
+]
 
 function normalizeLinkUrl(url: string) {
   const trimmedUrl = url.trim()
@@ -220,7 +234,7 @@ function MarkdownSyncPlugin({ value, onChange }: { value: string; onChange: (val
     if (value === lastValue.current) return
     lastValue.current = value
     editor.update(() => {
-      $convertFromMarkdownString(value, TRANSFORMERS)
+      $convertFromMarkdownString(value, MARKDOWN_TRANSFORMERS)
     }, { tag: "history-merge" })
   }, [editor, value])
 
@@ -228,7 +242,7 @@ function MarkdownSyncPlugin({ value, onChange }: { value: string; onChange: (val
     <OnChangePlugin
       onChange={(editorState) => {
         editorState.read(() => {
-          const markdown = $convertToMarkdownString(TRANSFORMERS)
+          const markdown = $convertToMarkdownString(MARKDOWN_TRANSFORMERS)
           lastValue.current = markdown
           onChange(markdown)
         })
@@ -335,7 +349,7 @@ export const LexicalMarkdownEditor = memo(function LexicalMarkdownEditor({ value
     nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, HorizontalRuleNode],
     onError: (error: Error) => { throw error },
     editorState: () => {
-      $convertFromMarkdownString(value, TRANSFORMERS)
+      $convertFromMarkdownString(value, MARKDOWN_TRANSFORMERS)
     },
   }).current
 

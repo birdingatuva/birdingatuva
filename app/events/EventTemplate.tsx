@@ -7,8 +7,40 @@ import { ImageGallery } from "@/components/image-gallery";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Calendar, Clock } from "lucide-react";
 import React from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+function normalizeLexicalMarkdown(markdown: string) {
+  return markdown
+    .split(/\r?\n/)
+    .map((line) => {
+      const markerMatch = line.match(/^(\s*)(\d+\.|[-+*])(\s*)$/)
+      if (markerMatch) {
+        const marker = markerMatch[2].endsWith(".")
+          ? `${markerMatch[2].slice(0, -1)}\\.`
+          : `\\${markerMatch[2]}`
+        return `${markerMatch[1]}${marker}${markerMatch[3]}`
+      }
+
+      return line.replace(
+        /(?<![\w@\[\]\)\/])((?:www\.)?[a-z0-9-]+\.[a-z]{2,})/gi,
+        "[$1](https://$1)",
+      )
+    })
+    .join("\n")
+}
+
+const markdownComponents: Components = {
+  p: ({ node, ...props }) => <p {...props} className="mb-2" />,
+  h1: ({ node, ...props }) => <h1 {...props} className="text-3xl font-bold" />,
+  h2: ({ node, ...props }) => <h2 {...props} className="text-xl font-semibold" />,
+  h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-semibold" />,
+  ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-6" />,
+  ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-6" />,
+  blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-muted-foreground/30 pl-4 italic" />,
+  a: ({ node, ...props }) => <a {...props} className="text-blue-600 underline decoration-blue-600/50 underline-offset-2 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" />,
+  del: ({ node, ...props }) => <del {...props} className="line-through" />,
+}
 
 export interface EventTemplateProps {
   title: string;
@@ -83,8 +115,8 @@ export default function EventTemplate({
                     </div>
                   )}
                 </div>
-                <div className="mb-6 text-muted-foreground prose prose-neutral prose-lg max-w-none [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-blue-800 dark:[&_a]:hover:text-blue-300 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_li]:mb-0 [&_strong]:font-bold">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{bodyMarkdown}</ReactMarkdown>
+                <div className="mb-6 max-w-none text-foreground">
+                  <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{normalizeLexicalMarkdown(bodyMarkdown)}</ReactMarkdown>
                 </div>
                 
                 {/* Image Gallery Section */}
