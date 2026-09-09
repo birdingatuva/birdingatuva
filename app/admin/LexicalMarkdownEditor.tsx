@@ -9,12 +9,12 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin"
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
-import { $convertFromMarkdownString, $convertToMarkdownString, LINK, TRANSFORMERS, type TextMatchTransformer } from "@lexical/markdown"
+import { $convertFromMarkdownString, $convertToMarkdownString, LINK, TRANSFORMERS, type ElementTransformer, type TextMatchTransformer } from "@lexical/markdown"
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode, $isQuoteNode, HeadingNode, QuoteNode } from "@lexical/rich-text"
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, ListItemNode, ListNode, REMOVE_LIST_COMMAND, $isListNode } from "@lexical/list"
 import { $setBlocksType } from "@lexical/selection"
 import { $createLinkNode, $isAutoLinkNode, $isLinkNode, $toggleLink, AutoLinkNode, createLinkMatcherWithRegExp, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link"
-import { INSERT_HORIZONTAL_RULE_COMMAND } from "@lexical/extension"
+import { $createHorizontalRuleNode, $isHorizontalRuleNode, INSERT_HORIZONTAL_RULE_COMMAND } from "@lexical/extension"
 import { HorizontalRuleNode } from "@lexical/react/LexicalHorizontalRuleNode"
 import { HorizontalRulePlugin } from "@lexical/react/LexicalHorizontalRulePlugin"
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin"
@@ -72,7 +72,20 @@ const AUTO_LINK_MARKDOWN_TRANSFORMER: TextMatchTransformer = {
   },
 }
 
+const HORIZONTAL_RULE_MARKDOWN_TRANSFORMER: ElementTransformer = {
+  dependencies: [HorizontalRuleNode],
+  export: (node) => $isHorizontalRuleNode(node) ? "---" : null,
+  regExp: /^---\s*$/,
+  replace: (parentNode, _children, _match, isImport) => {
+    if (!isImport) return false
+    parentNode.replace($createHorizontalRuleNode())
+    return true
+  },
+  type: "element",
+}
+
 const MARKDOWN_TRANSFORMERS = [
+  HORIZONTAL_RULE_MARKDOWN_TRANSFORMER,
   ...TRANSFORMERS.filter((transformer) => transformer !== LINK),
   AUTO_LINK_MARKDOWN_TRANSFORMER,
   LINK,
