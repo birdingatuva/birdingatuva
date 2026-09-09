@@ -1,6 +1,6 @@
 "use client"
 import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { dedupeJson } from '@/lib/fetch-dedupe'
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -598,6 +598,10 @@ export default function AdminPage() {
     }
   }
 
+  const handleBodyMarkdownChange = useCallback((bodyMarkdown: string) => {
+    setForm((current) => ({ ...current, bodyMarkdown }))
+  }, [])
+
   // Check if user is logged in
   if (!isAuthorized) {
     return (
@@ -896,7 +900,7 @@ export default function AdminPage() {
                     <div className="space-y-2">
                       <LexicalMarkdownEditor
                         value={form.bodyMarkdown}
-                        onChange={(bodyMarkdown) => setForm((current) => ({ ...current, bodyMarkdown }))}
+                        onChange={handleBodyMarkdownChange}
                         placeholder="Describe the event..."
                       />
                     </div>

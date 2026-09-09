@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { LexicalComposer } from "@lexical/react/LexicalComposer"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
 import { ContentEditable } from "@lexical/react/LexicalContentEditable"
@@ -328,8 +328,8 @@ function ToolbarPlugin() {
   )
 }
 
-export function LexicalMarkdownEditor({ value, onChange, placeholder = "" }: LexicalMarkdownEditorProps) {
-  const initialConfig = {
+export const LexicalMarkdownEditor = memo(function LexicalMarkdownEditor({ value, onChange, placeholder = "" }: LexicalMarkdownEditorProps) {
+  const initialConfig = useRef({
     namespace: "EventDescriptionEditor",
     theme,
     nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, AutoLinkNode, HorizontalRuleNode],
@@ -337,7 +337,7 @@ export function LexicalMarkdownEditor({ value, onChange, placeholder = "" }: Lex
     editorState: () => {
       $convertFromMarkdownString(value, TRANSFORMERS)
     },
-  }
+  }).current
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
@@ -360,4 +360,4 @@ export function LexicalMarkdownEditor({ value, onChange, placeholder = "" }: Lex
       </div>
     </LexicalComposer>
   )
-}
+})
