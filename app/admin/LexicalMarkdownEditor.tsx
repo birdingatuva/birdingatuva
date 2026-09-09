@@ -9,7 +9,7 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin"
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
-import { $convertFromMarkdownString, $convertToMarkdownString, LINK, TRANSFORMERS, type ElementTransformer, type TextMatchTransformer } from "@lexical/markdown"
+import { $convertFromMarkdownString, $convertToMarkdownString, LINK, QUOTE, TRANSFORMERS, type ElementTransformer, type TextMatchTransformer } from "@lexical/markdown"
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode, $isQuoteNode, HeadingNode, QuoteNode } from "@lexical/rich-text"
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, ListItemNode, ListNode, REMOVE_LIST_COMMAND, $isListNode } from "@lexical/list"
 import { $setBlocksType } from "@lexical/selection"
@@ -25,12 +25,14 @@ import {
   $createTextNode,
   $createParagraphNode,
   $isElementNode,
+  $isParagraphNode,
   $isTextNode,
   $isRangeSelection,
   COMMAND_PRIORITY_EDITOR,
   createCommand,
   FORMAT_TEXT_COMMAND,
   LexicalNode,
+  ParagraphNode,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from "lexical"
@@ -84,9 +86,36 @@ const HORIZONTAL_RULE_MARKDOWN_TRANSFORMER: ElementTransformer = {
   type: "element",
 }
 
+const BLANK_QUOTE_MARKDOWN_TRANSFORMER: ElementTransformer = {
+  dependencies: [QuoteNode],
+  export: (node) => $isQuoteNode(node) && node.getChildrenSize() === 0 ? "> <!--lexical-blank-quote-->" : null,
+  regExp: /^>\s*<!--lexical-blank-quote-->\s*$/,
+  replace: (parentNode, _children, _match, isImport) => {
+    if (!isImport) return false
+    parentNode.replace($createQuoteNode())
+    return true
+  },
+  type: "element",
+}
+
+const LITERAL_GREATER_THAN_MARKDOWN_TRANSFORMER: ElementTransformer = {
+  dependencies: [ParagraphNode],
+  export: (node) => $isParagraphNode(node) && node.getTextContent() === ">" ? "<!--lexical-literal-greater-than-->" : null,
+  regExp: /^<!--lexical-literal-greater-than-->\s*$/,
+  replace: (parentNode, children, _match, isImport) => {
+    if (!isImport) return false
+    parentNode.replace($createParagraphNode().append($createTextNode(">")))
+    return true
+  },
+  type: "element",
+}
+
 const MARKDOWN_TRANSFORMERS = [
   HORIZONTAL_RULE_MARKDOWN_TRANSFORMER,
-  ...TRANSFORMERS.filter((transformer) => transformer !== LINK),
+  BLANK_QUOTE_MARKDOWN_TRANSFORMER,
+  LITERAL_GREATER_THAN_MARKDOWN_TRANSFORMER,
+  ...TRANSFORMERS.filter((transformer) => transformer !== LINK && transformer !== QUOTE),
+  QUOTE,
   AUTO_LINK_MARKDOWN_TRANSFORMER,
   LINK,
 ]

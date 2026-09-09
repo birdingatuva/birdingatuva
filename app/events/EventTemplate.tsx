@@ -14,6 +14,9 @@ function normalizeLexicalMarkdown(markdown: string) {
   return markdown
     .split(/\r?\n/)
     .map((line) => {
+      if (/^\s*>\s*<!--lexical-blank-quote-->\s*$/.test(line)) return "> \u200B"
+      if (/^\s*<!--lexical-literal-greater-than-->\s*$/.test(line)) return "\\>"
+
       const markerMatch = line.match(/^(\s*)(\d+\.|[-+*])(\s*)$/)
       if (markerMatch) {
         const marker = markerMatch[2].endsWith(".")
