@@ -128,7 +128,7 @@ function normalizeLinkUrl(url: string) {
 
 function LinkEditorPlugin() {
   const [editor] = useLexicalComposerContext()
-  const [link, setLink] = useState<{ key: string; url: string; text: string; top: number; left: number } | null>(null)
+  const [link, setLink] = useState<{ key: string | null; url: string; text: string; top: number; left: number; selection: { anchorKey: string; anchorOffset: number; focusKey: string; focusOffset: number } | null } | null>(null)
   const [draftUrl, setDraftUrl] = useState("")
   const [draftText, setDraftText] = useState("")
 
@@ -194,6 +194,7 @@ function LinkEditorPlugin() {
         text,
         top: Math.max(8, top),
         left: Math.max(8, rect.left - shellRect.left),
+        selection: null,
       })
       setDraftUrl(url)
       setDraftText(text)
@@ -206,36 +207,35 @@ function LinkEditorPlugin() {
   useEffect(() => editor.registerCommand(
     OPEN_LINK_EDITOR_COMMAND,
     () => {
-      let linkKey: string | null = null
-      editor.update(() => {
+      let pendingSelection: { anchorKey: string; anchorOffset: number; focusKey: string; focusOffset: number } | null = null
+      let selectedText = ""
+      const nativeSelection = window.getSelection()
+      const selectionRect = nativeSelection && nativeSelection.rangeCount > 0
+        ? nativeSelection.getRangeAt(0).getBoundingClientRect()
+        : null
+      editor.getEditorState().read(() => {
         const selection = $getSelection()
         if (!$isRangeSelection(selection) || selection.isCollapsed()) return
-        const selectedText = selection.getTextContent()
+        selectedText = selection.getTextContent()
         if (!selectedText.trim()) return
-        $toggleLink("https://")
-        const linkNode = selection.getNodes().map((node) => {
-          let current: LexicalNode | null = node
-          while (current && !$isLinkNode(current)) current = current.getParent()
-          return current
-        }).find((node): node is LinkNode => $isLinkNode(node))
-        linkKey = linkNode?.getKey() ?? null
+        pendingSelection = {
+          anchorKey: selection.anchor.key,
+          anchorOffset: selection.anchor.offset,
+          focusKey: selection.focus.key,
+          focusOffset: selection.focus.offset,
+        }
       })
       requestAnimationFrame(() => {
-        if (!linkKey) return
-        const element = editor.getElementByKey(linkKey)
         const root = editor.getRootElement()
         const shell = root?.closest<HTMLElement>("[data-editor-shell]")
-        if (!element || !root || !shell) return
-        const rect = element.getBoundingClientRect()
+        if (!pendingSelection || !root || !shell) return
+        const rect = selectionRect ?? root.getBoundingClientRect()
         const shellRect = shell.getBoundingClientRect()
-        const text = editor.getEditorState().read(() => $getNodeByKey(linkKey!)?.getTextContent() ?? "")
         const popupHeight = 190
-        const top = shellRect.bottom - rect.bottom < popupHeight + 12
-          ? rect.top - shellRect.top - popupHeight - 6
-          : rect.bottom - shellRect.top + 6
-        setLink({ key: linkKey, url: "https://", text, top: Math.max(8, top), left: Math.max(8, rect.left - shellRect.left) })
+        const top = rect.top - shellRect.top - popupHeight - 6
+        setLink({ key: null, url: "https://", text: selectedText, top: Math.max(8, top), left: Math.max(8, rect.left - shellRect.left), selection: pendingSelection })
         setDraftUrl("")
-        setDraftText(text)
+        setDraftText(selectedText)
       })
       return true
     },
@@ -246,8 +246,15 @@ function LinkEditorPlugin() {
 
   const saveLink = () => {
     if (!draftUrl.trim() || !draftText.trim()) return
+    const linkKey = link.key
     editor.update(() => {
-      const node = $getNodeByKey(link.key)
+      if (!linkKey) {
+        const selection = $getSelection()
+        if (!$isRangeSelection(selection) || selection.isCollapsed()) return
+        $toggleLink(normalizeLinkUrl(draftUrl))
+        return
+      }
+      const node = $getNodeByKey(linkKey)
       if (!$isLinkNode(node)) return
       let editableNode: LinkNode = node
       if ($isAutoLinkNode(node)) {
@@ -271,8 +278,13 @@ function LinkEditorPlugin() {
   }
 
   const removeLink = () => {
+    const linkKey = link.key
+    if (!linkKey) {
+      setLink(null)
+      return
+    }
     editor.update(() => {
-      const node = $getNodeByKey(link.key)
+      const node = $getNodeByKey(linkKey)
       if (!$isLinkNode(node)) return
       const parent = node.getParent()
       if (!parent) return
