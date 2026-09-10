@@ -21,6 +21,7 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin"
 import { AutoLinkPlugin } from "@lexical/react/LexicalAutoLinkPlugin"
 import {
   $getSelection,
+  $getRoot,
   $getNodeByKey,
   $createTextNode,
   $createParagraphNode,
@@ -132,6 +133,11 @@ function LinkEditorPlugin() {
   const [draftText, setDraftText] = useState("")
 
   useEffect(() => {
+    editor.setEditable(!link)
+    if (link) editor.getRootElement()?.blur()
+  }, [editor, link])
+
+  useEffect(() => {
     const root = editor.getRootElement()
     if (!root) return
 
@@ -146,12 +152,22 @@ function LinkEditorPlugin() {
       event.preventDefault()
       let linkKey: string | null = null
       let url = anchor.getAttribute("href") ?? ""
+      const domKey = anchor.getAttribute("data-lexical-node-key")
       editor.getEditorState().read(() => {
-        const selection = $getSelection()
-        if (!$isRangeSelection(selection)) return
-        let node: LexicalNode | null = selection.anchor.getNode()
-        while (node && !$isLinkNode(node)) {
-          node = node.getParent()
+        let node: LexicalNode | null = domKey ? $getNodeByKey(domKey) : null
+        if (!$isLinkNode(node)) {
+          const selection = $getSelection()
+          node = $isRangeSelection(selection) ? selection.anchor.getNode() : null
+          while (node && !$isLinkNode(node)) {
+            node = node.getParent()
+          }
+        }
+        if (!$isLinkNode(node)) {
+          const matchingText = $getRoot().getAllTextNodes().find((textNode) => textNode.getTextContent() === anchor.textContent)
+          node = matchingText ?? null
+          while (node && !$isLinkNode(node)) {
+            node = node.getParent()
+          }
         }
         if ($isLinkNode(node)) {
           linkKey = node.getKey()
@@ -218,7 +234,7 @@ function LinkEditorPlugin() {
           ? rect.top - shellRect.top - popupHeight - 6
           : rect.bottom - shellRect.top + 6
         setLink({ key: linkKey, url: "https://", text, top: Math.max(8, top), left: Math.max(8, rect.left - shellRect.left) })
-        setDraftUrl("https://")
+        setDraftUrl("")
         setDraftText(text)
       })
       return true
@@ -258,15 +274,25 @@ function LinkEditorPlugin() {
     editor.update(() => {
       const node = $getNodeByKey(link.key)
       if (!$isLinkNode(node)) return
-      if (!node.getParent()) return
-      for (const child of node.getChildren()) {
+      const parent = node.getParent()
+      if (!parent) return
+      const children = node.getChildren()
+      for (const child of children) {
         if ($isTextNode(child)) {
           child.setFormat(0)
           child.setStyle("")
         }
-        node.insertBefore(child)
       }
-      node.remove()
+      if (children.length === 0) {
+        node.remove()
+        return
+      }
+      node.replace(children[0])
+      let previous = children[0]
+      for (const child of children.slice(1)) {
+        previous.insertAfter(child)
+        previous = child
+      }
     })
     setLink(null)
   }
@@ -274,7 +300,7 @@ function LinkEditorPlugin() {
   return (
     <div className="absolute z-50 w-72 rounded-lg border border-border bg-background p-3 shadow-lg" style={{ top: link.top, left: link.left }} onClick={(event) => event.stopPropagation()}>
       <label className="mb-2 block text-xs font-medium text-muted-foreground" htmlFor="link-url">URL</label>
-      <input id="link-url" value={draftUrl} onChange={(event) => setDraftUrl(event.target.value)} onKeyDown={(event) => event.stopPropagation()} className="mb-3 w-full rounded border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring/50" />
+      <input id="link-url" value={draftUrl} placeholder="https://" onChange={(event) => setDraftUrl(event.target.value)} onKeyDown={(event) => event.stopPropagation()} className="mb-3 w-full rounded border border-input bg-background px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/50" />
       <label className="mb-2 block text-xs font-medium text-muted-foreground" htmlFor="link-text">Preview text</label>
       <input id="link-text" value={draftText} onChange={(event) => setDraftText(event.target.value)} onKeyDown={(event) => event.stopPropagation()} className="mb-3 w-full rounded border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring/50" />
       <div className="flex items-center justify-between gap-2">
@@ -283,7 +309,7 @@ function LinkEditorPlugin() {
         </div>
         <div className="flex gap-2">
         <button type="button" onClick={() => setLink(null)} className="rounded px-2 py-1 text-sm hover:bg-muted">Cancel</button>
-        <button type="button" onClick={saveLink} className="rounded bg-primary px-2 py-1 text-sm text-primary-foreground hover:bg-primary/90"><Pencil className="mr-1 inline h-3 w-3" />Save</button>
+        <button type="button" onClick={saveLink} disabled={!draftUrl.trim()} className="rounded bg-primary px-2 py-1 text-sm text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"><Pencil className="mr-1 inline h-3 w-3" />Save</button>
         </div>
       </div>
     </div>
@@ -483,7 +509,17 @@ function ToolbarPlugin() {
       <ToolbarButton label="Bulleted list" active={activeFormats.bullet} onClick={() => toggleList("bullet")}><List className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Numbered list" active={activeFormats.number} onClick={() => toggleList("number")}><ListOrdered className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Quote" active={activeFormats.quote} onClick={() => setBlockType("quote")}><Quote className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Add link" active={activeFormats.link} onMouseDown={(event) => event.preventDefault()} onClick={() => editor.dispatchCommand(OPEN_LINK_EDITOR_COMMAND, undefined)}><Link className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton
+        label="Add link"
+        active={activeFormats.link}
+        onMouseDown={(event) => {
+          event.preventDefault()
+          editor.dispatchCommand(OPEN_LINK_EDITOR_COMMAND, undefined)
+        }}
+        onClick={() => undefined}
+      >
+        <Link className="h-4 w-4" />
+      </ToolbarButton>
       <ToolbarButton label="Horizontal rule" onClick={() => editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined)}><Minus className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Clear formatting" onClick={clearFormatting}><RemoveFormatting className="h-4 w-4" /></ToolbarButton>
       <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
