@@ -143,6 +143,28 @@ body {
   }
 }
 
+[data-editor-shell] ol.editor-numbered-list {
+  list-style: none;
+  counter-reset: editor-list-item;
+}
+
+[data-editor-shell] ol.editor-numbered-list > li {
+  counter-increment: editor-list-item;
+}
+
+[data-editor-shell] ol.editor-numbered-list > li::before {
+  content: counter(editor-list-item) ".";
+  display: inline-block;
+  width: 1.5rem;
+  margin-left: -1.5rem;
+  margin-right: 0.25rem;
+  text-align: right;
+}
+
+[data-editor-shell] ol.editor-numbered-list > li:has(> strong:only-child)::before {
+  font-weight: 700;
+}
+
 /* Updated crossfade animation to prevent white background flash and work with any number of images */
 @keyframes crossfade {
   0% {

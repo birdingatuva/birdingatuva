@@ -58,7 +58,7 @@ const theme = {
   },
   list: {
     ul: "list-disc pl-6",
-    ol: "list-decimal pl-6",
+    ol: "list-decimal pl-6 editor-numbered-list",
   },
 }
 
@@ -371,6 +371,10 @@ function ToolbarPlugin() {
     })
   }), [editor])
 
+  const toggleBold = () => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")
+  }
+
   const setBlockType = (type: "h1" | "h2" | "h3" | "quote") => {
     editor.update(() => {
       const selection = $getSelection()
@@ -421,7 +425,7 @@ function ToolbarPlugin() {
 
   return (
     <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/30 p-2">
-      <ToolbarButton label="Bold" active={activeFormats.bold} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}><Bold className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Bold" active={activeFormats.bold} onClick={toggleBold}><Bold className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Italic" active={activeFormats.italic} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}><Italic className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Heading 1" active={activeFormats.h1} onClick={() => setBlockType("h1")}><Heading1 className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Heading 2" active={activeFormats.h2} onClick={() => setBlockType("h2")}><Heading2 className="h-4 w-4" /></ToolbarButton>
