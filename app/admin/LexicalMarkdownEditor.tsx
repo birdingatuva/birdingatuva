@@ -11,7 +11,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { $convertFromMarkdownString, $convertToMarkdownString, LINK, QUOTE, TRANSFORMERS, type ElementTransformer, type TextMatchTransformer } from "@lexical/markdown"
 import { $createHeadingNode, $createQuoteNode, $isHeadingNode, $isQuoteNode, HeadingNode, QuoteNode } from "@lexical/rich-text"
-import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, ListItemNode, ListNode, REMOVE_LIST_COMMAND, $isListNode } from "@lexical/list"
+import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, ListItemNode, ListNode, REMOVE_LIST_COMMAND, $isListItemNode, $isListNode } from "@lexical/list"
 import { $setBlocksType } from "@lexical/selection"
 import { $createLinkNode, $isAutoLinkNode, $isLinkNode, $toggleLink, AutoLinkNode, createLinkMatcherWithRegExp, LinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link"
 import { $createHorizontalRuleNode, $isHorizontalRuleNode, INSERT_HORIZONTAL_RULE_COMMAND } from "@lexical/extension"
@@ -36,7 +36,7 @@ import {
   REDO_COMMAND,
   UNDO_COMMAND,
 } from "lexical"
-import { Bold, Eraser, Heading1, Heading2, Heading3, Italic, Link, List, ListOrdered, Minus, Pencil, Quote, Redo2, Strikethrough, Undo2 } from "lucide-react"
+import { Bold, Heading1, Heading2, Heading3, Italic, Link, Link2Off, List, ListOrdered, Minus, Pencil, Quote, Redo2, RemoveFormatting, Strikethrough, Undo2 } from "lucide-react"
 
 interface LexicalMarkdownEditorProps {
   value: string
@@ -254,15 +254,37 @@ function LinkEditorPlugin() {
     setLink(null)
   }
 
+  const removeLink = () => {
+    editor.update(() => {
+      const node = $getNodeByKey(link.key)
+      if (!$isLinkNode(node)) return
+      if (!node.getParent()) return
+      for (const child of node.getChildren()) {
+        if ($isTextNode(child)) {
+          child.setFormat(0)
+          child.setStyle("")
+        }
+        node.insertBefore(child)
+      }
+      node.remove()
+    })
+    setLink(null)
+  }
+
   return (
     <div className="absolute z-50 w-72 rounded-lg border border-border bg-background p-3 shadow-lg" style={{ top: link.top, left: link.left }} onClick={(event) => event.stopPropagation()}>
       <label className="mb-2 block text-xs font-medium text-muted-foreground" htmlFor="link-url">URL</label>
       <input id="link-url" value={draftUrl} onChange={(event) => setDraftUrl(event.target.value)} onKeyDown={(event) => event.stopPropagation()} className="mb-3 w-full rounded border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring/50" />
       <label className="mb-2 block text-xs font-medium text-muted-foreground" htmlFor="link-text">Preview text</label>
       <input id="link-text" value={draftText} onChange={(event) => setDraftText(event.target.value)} onKeyDown={(event) => event.stopPropagation()} className="mb-3 w-full rounded border border-input bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring/50" />
-      <div className="flex justify-end gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex gap-1">
+          <button type="button" title="Remove hyperlink" aria-label="Remove hyperlink" onClick={removeLink} className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"><Link2Off className="h-4 w-4" /></button>
+        </div>
+        <div className="flex gap-2">
         <button type="button" onClick={() => setLink(null)} className="rounded px-2 py-1 text-sm hover:bg-muted">Cancel</button>
         <button type="button" onClick={saveLink} className="rounded bg-primary px-2 py-1 text-sm text-primary-foreground hover:bg-primary/90"><Pencil className="mr-1 inline h-3 w-3" />Save</button>
+        </div>
       </div>
     </div>
   )
@@ -389,17 +411,44 @@ function ToolbarPlugin() {
 
   const toggleList = (listType: "bullet" | "number") => {
     let isActive = false
+    const headingSizes = new Map<string, string>()
     editor.getEditorState().read(() => {
       const selection = $getSelection()
       if (!$isRangeSelection(selection)) return
       const block = selection.getNodes()[0]?.getTopLevelElementOrThrow()
       isActive = $isListNode(block) && block.getListType() === listType
+      for (const node of selection.getNodes()) {
+        const topLevel = node.getTopLevelElementOrThrow()
+        if ($isHeadingNode(topLevel)) {
+          const size = topLevel.getTag() === "h1" ? "1.875rem" : topLevel.getTag() === "h2" ? "1.25rem" : "1.125rem"
+          headingSizes.set(topLevel.getTextContent(), size)
+        }
+      }
     })
     if (isActive) {
       editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined)
       return
     }
+    if (headingSizes.size > 0) {
+      editor.update(() => {
+        const selection = $getSelection()
+        if ($isRangeSelection(selection)) $setBlocksType(selection, () => $createParagraphNode())
+      })
+    }
     editor.dispatchCommand(listType === "bullet" ? INSERT_UNORDERED_LIST_COMMAND : INSERT_ORDERED_LIST_COMMAND, undefined)
+    if (headingSizes.size > 0) {
+      editor.update(() => {
+        const selection = $getSelection()
+        if (!$isRangeSelection(selection)) return
+        for (const node of selection.getNodes()) {
+          let current: LexicalNode | null = node
+          while (current && !$isListItemNode(current)) current = current.getParent()
+          if (!$isListItemNode(current)) continue
+          const size = headingSizes.get(current.getTextContent())
+          if (size) current.setStyle(`font-size: ${size}`)
+        }
+      })
+    }
   }
 
   const clearFormatting = () => {
@@ -434,9 +483,9 @@ function ToolbarPlugin() {
       <ToolbarButton label="Bulleted list" active={activeFormats.bullet} onClick={() => toggleList("bullet")}><List className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Numbered list" active={activeFormats.number} onClick={() => toggleList("number")}><ListOrdered className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Quote" active={activeFormats.quote} onClick={() => setBlockType("quote")}><Quote className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Add link" active={activeFormats.link} onClick={() => editor.dispatchCommand(OPEN_LINK_EDITOR_COMMAND, undefined)}><Link className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Add link" active={activeFormats.link} onMouseDown={(event) => event.preventDefault()} onClick={() => editor.dispatchCommand(OPEN_LINK_EDITOR_COMMAND, undefined)}><Link className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Horizontal rule" onClick={() => editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined)}><Minus className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Clear formatting" onClick={clearFormatting}><Eraser className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Clear formatting" onClick={clearFormatting}><RemoveFormatting className="h-4 w-4" /></ToolbarButton>
       <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
       <ToolbarButton label="Undo" onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}><Undo2 className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Redo" onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}><Redo2 className="h-4 w-4" /></ToolbarButton>
