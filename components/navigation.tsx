@@ -82,8 +82,7 @@ export function Navigation() {
   const [showLoginToast, setShowLoginToast] = useState(false)
   const loginTimeout = useRef<NodeJS.Timeout | null>(null)
   const handleLogout = async () => {
-    // Expire cookie client-side; server will treat missing/invalid cookie as unauthenticated
-    document.cookie = 'admin_jwt=; Max-Age=0; Path=/;';
+    await fetch('/api/logout', { method: 'POST' })
     setAuthorized(false)
     setShowLogin(false)
     router.push("/")
