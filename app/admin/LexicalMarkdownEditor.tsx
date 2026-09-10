@@ -296,17 +296,27 @@ function MarkdownSyncPlugin({ value, onChange }: { value: string; onChange: (val
 
 function ToolbarButton({
   label,
+  active = false,
   onClick,
   onMouseDown,
   children,
 }: {
   label: string
+  active?: boolean
   onClick: () => void
   onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void
   children: React.ReactNode
 }) {
   return (
-    <button type="button" title={label} aria-label={label} onMouseDown={onMouseDown} onClick={onClick} className="rounded p-2 hover:bg-muted">
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+      onMouseDown={onMouseDown ?? ((event) => event.preventDefault())}
+      onClick={onClick}
+      className={`rounded p-2 hover:bg-muted ${active ? "bg-muted text-foreground" : ""}`}
+    >
       {children}
     </button>
   )
@@ -314,6 +324,52 @@ function ToolbarButton({
 
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext()
+  const [activeFormats, setActiveFormats] = useState({
+    bold: false,
+    italic: false,
+    strikethrough: false,
+    h1: false,
+    h2: false,
+    h3: false,
+    bullet: false,
+    number: false,
+    quote: false,
+    link: false,
+  })
+
+  useEffect(() => editor.registerUpdateListener(({ editorState }) => {
+    editorState.read(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) {
+        setActiveFormats((current) => ({ ...current, bold: false, italic: false, strikethrough: false, h1: false, h2: false, h3: false, bullet: false, number: false, quote: false, link: false }))
+        return
+      }
+
+      const block = selection.getNodes()[0]?.getTopLevelElement()
+      const link = selection.getNodes().some((node) => {
+        let current: LexicalNode | null = node
+        while (current) {
+          if ($isLinkNode(current)) return true
+          current = current.getParent()
+        }
+        return false
+      })
+      const list = block && $isListNode(block) ? block.getListType() : null
+
+      setActiveFormats({
+        bold: selection.hasFormat("bold"),
+        italic: selection.hasFormat("italic"),
+        strikethrough: selection.hasFormat("strikethrough"),
+        h1: !!block && $isHeadingNode(block) && block.getTag() === "h1",
+        h2: !!block && $isHeadingNode(block) && block.getTag() === "h2",
+        h3: !!block && $isHeadingNode(block) && block.getTag() === "h3",
+        bullet: list === "bullet",
+        number: list === "number",
+        quote: !!block && $isQuoteNode(block),
+        link,
+      })
+    })
+  }), [editor])
 
   const setBlockType = (type: "h1" | "h2" | "h3" | "quote") => {
     editor.update(() => {
@@ -365,16 +421,16 @@ function ToolbarPlugin() {
 
   return (
     <div className="flex flex-wrap items-center gap-1 border-b border-border bg-muted/30 p-2">
-      <ToolbarButton label="Bold" onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}><Bold className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Italic" onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}><Italic className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Heading 1" onClick={() => setBlockType("h1")}><Heading1 className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Heading 2" onClick={() => setBlockType("h2")}><Heading2 className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Heading 3" onClick={() => setBlockType("h3")}><Heading3 className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Strikethrough" onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough")}><Strikethrough className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Bulleted list" onClick={() => toggleList("bullet")}><List className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Numbered list" onClick={() => toggleList("number")}><ListOrdered className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Quote" onClick={() => setBlockType("quote")}><Quote className="h-4 w-4" /></ToolbarButton>
-      <ToolbarButton label="Add link" onMouseDown={(event) => event.preventDefault()} onClick={() => editor.dispatchCommand(OPEN_LINK_EDITOR_COMMAND, undefined)}><Link className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Bold" active={activeFormats.bold} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}><Bold className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Italic" active={activeFormats.italic} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}><Italic className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Heading 1" active={activeFormats.h1} onClick={() => setBlockType("h1")}><Heading1 className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Heading 2" active={activeFormats.h2} onClick={() => setBlockType("h2")}><Heading2 className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Heading 3" active={activeFormats.h3} onClick={() => setBlockType("h3")}><Heading3 className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Strikethrough" active={activeFormats.strikethrough} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough")}><Strikethrough className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Bulleted list" active={activeFormats.bullet} onClick={() => toggleList("bullet")}><List className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Numbered list" active={activeFormats.number} onClick={() => toggleList("number")}><ListOrdered className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Quote" active={activeFormats.quote} onClick={() => setBlockType("quote")}><Quote className="h-4 w-4" /></ToolbarButton>
+      <ToolbarButton label="Add link" active={activeFormats.link} onClick={() => editor.dispatchCommand(OPEN_LINK_EDITOR_COMMAND, undefined)}><Link className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Horizontal rule" onClick={() => editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined)}><Minus className="h-4 w-4" /></ToolbarButton>
       <ToolbarButton label="Clear formatting" onClick={clearFormatting}><Eraser className="h-4 w-4" /></ToolbarButton>
       <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
