@@ -388,6 +388,18 @@ export default function HomePage() {
 									eBird to document our observations and contribute to citizen
 									science.
 								</p>
+								<details className="mb-6 text-left rounded-md border border-border p-4">
+									<summary className="cursor-pointer font-semibold text-primary">
+										How do I share my eBird observations with the club account?
+									</summary>
+									<p className="mt-3 text-muted-foreground leading-relaxed">
+										After you&apos;ve finished birding and submitted your checklist, click
+										&quot;Add Observers&quot; on your checklist. When given the option to
+										share, add &quot;Birding @UVA&quot; as a collaborator. After your
+										checklist has been accepted, you will see it on the club eBird
+										profile!
+									</p>
+								</details>
 								<Button size="lg" asChild>
 									<a
 										href="https://ebird.org/profile/ODM4NzkyOQ"
