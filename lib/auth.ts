@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 
 // Configuration
-const DEFAULT_EXP_SECONDS = 15 * 60; // 15 minutes
+export const ADMIN_SESSION_EXP_SECONDS = 2 * 60 * 60; // 2 hours
 const ISSUER = 'birdingatuva-admin';
 const AUDIENCE = 'birdingatuva-events';
 
@@ -23,7 +23,7 @@ export interface AdminTokenPayload {
   aud: string;
 }
 
-export function signAdminToken(adminId: string, expSeconds: number = DEFAULT_EXP_SECONDS): string {
+export function signAdminToken(adminId: string, expSeconds: number = ADMIN_SESSION_EXP_SECONDS): string {
   const secret = getSecret();
   const now = Math.floor(Date.now() / 1000);
   const payload: Partial<AdminTokenPayload> = {

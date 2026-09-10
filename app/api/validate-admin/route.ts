@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import { signAdminToken } from '@/lib/auth';
+import { ADMIN_SESSION_EXP_SECONDS, signAdminToken } from '@/lib/auth';
 
 // Load the hashed password from environment variables
 // Expected to be base64-encoded to avoid issues with $ characters in .env files
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 15, // 15 minutes
+    maxAge: ADMIN_SESSION_EXP_SECONDS,
   });
   return res;
   } catch (error) {
