@@ -165,6 +165,11 @@ body {
   font-weight: 700;
 }
 
+.event-numbered-list > li:has(> strong:only-child)::marker,
+.event-numbered-list > li:has(> p > strong:only-child)::marker {
+  font-weight: 700;
+}
+
 /* Updated crossfade animation to prevent white background flash and work with any number of images */
 @keyframes crossfade {
   0% {

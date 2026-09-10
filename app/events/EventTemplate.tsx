@@ -39,7 +39,7 @@ const markdownComponents: Components = {
   h2: ({ node, ...props }) => <h2 {...props} className="text-xl font-semibold" />,
   h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-semibold" />,
   ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-6" />,
-  ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-6" />,
+  ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-6 event-numbered-list" />,
   blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-muted-foreground/30 pl-4 italic" />,
   a: ({ node, ...props }) => <a {...props} className="text-blue-600 underline decoration-blue-600/50 underline-offset-2 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" />,
   del: ({ node, ...props }) => <del {...props} className="line-through" />,
