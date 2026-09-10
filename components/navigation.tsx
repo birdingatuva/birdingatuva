@@ -67,7 +67,11 @@ export function Navigation() {
         setShowLogin(false);
         setLoginSuccess(false);
         setLoginPassword("");
-        router.push("/admin");
+        if (pathname === "/admin") {
+          window.location.reload();
+        } else {
+          router.push("/admin");
+        }
       }, 700);
     } else {
       setLoginError((prev) => prev !== "Invalid password. Please try again." ? "Invalid password. Please try again." : prev);
