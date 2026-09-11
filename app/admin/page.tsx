@@ -11,7 +11,7 @@ import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, House, ImageIcon, Link2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
+import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, ImageIcon, Link2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
@@ -118,6 +118,11 @@ export default function AdminPage() {
   const [originalLinkSettings, setOriginalLinkSettings] = useState<Array<{ label: string; url: string; enabled: boolean }>>([])
   const [loadingLinks, setLoadingLinks] = useState(false)
   const [savingLinks, setSavingLinks] = useState(false)
+  const [leadershipSettings, setLeadershipSettings] = useState<Array<{ position: string; name: string; major: string; year: string; email: string; bio: string; image: string; favoriteBird: string }>>([])
+  const [originalLeadershipSettings, setOriginalLeadershipSettings] = useState<typeof leadershipSettings>([])
+  const [loadingLeadership, setLoadingLeadership] = useState(false)
+  const [savingLeadership, setSavingLeadership] = useState(false)
+  const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null)
   const router = useRouter()
   const headerImageInputRef = useRef<HTMLInputElement>(null)
   const additionalImagesInputRef = useRef<HTMLInputElement>(null)
@@ -697,6 +702,24 @@ export default function AdminPage() {
     loadLinks()
   }, [activePage, isAuthorized])
 
+  useEffect(() => {
+    const loadLeadership = async () => {
+      if (!isAuthorized || activePage !== "Leadership") return
+      try {
+        setLoadingLeadership(true)
+        const data = await dedupeJson<{ setting: unknown }>('/api/pages/leadership/settings/leadership')
+        const loaded = Array.isArray(data.setting) ? data.setting as typeof leadershipSettings : []
+        setLeadershipSettings(loaded)
+        setOriginalLeadershipSettings(loaded)
+      } catch {
+        setError('Unable to load Leadership settings.')
+      } finally {
+        setLoadingLeadership(false)
+      }
+    }
+    loadLeadership()
+  }, [activePage, isAuthorized])
+
   const togglePageVisibility = async (slug: string, published: boolean) => {
     setPageVisibility((current) => ({ ...current, [slug]: published }))
     const response = await fetch('/api/pages', {
@@ -742,6 +765,46 @@ export default function AdminPage() {
       setSavingLinks(false)
     }
   }
+
+  const reorderLinks = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return
+    const reordered = [...linkSettings]
+    const [moved] = reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, moved)
+    setLinkSettings(reordered)
+    setOriginalLinkSettings(reordered)
+    try {
+      await fetch('/api/pages/links/settings/links', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setting: reordered }),
+      })
+    } catch {
+      setError('Unable to save link order.')
+    }
+  }
+
+  const saveLeadership = async () => {
+    try {
+      setSavingLeadership(true)
+      const response = await fetch('/api/pages/leadership/settings/leadership', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setting: leadershipSettings }),
+      })
+      if (!response.ok) throw new Error('Unable to save Leadership settings.')
+      setOriginalLeadershipSettings(leadershipSettings)
+      setSuccessMessage('Changes saved')
+      setShowSuccessToast(true)
+      setTimeout(() => setShowSuccessToast(false), 1800)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unable to save Leadership settings.')
+    } finally {
+      setSavingLeadership(false)
+    }
+  }
+
+  const leadershipChanged = JSON.stringify(leadershipSettings) !== JSON.stringify(originalLeadershipSettings)
 
   // Check if user is logged in
   if (!isAuthorized) {
@@ -1200,9 +1263,24 @@ export default function AdminPage() {
                       {activePage === "Links" ? (
                         <div className="space-y-4">
                           {loadingLinks ? <p className="text-sm text-muted-foreground">Loading Links settings...</p> : linkSettings.map((link, index) => (
-                            <div key={`link-window-${index}`} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[1fr_2fr_auto_auto]">
-                              <Input value={link.label} placeholder="Link name" onChange={(event) => updateLinkSetting(index, "label", event.target.value)} />
-                              <Input value={link.url} placeholder="https://..." onChange={(event) => updateLinkSetting(index, "url", event.target.value)} />
+                            <div
+                              key={`link-window-${index}`}
+                              draggable
+                              onDragStart={() => setDraggedLinkIndex(index)}
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={() => {
+                                if (draggedLinkIndex === null) return
+                                void reorderLinks(draggedLinkIndex, index)
+                                setDraggedLinkIndex(null)
+                              }}
+                              onDragEnd={() => setDraggedLinkIndex(null)}
+                              className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[auto_1fr_2fr_auto_auto]"
+                            >
+                              <button type="button" title="Drag to reorder" aria-label="Drag to reorder link" className="cursor-grab self-center text-muted-foreground active:cursor-grabbing">
+                                <GripVertical className="h-5 w-5" />
+                              </button>
+                              <Input className="text-left" value={link.label} placeholder="Link name" onBlur={(event) => { event.currentTarget.scrollLeft = 0 }} onChange={(event) => updateLinkSetting(index, "label", event.target.value)} />
+                              <Input className="text-left" value={link.url} placeholder="https://..." onBlur={(event) => { event.currentTarget.scrollLeft = 0 }} onChange={(event) => updateLinkSetting(index, "url", event.target.value)} />
                               <Button type="button" variant="outline" onClick={() => updateLinkSetting(index, "enabled", !link.enabled)}>{link.enabled ? "Enabled" : "Disabled"}</Button>
                               <Button type="button" variant="outline" onClick={() => setLinkSettings((current) => current.filter((_, linkIndex) => linkIndex !== index))}>Remove</Button>
                             </div>
@@ -1225,6 +1303,26 @@ export default function AdminPage() {
                               <Button type="button" onClick={saveFaq} disabled={loadingFaq || savingFaq || !faqChanged} className="w-full sm:w-auto">
                                 {savingFaq ? "Saving..." : "Save Changes"}
                               </Button>
+                            </div>
+                          ) : activePage === "Leadership" ? (
+                            <div className="space-y-4">
+                              {loadingLeadership ? <p className="text-sm text-muted-foreground">Loading Leadership settings...</p> : leadershipSettings.map((leader, index) => (
+                                <div key={`leader-${index}`} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-2">
+                                  <Input value={leader.position} placeholder="Position" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, position: event.target.value } : item))} />
+                                  <Input value={leader.name} placeholder="Name" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} />
+                                  <Input value={leader.major} placeholder="Major" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, major: event.target.value } : item))} />
+                                  <Input value={leader.year} placeholder="Class year" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, year: event.target.value } : item))} />
+                                  <Input value={leader.email} placeholder="Email" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, email: event.target.value } : item))} />
+                                  <Input value={leader.image} placeholder="Photo path or URL" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, image: event.target.value } : item))} />
+                                  <Input value={leader.favoriteBird} placeholder="Favorite bird" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, favoriteBird: event.target.value } : item))} />
+                                  <Input value={leader.bio} placeholder="Bio" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, bio: event.target.value } : item))} />
+                                  <Button type="button" variant="outline" onClick={() => setLeadershipSettings((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove</Button>
+                                </div>
+                              ))}
+                              <div className="flex flex-wrap gap-3">
+                                <Button type="button" variant="outline" onClick={() => setLeadershipSettings((current) => [...current, { position: "", name: "", major: "", year: "", email: "", bio: "", image: "", favoriteBird: "" }])}>Add Position</Button>
+                                <Button type="button" onClick={saveLeadership} disabled={loadingLeadership || savingLeadership || !leadershipChanged}>{savingLeadership ? "Saving..." : "Save Changes"}</Button>
+                              </div>
                             </div>
                           ) : (
                             <div className="rounded-md border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">

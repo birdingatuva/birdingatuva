@@ -3,7 +3,6 @@ import { getSitePage, getSitePageSetting } from "@/lib/pages-db"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
-import { Card, CardContent } from "@/components/ui/card"
 
 interface LinkSetting {
   label: string
@@ -26,15 +25,13 @@ export default async function LinksPage() {
         <PageHeader title="Links" />
         <section className="px-4 py-12">
           <div className="container mx-auto max-w-3xl">
-            <Card>
-              <CardContent className="space-y-3 py-8">
-                {links.filter((link) => link.enabled && link.url).map((link) => (
-                  <a key={link.label} href={link.url} target="_blank" rel="noreferrer" className="block rounded-md border border-border px-4 py-3 text-center font-medium text-primary transition-colors hover:bg-muted">
-                    {link.label}
-                  </a>
-                ))}
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              {links.filter((link) => link.enabled && link.url).map((link) => (
+                <a key={link.label} href={link.url} target="_blank" rel="noreferrer" className="block rounded-md border border-border bg-card px-4 py-5 text-center text-lg font-semibold text-primary shadow-sm transition-colors hover:bg-muted">
+                  {link.label}
+                </a>
+              ))}
+            </div>
           </div>
         </section>
       </main>

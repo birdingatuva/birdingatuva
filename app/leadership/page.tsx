@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic'
 import fs from "fs"
 import path from "path"
 import { notFound } from "next/navigation"
-import { getSitePage } from "@/lib/pages-db"
-import { LeadershipClient } from "./leadership-client"
+import { getSitePage, getSitePageSetting } from "@/lib/pages-db"
+import { LeadershipClient, type Leader } from "./leadership-client"
 
 export default async function LeadershipPage() {
   if (!(await getSitePage("leadership"))) notFound()
@@ -25,5 +25,7 @@ export default async function LeadershipPage() {
     birdImages = []
   }
 
-  return <LeadershipClient birdImages={birdImages} />
+  const setting = await getSitePageSetting("leadership", "leadership")
+  const leaders = Array.isArray(setting) ? setting as Leader[] : []
+  return <LeadershipClient birdImages={birdImages} leaders={leaders} />
 }

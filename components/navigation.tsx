@@ -119,6 +119,7 @@ export function Navigation() {
   const pageLinks = [
     { slug: "home", href: "/", label: "Home" },
     { slug: "events", href: "/events", label: "Events" },
+    { slug: "leadership", href: "/leadership", label: "Leadership" },
     { slug: "faq", href: "/faq", label: "FAQ" },
     { slug: "links", href: "/links", label: "Links" },
   ]

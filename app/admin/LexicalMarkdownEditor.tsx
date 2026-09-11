@@ -554,7 +554,7 @@ export const LexicalMarkdownEditor = memo(function LexicalMarkdownEditor({ value
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div data-editor-shell className="relative rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring/50">
+      <div data-editor-shell className="relative rounded-lg border border-input bg-background focus-within:border-primary focus-within:ring-[3px] focus-within:ring-primary/50">
         <ToolbarPlugin />
         <div className="relative">
           <RichTextPlugin
