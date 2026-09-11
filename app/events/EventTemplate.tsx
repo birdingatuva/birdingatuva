@@ -90,7 +90,7 @@ export default function EventTemplate({
             {showFaqBanner && (
               <Link href="/faq" className="mb-6 flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-5 text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <CircleHelp className="h-7 w-7 shrink-0 text-primary" />
-                <span className="font-display text-xl font-semibold leading-snug text-primary sm:text-2xl">New to birding? Read the FAQ to get started</span>
+                <span className="font-display text-xl font-semibold leading-snug text-primary sm:text-2xl">New to birding at UVA? Read the FAQ to get started</span>
               </Link>
             )}
             <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
