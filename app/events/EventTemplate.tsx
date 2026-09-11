@@ -27,7 +27,7 @@ function normalizeLexicalMarkdown(markdown: string) {
       }
 
       return line.replace(
-        /(?<![\w@\[\]\)\/])((?:www\.)?[a-z0-9-]+\.[a-z]{2,})/gi,
+        /(?<![\w@\[\]\)\/.])((?:www\.)?[a-z0-9-]+\.[a-z]{2,})/gi,
         "[$1](https://$1)",
       )
     })
