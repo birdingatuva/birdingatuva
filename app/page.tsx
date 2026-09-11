@@ -207,7 +207,7 @@ export default async function HomePage() {
 											asChild
 										>
 											<a
-												href="https://groupme.com/join_group/109995890/QWsltHtC"
+												href="https://groupme.com/join_group/111070687/5ZbS0Hbl"
 												target="_blank"
 												rel="noopener noreferrer"
 											>
