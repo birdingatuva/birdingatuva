@@ -40,7 +40,7 @@ export function LeadershipClient({ birdImages, leaders }: LeadershipClientProps)
       <Navigation />
       <main className="relative z-20">
         <DecorativeBirds images={birdImages} />
-        <PageHeader title="OUR LEADERSHIP" description="Meet the dedicated students leading the UVA Bird Club" />
+        <PageHeader title="LEADERSHIP"  />
         <section className="py-20 px-16">
           <div className="container mx-auto max-w-7xl relative z-20">
             <div className="grid gap-20 md:grid-cols-2 lg:grid-cols-3">
