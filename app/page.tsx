@@ -422,9 +422,8 @@ export default async function HomePage() {
 						<h2 className="font-display text-5xl md:text-6xl font-bold mb-12 text-center text-primary">
 							GET IN TOUCH
 						</h2>
-
-						<div className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-							<Card className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+						<div className="flex flex-wrap justify-center gap-6 max-w-3xl mx-auto">
+							<Card className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1 w-full sm:w-72">
 								<CardHeader>
 									<Mail className="w-12 h-12 mx-auto mb-4 text-accent" />
 									<CardTitle className="font-display text-xl">EMAIL</CardTitle>
@@ -439,7 +438,7 @@ export default async function HomePage() {
 								</CardContent>
 							</Card>
 
-							<Card className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+							<Card className="text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1 w-full sm:w-72">
 								<CardHeader>
 									<Instagram className="w-12 h-12 mx-auto mb-4 text-accent" />
 									<CardTitle className="font-display text-xl">
