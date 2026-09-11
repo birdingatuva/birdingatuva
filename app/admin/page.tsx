@@ -11,7 +11,7 @@ import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Upload, X, ImageIcon } from "lucide-react"
+import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, House, ImageIcon, Link2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
@@ -64,6 +64,7 @@ export default function AdminPage() {
     bodyMarkdown: "",
     signupUrl: "",
     hasGoogleForm: false,
+    showFaqBanner: false,
     hidden: false,
   }
   const [form, setForm] = useState(initialForm)
@@ -77,6 +78,7 @@ export default function AdminPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [error, setError] = useState("")
   const [uploadError, setUploadError] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
@@ -94,14 +96,28 @@ export default function AdminPage() {
     hidden: boolean
     signupUrl: string | null
     hasGoogleForm: boolean
+    showFaqBanner: boolean
     bodyMarkdown: string
   }>>([])
   const [loadingEvents, setLoadingEvents] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editingSlug, setEditingSlug] = useState<string | null>(null)
+  const [originalEventForm, setOriginalEventForm] = useState<typeof initialForm | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
+  const [activePage, setActivePage] = useState("Events")
+  const [pageVisibility, setPageVisibility] = useState<Record<string, boolean>>({})
+  const [visibilityPrompt, setVisibilityPrompt] = useState<{ slug: string; name: string; published: boolean } | null>(null)
+  const [faqMarkdown, setFaqMarkdown] = useState("")
+  const [originalFaqMarkdown, setOriginalFaqMarkdown] = useState("")
+  const [loadingFaq, setLoadingFaq] = useState(false)
+  const [savingFaq, setSavingFaq] = useState(false)
+  const [isCreateEventOpen, setIsCreateEventOpen] = useState(true)
+  const [linkSettings, setLinkSettings] = useState<Array<{ label: string; url: string; enabled: boolean }>>([])
+  const [originalLinkSettings, setOriginalLinkSettings] = useState<Array<{ label: string; url: string; enabled: boolean }>>([])
+  const [loadingLinks, setLoadingLinks] = useState(false)
+  const [savingLinks, setSavingLinks] = useState(false)
   const router = useRouter()
   const headerImageInputRef = useRef<HTMLInputElement>(null)
   const additionalImagesInputRef = useRef<HTMLInputElement>(null)
@@ -138,6 +154,36 @@ export default function AdminPage() {
       }
     }
     loadEvents()
+  }, [isAuthorized])
+
+  useEffect(() => {
+    const loadPages = async () => {
+      if (!isAuthorized) return
+      try {
+        const data = await dedupeJson<{ pages: Array<{ slug: string; published: boolean }> }>('/api/pages?admin=true')
+        setPageVisibility(Object.fromEntries(data.pages.map((page) => [page.slug, page.published])))
+      } catch {
+        setError('Unable to load page settings.')
+      }
+    }
+    loadPages()
+  }, [isAuthorized])
+
+  useEffect(() => {
+    const loadFaq = async () => {
+      if (!isAuthorized) return
+      try {
+        setLoadingFaq(true)
+        const data = await dedupeJson<{ page: { contentMarkdown: string } }>('/api/pages/faq?admin=true')
+        setFaqMarkdown(data.page.contentMarkdown)
+        setOriginalFaqMarkdown(data.page.contentMarkdown)
+      } catch {
+        setError('Unable to load FAQ content.')
+      } finally {
+        setLoadingFaq(false)
+      }
+    }
+    loadFaq()
   }, [isAuthorized])
 
   // Load bird images for decorative birds
@@ -457,6 +503,7 @@ export default function AdminPage() {
         setAdditionalImages([]);
         setAdditionalImagePreviews([]);
         setSubmitted(true);
+        setSuccessMessage("Event submitted successfully")
         setShowSuccessToast(true);
         // Clear all saved form data from localStorage
         localStorage.removeItem("adminFormData");
@@ -492,7 +539,7 @@ export default function AdminPage() {
     setEditMode(true)
     setEditingSlug(e.slug)
     // Populate form fields
-    setForm({
+    const eventForm = {
       title: e.title,
       slug: e.slug, // keep slug read-only
       startDate: e.startDate || "",
@@ -503,8 +550,11 @@ export default function AdminPage() {
       bodyMarkdown: e.bodyMarkdown || "",
       signupUrl: e.signupUrl || "",
       hasGoogleForm: !!e.hasGoogleForm,
+      showFaqBanner: !!e.showFaqBanner,
       hidden: !!e.hidden,
-    })
+    }
+    setForm(eventForm)
+    setOriginalEventForm(eventForm)
     // Reset images (we won't auto-load existing images as files; keep previews empty)
     setHeaderImage(null)
     setHeaderImagePreview("")
@@ -534,6 +584,7 @@ export default function AdminPage() {
         bodyMarkdown: form.bodyMarkdown || '',
         signupUrl: form.signupUrl || null,
         hasGoogleForm: !!form.hasGoogleForm,
+        showFaqBanner: !!form.showFaqBanner,
         hidden: !!form.hidden,
       }
       // Note: Editing images via re-upload not implemented here; could be added later
@@ -543,12 +594,14 @@ export default function AdminPage() {
         body: JSON.stringify(payload),
       })
       if (res.ok) {
+        setSuccessMessage("Changes saved")
         setShowSuccessToast(true)
         setTimeout(() => setShowSuccessToast(false), 1800)
         // Refresh list and exit edit mode
   try { const d = await dedupeJson<{ events: any[] }>('/api/events?admin=true'); setEvents(d.events || []) } catch {}
         setEditMode(false)
         setEditingSlug(null)
+        setOriginalEventForm(null)
         setForm(initialForm)
       } else {
         const err = await res.json().catch(() => ({ error: 'Update failed' }))
@@ -602,6 +655,94 @@ export default function AdminPage() {
     setForm((current) => ({ ...current, bodyMarkdown }))
   }, [])
 
+  const saveFaq = async () => {
+    try {
+      setSavingFaq(true)
+      setError("")
+      const response = await fetch('/api/pages/faq', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentMarkdown: faqMarkdown }),
+      })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: 'Failed to save FAQ content.' }))
+        throw new Error(data.error || 'Failed to save FAQ content.')
+      }
+      setSuccessMessage("Changes saved")
+      setShowSuccessToast(true)
+      setTimeout(() => setShowSuccessToast(false), 1800)
+      setOriginalFaqMarkdown(faqMarkdown)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to save FAQ content.')
+    } finally {
+      setSavingFaq(false)
+    }
+  }
+
+  useEffect(() => {
+    const loadLinks = async () => {
+      if (!isAuthorized || activePage !== "Links") return
+      try {
+        setLoadingLinks(true)
+        const data = await dedupeJson<{ setting: unknown }>('/api/pages/links/settings/links')
+        const loadedSettings = Array.isArray(data.setting) ? data.setting as Array<{ label: string; url: string; enabled: boolean }> : []
+        setLinkSettings(loadedSettings)
+        setOriginalLinkSettings(loadedSettings)
+      } catch {
+        setError('Unable to load Links settings.')
+      } finally {
+        setLoadingLinks(false)
+      }
+    }
+    loadLinks()
+  }, [activePage, isAuthorized])
+
+  const togglePageVisibility = async (slug: string, published: boolean) => {
+    setPageVisibility((current) => ({ ...current, [slug]: published }))
+    const response = await fetch('/api/pages', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, published }),
+    })
+    if (!response.ok) {
+      setPageVisibility((current) => ({ ...current, [slug]: !published }))
+      setError('Unable to update page visibility.')
+      return
+    }
+    window.dispatchEvent(new Event('page-visibility-changed'))
+  }
+
+  const confirmPageVisibility = async () => {
+    if (!visibilityPrompt) return
+    const { slug, published } = visibilityPrompt
+    setVisibilityPrompt(null)
+    await togglePageVisibility(slug, published)
+  }
+
+  const updateLinkSetting = (index: number, field: "label" | "url" | "enabled", value: string | boolean) => {
+    setLinkSettings((current) => current.map((link, linkIndex) => linkIndex === index ? { ...link, [field]: value } : link))
+  }
+
+  const saveLinks = async () => {
+    try {
+      setSavingLinks(true)
+      const response = await fetch('/api/pages/links/settings/links', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setting: linkSettings }),
+      })
+      if (!response.ok) throw new Error('Unable to save Links settings.')
+      setOriginalLinkSettings(linkSettings)
+      setSuccessMessage('Changes saved')
+      setShowSuccessToast(true)
+      setTimeout(() => setShowSuccessToast(false), 1800)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unable to save Links settings.')
+    } finally {
+      setSavingLinks(false)
+    }
+  }
+
   // Check if user is logged in
   if (!isAuthorized) {
     return (
@@ -626,22 +767,68 @@ export default function AdminPage() {
     setAdditionalImagePreviews([]);
   };
 
+  const eventFormChanged = editMode && originalEventForm !== null && JSON.stringify(form) !== JSON.stringify(originalEventForm)
+  const normalizeFaqMarkdown = (markdown: string) => markdown.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "")
+  const faqChanged = normalizeFaqMarkdown(faqMarkdown) !== normalizeFaqMarkdown(originalFaqMarkdown)
+  const linksChanged = JSON.stringify(linkSettings) !== JSON.stringify(originalLinkSettings)
+
+  const sitePages = [
+    { name: "Home", icon: House },
+    { name: "Events", icon: CalendarDays },
+    { name: "FAQ", icon: CircleHelp },
+    { name: "Leadership", icon: UsersRound },
+    { name: "Links", icon: Link2 },
+    { name: "Admin", icon: ShieldCheck },
+  ]
+
   return (
     <div className="flex-1 relative flex flex-col">
       <Navigation />
       <main className="relative z-20 flex-1">
         {showSuccessToast && (
           <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-md text-sm font-semibold animate-in fade-in slide-in-from-top-2 duration-300">
-            Event submitted successfully
+            {successMessage}
           </div>
         )}
         <DecorativeBirds images={birdImages} />
         <PageHeader
           title="Admin Panel"
-          description="Create and manage club events. Fill out the form below to add a new event to the website."
         />
         <section className="py-12 px-4">
-          <div className="container mx-auto max-w-4xl relative z-20">
+          <div className="container mx-auto max-w-7xl relative z-20">
+            <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+              <aside className="h-fit rounded-lg border border-border bg-card p-3 lg:sticky lg:top-24">
+                <nav className="space-y-1" aria-label="Site pages">
+                  {sitePages.map(({ name, icon: PageIcon }) => (
+                    <div key={name} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${activePage === name ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                      <button type="button" onClick={() => setActivePage(name)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                        <PageIcon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{name}</span>
+                      </button>
+                      {name !== "Admin" && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            const published = pageVisibility[name.toLowerCase()] !== false
+                            setVisibilityPrompt({ slug: name.toLowerCase(), name, published: !published })
+                          }}
+                          title={pageVisibility[name.toLowerCase()] === false ? `Show ${name} page` : `Hide ${name} page`}
+                          aria-label={pageVisibility[name.toLowerCase()] === false ? `Show ${name} page` : `Hide ${name} page`}
+                          className="rounded p-1 hover:bg-background/20"
+                        >
+                          {pageVisibility[name.toLowerCase()] === false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </nav>
+              </aside>
+
+              <div className="min-w-0">
+                {activePage === "Events" ? (
+                  <>
+                    <h2 className="mb-6 px-6 font-display text-3xl text-primary">Events</h2>
             <Card>
               <CardHeader className="flex justify-between items-center">
                 <CardTitle className="text-2xl">{editMode ? 'Edit Event' : 'Add New Event'}</CardTitle>
@@ -649,7 +836,7 @@ export default function AdminPage() {
                   Clear Form
                 </Button>
               </CardHeader>
-              <CardContent>
+              {(editMode || isCreateEventOpen) && <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <style jsx>{`
                     form > div,
@@ -763,6 +950,17 @@ export default function AdminPage() {
                           className="w-4 h-4 rounded border-gray-300"
                         />
                         <label htmlFor="hasGoogleForm" className="text-sm font-medium cursor-pointer">Include embedded Google Form on event page</label>
+                      </div>
+                      <div className="flex items-center gap-3 pt-2">
+                        <input
+                          id="showFaqBanner"
+                          name="showFaqBanner"
+                          type="checkbox"
+                          checked={form.showFaqBanner}
+                          onChange={handleChange}
+                          className="w-4 h-4 rounded border-gray-300"
+                        />
+                        <label htmlFor="showFaqBanner" className="text-sm font-medium cursor-pointer">Show the new-to-birding FAQ banner on the event page</label>
                       </div>
                       <div className="flex items-center gap-3 pt-2">
                         <input
@@ -915,10 +1113,10 @@ export default function AdminPage() {
                   <div className="flex gap-3 pt-4">
                     {editMode ? (
                       <>
-                        <Button type="button" onClick={saveChanges} disabled={submitting} className="flex-1" size="lg">
+                        <Button type="button" onClick={saveChanges} disabled={submitting || !eventFormChanged} className="flex-1" size="lg">
                           {submitting ? 'Saving...' : 'Save Changes'}
                         </Button>
-                        <Button type="button" variant="outline" className="hover:bg-primary hover:text-foreground" size="lg" onClick={() => { setEditMode(false); setEditingSlug(null); setForm(initialForm); }}>
+                        <Button type="button" variant="outline" className="hover:bg-primary hover:text-foreground" size="lg" onClick={() => { setEditMode(false); setEditingSlug(null); setOriginalEventForm(null); setForm(initialForm); }}>
                           Cancel
                         </Button>
                       </>
@@ -929,7 +1127,7 @@ export default function AdminPage() {
                     )}
                   </div>
                 </form>
-              </CardContent>
+              </CardContent>}
             </Card>
             {/* Edit Events Section */}
             <Card className="mt-10">
@@ -970,6 +1168,16 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
+            <Card className="mt-10">
+              <CardHeader>
+                <CardTitle className="text-2xl">Event Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+                  Additional event settings will appear here.
+                </div>
+              </CardContent>
+            </Card>
             {/* Delete confirmation modal (matches login modal styling) */}
             {showDeleteModal && (
               <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowDeleteModal(false)}>
@@ -984,8 +1192,67 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
+                  </>
+                ) : (
+                  <div>
+                    <h2 className="mb-6 px-6 font-display text-3xl text-primary">{activePage}</h2>
+                    <div>
+                      {activePage === "Links" ? (
+                        <div className="space-y-4">
+                          {loadingLinks ? <p className="text-sm text-muted-foreground">Loading Links settings...</p> : linkSettings.map((link, index) => (
+                            <div key={`link-window-${index}`} className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[1fr_2fr_auto_auto]">
+                              <Input value={link.label} placeholder="Link name" onChange={(event) => updateLinkSetting(index, "label", event.target.value)} />
+                              <Input value={link.url} placeholder="https://..." onChange={(event) => updateLinkSetting(index, "url", event.target.value)} />
+                              <Button type="button" variant="outline" onClick={() => updateLinkSetting(index, "enabled", !link.enabled)}>{link.enabled ? "Enabled" : "Disabled"}</Button>
+                              <Button type="button" variant="outline" onClick={() => setLinkSettings((current) => current.filter((_, linkIndex) => linkIndex !== index))}>Remove</Button>
+                            </div>
+                          ))}
+                          <div className="flex flex-wrap gap-3">
+                            <Button type="button" variant="outline" onClick={() => setLinkSettings((current) => [...current, { label: "", url: "", enabled: true }])}>Add Link</Button>
+                            <Button type="button" onClick={saveLinks} disabled={loadingLinks || savingLinks || !linksChanged}>{savingLinks ? "Saving..." : "Save Changes"}</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Card>
+                          <CardContent>
+                          {activePage === "FAQ" ? (
+                            <div className="space-y-4">
+                              {loadingFaq ? (
+                                <p className="text-sm text-muted-foreground">Loading FAQ content...</p>
+                              ) : (
+                                <LexicalMarkdownEditor value={faqMarkdown} onChange={setFaqMarkdown} placeholder="Write the FAQ page content..." />
+                              )}
+                              <Button type="button" onClick={saveFaq} disabled={loadingFaq || savingFaq || !faqChanged} className="w-full sm:w-auto">
+                                {savingFaq ? "Saving..." : "Save Changes"}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="rounded-md border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+                              No page settings are available for {activePage} yet.
+                            </div>
+                          )}
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </section>
+        {visibilityPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setVisibilityPrompt(null)}>
+            <div className="w-full max-w-sm rounded-xl border bg-background p-6 shadow-lg" onClick={(event) => event.stopPropagation()}>
+              <h3 className="mb-2 text-lg font-bold">Change page visibility?</h3>
+              <p className="mb-5 text-sm text-muted-foreground">{visibilityPrompt.published ? `Show ${visibilityPrompt.name} in the website navigation?` : `Hide ${visibilityPrompt.name} from the website navigation and public URL?`}</p>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setVisibilityPrompt(null)}>Cancel</Button>
+                <Button type="button" onClick={confirmPageVisibility}>Confirm</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </div>

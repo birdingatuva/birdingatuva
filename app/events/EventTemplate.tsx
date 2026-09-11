@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/page-header";
 import { CloudinaryImage } from "@/components/cloudinary-image";
 import { ImageGallery } from "@/components/image-gallery";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Calendar, Clock } from "lucide-react";
+import { MapPin, Calendar, Clock, CircleHelp } from "lucide-react";
+import Link from "next/link";
 import React from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -56,6 +57,7 @@ export interface EventTemplateProps {
   bodyMarkdown: string;
   signupUrl: string;
   hasGoogleForm?: boolean;
+  showFaqBanner?: boolean;
 }
 
 export default function EventTemplate({
@@ -69,6 +71,7 @@ export default function EventTemplate({
   bodyMarkdown,
   signupUrl,
   hasGoogleForm = false,
+  showFaqBanner = false,
 }: EventTemplateProps) {
   // Gallery images are all images except the first one (header image)
   const galleryImages = images.length > 1 ? images.slice(1) : [];
@@ -81,10 +84,15 @@ export default function EventTemplate({
         <DecorativeBirds images={[]} />
         <PageHeader 
           title={title}
-          description={description}
         />
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
+            {showFaqBanner && (
+              <Link href="/faq" className="mb-6 flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-5 text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+                <CircleHelp className="h-7 w-7 shrink-0 text-primary" />
+                <span className="font-display text-xl font-semibold leading-snug text-primary sm:text-2xl">New to birding? Read the FAQ to get started</span>
+              </Link>
+            )}
             <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
               {image ? (
                 <div className="relative h-72 overflow-hidden p-0 m-0 bg-muted">

@@ -36,7 +36,6 @@ export function EventsClient({ events }: EventsClientProps) {
         <DecorativeBirds images={[]} />
         <PageHeader
           title="Events"
-          description="Upcoming birding trips and club events. Click an event for more info and to sign up!"
         />
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-6xl relative z-20">

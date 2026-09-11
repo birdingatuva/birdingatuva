@@ -18,10 +18,33 @@ export function Navigation() {
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginSuccess, setLoginSuccess] = useState(false)
+  const [visiblePages, setVisiblePages] = useState<string[]>(["home", "events", "faq", "links"])
   // Re-check session on route change
   useEffect(() => {
     checkSession()
   }, [pathname])
+
+  useEffect(() => {
+    fetch('/api/pages')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data: { pages?: Array<{ slug: string }> } | null) => {
+        if (data?.pages) setVisiblePages(data.pages.map((page) => page.slug))
+      })
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    const refreshPages = () => {
+      fetch('/api/pages')
+        .then((res) => res.ok ? res.json() : null)
+        .then((data: { pages?: Array<{ slug: string }> } | null) => {
+          if (data?.pages) setVisiblePages(data.pages.map((page) => page.slug))
+        })
+        .catch(() => undefined)
+    }
+    window.addEventListener('page-visibility-changed', refreshPages)
+    return () => window.removeEventListener('page-visibility-changed', refreshPages)
+  }, [])
 
   // Periodically poll session validity (every 15s)
   useEffect(() => {
@@ -93,18 +116,15 @@ export function Navigation() {
   }
 
   // Insert Admin link if authorized
-  let links = [
-    { href: "/", label: "Home" },
-    //{ href: "/leadership", label: "Leadership" },
-    { href: "/events", label: "Events" },
-    { href: "/faq", label: "FAQ" },
+  const pageLinks = [
+    { slug: "home", href: "/", label: "Home" },
+    { slug: "events", href: "/events", label: "Events" },
+    { slug: "faq", href: "/faq", label: "FAQ" },
+    { slug: "links", href: "/links", label: "Links" },
   ]
+  let links = pageLinks.filter((link) => visiblePages.includes(link.slug)).map(({ href, label }) => ({ href, label }))
   if (authorized) {
-    links = [
-      ...links.slice(0, 3),
-      { href: "/admin", label: "Admin" },
-      ...links.slice(3)
-    ]
+    links = [...links, { href: "/admin", label: "Admin" }]
   }
 
   return (

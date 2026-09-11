@@ -36,6 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
     if (data.bodyMarkdown !== undefined) add('body_markdown', data.bodyMarkdown || '')
   if (data.signupUrl !== undefined) add('signup_url', data.signupUrl || null)
     if (data.hasGoogleForm !== undefined) add('has_google_form', !!data.hasGoogleForm)
+    if (data.showFaqBanner !== undefined) add('show_faq_banner', !!data.showFaqBanner)
     if (data.hidden !== undefined) add('hidden', !!data.hidden)
     if (data.imagePublicIds !== undefined) {
       // Replace entire image array when editing (optional future: merge?)

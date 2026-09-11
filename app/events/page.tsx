@@ -1,9 +1,11 @@
-export const dynamic = 'force-static'
-export const revalidate = false
+export const dynamic = 'force-dynamic'
+import { notFound } from "next/navigation"
 import { EventsClient } from "./events-client"
 import { listEvents } from "@/lib/events-db"
+import { getSitePage } from "@/lib/pages-db"
 
 export default async function EventsPage() {
+  if (!(await getSitePage("events"))) notFound()
   const events = await listEvents()
   // Map to client-friendly minimal shape
   const clientEvents = events.map(e => ({

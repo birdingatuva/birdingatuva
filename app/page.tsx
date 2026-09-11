@@ -13,8 +13,11 @@ import { MapPin, Calendar, Mail, Instagram, Clock, ExternalLink, Compass } from 
 import fs from "fs"
 import path from "path"
 import { LinktreeIcon } from "@/components/icons/LinktreeIcon"
+import { notFound } from "next/navigation"
+import { getSitePage } from "@/lib/pages-db"
 
-export default function HomePage() {
+export default async function HomePage() {
+	if (!(await getSitePage("home"))) notFound()
 	// Use Cloudinary images for hero slideshow - now using direct URLs
 	// These will be processed by wsrv.nl instead of Cloudinary transformations
 	const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'

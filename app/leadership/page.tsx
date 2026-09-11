@@ -1,9 +1,12 @@
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 import fs from "fs"
 import path from "path"
+import { notFound } from "next/navigation"
+import { getSitePage } from "@/lib/pages-db"
 import { LeadershipClient } from "./leadership-client"
 
-export default function LeadershipPage() {
+export default async function LeadershipPage() {
+  if (!(await getSitePage("leadership"))) notFound()
   const flyingDir = path.join(process.cwd(), "public/images/flying-birds")
   let birdImages: string[] = []
   

@@ -3,6 +3,7 @@ export const dynamicParams = true // Allow dynamic slug paths not in generateSta
 import { notFound } from "next/navigation"
 import EventTemplate from "../EventTemplate"
 import { getEvent, listEvents } from "@/lib/events-db"
+import { getSitePage } from "@/lib/pages-db"
 import { formatDisplayDate, formatTimeForDisplay } from "../date-utils"
 
 interface PageProps { 
@@ -18,6 +19,7 @@ export async function generateStaticParams() {
 }
 
 export default async function EventPage(props: PageProps) {
+  if (!(await getSitePage("events"))) notFound()
   const params = await props.params
   const record = await getEvent(params.slug)
   if (!record) return notFound()
@@ -45,6 +47,7 @@ export default async function EventPage(props: PageProps) {
       bodyMarkdown={bodyMarkdown}
       signupUrl={signupUrl}
       hasGoogleForm={record.hasGoogleForm}
+      showFaqBanner={record.showFaqBanner}
     />
   )
 }

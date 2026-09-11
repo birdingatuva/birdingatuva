@@ -1,9 +1,11 @@
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 import fs from "fs"
 import path from "path"
+import { notFound } from "next/navigation"
+import { getSitePage } from "@/lib/pages-db"
 import { FAQClient } from "./faq-client"
 
-export default function FAQPage() {
+export default async function FAQPage() {
   const flyingDir = path.join(process.cwd(), "public/images/flying-birds")
   let birdImages: string[] = []
   
@@ -22,5 +24,8 @@ export default function FAQPage() {
     birdImages = []
   }
 
-  return <FAQClient birdImages={birdImages} />
+  const faqPage = await getSitePage("faq")
+  if (!faqPage) notFound()
+
+  return <FAQClient birdImages={birdImages} contentMarkdown={faqPage.contentMarkdown} />
 }
