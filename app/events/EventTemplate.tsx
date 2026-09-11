@@ -10,6 +10,7 @@ import Link from "next/link";
 import React from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSanitize from "rehype-sanitize";
 
 function normalizeLexicalMarkdown(markdown: string) {
   return markdown
@@ -26,12 +27,53 @@ function normalizeLexicalMarkdown(markdown: string) {
         return `${markerMatch[1]}${marker}${markerMatch[3]}`
       }
 
-      return line.replace(
-        /(?<![\w@\[\]\)\/.])((?:www\.)?[a-z0-9-]+\.[a-z]{2,})/gi,
-        "[$1](https://$1)",
-      )
+      return line
     })
     .join("\n")
+}
+
+type MarkdownNode = {
+  type: string
+  value?: string
+  url?: string
+  children?: MarkdownNode[]
+}
+
+const plainDomainPattern = /(?<![\w@.])((?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,})(?![\w-])/gi
+
+function remarkLinkifyPlainDomains() {
+  return (tree: MarkdownNode) => {
+    const visit = (node: MarkdownNode) => {
+      if (node.type === "link" || node.type === "code" || node.type === "inlineCode") return
+      if (!node.children) return
+
+      const nextChildren: MarkdownNode[] = []
+      for (const child of node.children) {
+        if (child.type !== "text" || !child.value) {
+          visit(child)
+          nextChildren.push(child)
+          continue
+        }
+
+        let lastIndex = 0
+        for (const match of child.value.matchAll(plainDomainPattern)) {
+          const matchIndex = match.index ?? 0
+          const domain = match[1]
+          if (matchIndex > lastIndex) nextChildren.push({ type: "text", value: child.value.slice(lastIndex, matchIndex) })
+          nextChildren.push({
+            type: "link",
+            url: `https://${domain}`,
+            children: [{ type: "text", value: domain }],
+          })
+          lastIndex = matchIndex + domain.length
+        }
+        if (lastIndex < child.value.length) nextChildren.push({ type: "text", value: child.value.slice(lastIndex) })
+      }
+      node.children = nextChildren
+    }
+
+    visit(tree)
+  }
 }
 
 const markdownComponents: Components = {
@@ -127,7 +169,13 @@ export default function EventTemplate({
                   )}
                 </div>
                 <div className="mb-6 max-w-none text-foreground">
-                  <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{normalizeLexicalMarkdown(bodyMarkdown)}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={markdownComponents}
+                    remarkPlugins={[remarkGfm, remarkLinkifyPlainDomains]}
+                    rehypePlugins={[rehypeSanitize]}
+                  >
+                    {normalizeLexicalMarkdown(bodyMarkdown)}
+                  </ReactMarkdown>
                 </div>
                 
                 {/* Image Gallery Section */}
