@@ -22,19 +22,7 @@ These instructions assume you're on macOS using the default `zsh` shell. This pr
 pnpm install
 ```
 
-2. Build for production:
-
-```bash
-pnpm build
-```
-
-3. Start the production server locally (after build):
-
-```bash
-pnpm start
-```
-
-4. Start the development server for rapid updates:
+2. Start the development server for rapid updates:
 
 ```bash
 pnpm dev
