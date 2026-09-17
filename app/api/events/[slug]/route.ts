@@ -12,7 +12,7 @@ async function ensureAuth(req: NextRequest): Promise<boolean> {
   return !!valid
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     if (!(await ensureAuth(req))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -67,12 +67,12 @@ if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
   cloudinary.config({ cloud_name: CLOUDINARY_CLOUD_NAME, api_key: CLOUDINARY_API_KEY, api_secret: CLOUDINARY_API_SECRET, secure: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     if (!(await ensureAuth(req))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const slug = params.slug.trim().toLowerCase()
+    const slug = (await params).slug.trim().toLowerCase()
 
     // Fetch images to know what to delete
     const { rows } = await sql`SELECT image_urls FROM events WHERE lower(trim(slug)) = lower(${slug}) LIMIT 1;`
