@@ -104,8 +104,8 @@ export default function AdminPage() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null)
   const [originalEventForm, setOriginalEventForm] = useState<typeof initialForm | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
+  const [deletingTitle, setDeletingTitle] = useState<string>("")
   const [activePage, setActivePage] = useState("Events")
   const [pageVisibility, setPageVisibility] = useState<Record<string, boolean>>({})
   const [visibilityPrompt, setVisibilityPrompt] = useState<{ slug: string; name: string; published: boolean } | null>(null)
@@ -633,14 +633,14 @@ export default function AdminPage() {
     }
   }
 
-  const requestDelete = (slug: string) => {
+  const requestDelete = (slug: string, title: string) => {
     setDeletingSlug(slug)
-    setDeleteConfirmText("")
+    setDeletingTitle(title)
     setShowDeleteModal(true)
   }
 
   const confirmDelete = async () => {
-    if (deleteConfirmText.trim().toLowerCase() !== 'delete' || !deletingSlug) return
+    if (!deletingSlug) return
     try {
       const res = await fetch(`/api/events/${encodeURIComponent(deletingSlug)}`, { method: 'DELETE' })
       if (res.ok) {
@@ -1223,7 +1223,7 @@ export default function AdminPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Button size="sm" onClick={() => startEdit(ev)}>Edit</Button>
-                          <Button size="sm" variant="destructive" onClick={() => requestDelete(ev.slug)}>Delete</Button>
+                          <Button size="sm" variant="destructive" onClick={() => requestDelete(ev.slug, ev.title)}>Delete</Button>
                         </div>
                       </div>
                     ))}
@@ -1241,16 +1241,41 @@ export default function AdminPage() {
                 </div>
               </CardContent>
             </Card>
-            {/* Delete confirmation modal (matches login modal styling) */}
+            {/* Delete confirmation modal */}
             {showDeleteModal && (
-              <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowDeleteModal(false)}>
-                <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-lg border w-full max-w-sm flex flex-col relative" style={{ position: 'fixed', bottom: '40%', left: '50%', transform: 'translateX(-50%)' }}>
-                  <h3 className="text-lg font-bold mb-2">Delete Event</h3>
-                  <p className="text-sm text-muted-foreground mb-4">This will permanently delete the event and its images. Type "delete" to confirm.</p>
-                  <Input value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)} placeholder="Type delete" />
-                  <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" size="lg" className="hover:bg-primary hover:text-foreground" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-                    <Button variant="destructive" onClick={confirmDelete} disabled={deleteConfirmText.trim().toLowerCase() !== 'delete'}>Delete</Button>
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full max-w-sm rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg"
+                >
+                  <h2 className="mb-3 text-center font-display text-2xl font-bold text-primary">
+                    Delete Event
+                  </h2>
+
+                  <p className="mb-4 text-center text-lg text-muted-foreground">
+                    Are you sure you want to delete the event "{deletingTitle}"?
+                  </p>
+                  
+                  <div className="flex justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="hover:bg-primary hover:text-foreground"
+                      onClick={() => setShowDeleteModal(false)}
+                    >
+                      Cancel
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="lg"
+                      onClick={confirmDelete}
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </div>
