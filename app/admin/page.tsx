@@ -106,6 +106,7 @@ export default function AdminPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
   const [deletingTitle, setDeletingTitle] = useState<string>("")
+  const [deleting, setDeleting] = useState(false)
   const [activePage, setActivePage] = useState("Events")
   const [pageVisibility, setPageVisibility] = useState<Record<string, boolean>>({})
   const [visibilityPrompt, setVisibilityPrompt] = useState<{ slug: string; name: string; published: boolean } | null>(null)
@@ -634,25 +635,41 @@ export default function AdminPage() {
   }
 
   const requestDelete = (slug: string, title: string) => {
+    // Ignore delete requests while another delete is already in progress.
+    if (deleting) return
     setDeletingSlug(slug)
     setDeletingTitle(title)
     setShowDeleteModal(true)
   }
 
+  const closeDeleteModal = () => {
+    if (deleting) return
+    setShowDeleteModal(false)
+    setDeletingSlug(null)
+    setDeletingTitle("")
+  }
+
   const confirmDelete = async () => {
-    if (!deletingSlug) return
+    if (!deletingSlug || deleting) return
+
+    const slugToDelete = deletingSlug
+    setDeleting(true)
+
     try {
-      const res = await fetch(`/api/events/${encodeURIComponent(deletingSlug)}`, { method: 'DELETE' })
+      const res = await fetch(`/api/events/${encodeURIComponent(slugToDelete)}`, { method: 'DELETE' })
       if (res.ok) {
-        setEvents(prev => prev.filter(e => e.slug !== deletingSlug))
+        setEvents(prev => prev.filter(e => e.slug !== slugToDelete))
         setShowDeleteModal(false)
         setDeletingSlug(null)
+        setDeletingTitle("")
       } else {
         const err = await res.json().catch(() => ({ error: 'Delete failed' }))
         alert(err.error || 'Delete failed')
       }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Delete failed')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -1223,7 +1240,7 @@ export default function AdminPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Button size="sm" onClick={() => startEdit(ev)}>Edit</Button>
-                          <Button size="sm" variant="destructive" onClick={() => requestDelete(ev.slug, ev.title)}>Delete</Button>
+                          <Button size="sm" variant="destructive" onClick={() => requestDelete(ev.slug, ev.title)} disabled={deleting}>Delete</Button>
                         </div>
                       </div>
                     ))}
@@ -1245,7 +1262,8 @@ export default function AdminPage() {
             {showDeleteModal && (
               <div
                 className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                onClick={() => setShowDeleteModal(false)}
+                onClick={closeDeleteModal}
+                aria-disabled={deleting}
               >
                 <div
                   onClick={(e) => e.stopPropagation()}
@@ -1264,7 +1282,8 @@ export default function AdminPage() {
                       variant="outline"
                       size="lg"
                       className="hover:bg-primary hover:text-foreground"
-                      onClick={() => setShowDeleteModal(false)}
+                      onClick={closeDeleteModal}
+                      disabled={deleting}
                     >
                       Cancel
                     </Button>
@@ -1273,8 +1292,9 @@ export default function AdminPage() {
                       variant="destructive"
                       size="lg"
                       onClick={confirmDelete}
+                      disabled={deleting}
                     >
-                      Delete
+                      {deleting ? 'Deleting…' : 'Delete'}
                     </Button>
                   </div>
                 </div>

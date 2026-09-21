@@ -74,13 +74,21 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ s
     }
     const slug = (await params).slug.trim().toLowerCase()
 
-    // Fetch images to know what to delete
-    const { rows } = await sql`SELECT image_urls FROM events WHERE lower(trim(slug)) = lower(${slug}) LIMIT 1;`
-    if (!rows.length) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    // Delete the row atomically and return its image list. This also makes the
+    // endpoint safe if a second DELETE request arrives while the first request
+    // is still cleaning up Cloudinary assets.
+    const deleteResult = await sql`
+      DELETE FROM events
+      WHERE lower(trim(slug)) = lower(${slug})
+      RETURNING image_urls;
+    `
+
+    if (!deleteResult.rows.length) {
+      return NextResponse.json({ success: true, alreadyDeleted: true, deletedImages: 0 })
     }
+
     let imagePublicIds: string[] = []
-    const raw = (rows[0] as any).image_urls
+    const raw = (deleteResult.rows[0] as any).image_urls
     try {
       if (Array.isArray(raw)) imagePublicIds = raw.filter(x => typeof x === 'string')
       else if (typeof raw === 'string') {
@@ -89,9 +97,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ s
       }
     } catch {}
 
-    // Delete row first
-    await sql`DELETE FROM events WHERE lower(trim(slug)) = lower(${slug});`
-    // Trigger on-demand revalidation only when database is updated
+    // Trigger on-demand revalidation only when the database row was actually deleted.
     revalidateEvents(slug)
 
     // Attempt Cloudinary cleanup (ignore errors to avoid failing full delete)
