@@ -16,6 +16,7 @@ export default async function EventsPage() {
     startTime: e.startTime,
     endTime: e.endTime,
     location: e.location,
+    bodyMarkdown: e.bodyMarkdown,
     // Card image = first public_id or placeholder-like fallback
     imagePublicId: e.imagePublicIds[0] || '',
     url: `/events/${e.slug}`,

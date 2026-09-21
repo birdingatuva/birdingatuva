@@ -22,6 +22,7 @@ export interface EventsClientEvent {
   startTime: string | null
   endTime: string | null
   location: string
+  bodyMarkdown: string
   imagePublicId: string
   url: string
 }
@@ -39,7 +40,14 @@ export function EventsClient({ events }: EventsClientProps) {
   const filteredEvents = events.filter(event => {
     const status = getEventStatus(event.startDate, event.endDate, event.startTime, event.endTime)
     const query = searchQuery.trim().toLowerCase()
-    const matchesSearch = !query || [event.title, event.location, event.startDate, event.endDate || ""].some(value => value.toLowerCase().includes(query))
+    const searchableText = [
+      event.title,
+      event.location,
+      event.startDate,
+      event.endDate || "",
+      event.bodyMarkdown || "",
+    ].join(" ").toLowerCase()
+    const matchesSearch = !query || searchableText.includes(query)
     const matchesStatus = Boolean(query) || statusFilter === "All" || status === statusFilter || (statusFilter === "Upcoming" && status === "Current")
     const matchesLocation = locationFilter === "All locations" || event.location === locationFilter
     return matchesSearch && matchesStatus && matchesLocation
