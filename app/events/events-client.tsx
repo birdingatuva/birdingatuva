@@ -8,9 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { CloudinaryImage } from "@/components/cloudinary-image"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, Clock } from "lucide-react"
+import { MapPin, Calendar, Clock, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DEFAULT_TIMEZONE, parseTimeToken, formatTimeForDisplay, formatDisplayDate, isoToZonedDate } from "./date-utils"
+import { Input } from "@/components/ui/input"
+import { formatTimeForDisplay, formatDisplayDate, getEventStatus, type EventStatus } from "./date-utils"
+import { useState } from "react"
 
 export interface EventsClientEvent {
   slug: string
@@ -29,6 +31,20 @@ export interface EventsClientProps {
 }
 
 export function EventsClient({ events }: EventsClientProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"Upcoming" | "Current" | "Past" | "All">("Upcoming")
+  const [locationFilter, setLocationFilter] = useState("All locations")
+
+  const locations = Array.from(new Set(events.map(event => event.location).filter(Boolean))).sort()
+  const filteredEvents = events.filter(event => {
+    const status = getEventStatus(event.startDate, event.endDate, event.startTime, event.endTime)
+    const query = searchQuery.trim().toLowerCase()
+    const matchesSearch = !query || [event.title, event.location, event.startDate, event.endDate || ""].some(value => value.toLowerCase().includes(query))
+    const matchesStatus = Boolean(query) || statusFilter === "All" || status === statusFilter || (statusFilter === "Upcoming" && status === "Current")
+    const matchesLocation = locationFilter === "All locations" || event.location === locationFilter
+    return matchesSearch && matchesStatus && matchesLocation
+  })
+
   return (
     <div className="flex-1 relative flex flex-col">
       <Navigation />
@@ -39,6 +55,22 @@ export function EventsClient({ events }: EventsClientProps) {
         />
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-6xl relative z-20">
+            <div className="mb-8 flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center">
+              <div className="flex-1">
+                <div className="relative flex h-10 items-center">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="event-search" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search all events, including past events" className="h-10 pl-9" />
+                </div>
+              </div>
+              <div className="sm:w-48">
+                <select id="event-status" value={statusFilter} onChange={event => setStatusFilter(event.target.value as typeof statusFilter)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="Upcoming">Upcoming & current</option>
+                  <option value="Current">Current</option>
+                  <option value="Past">Past</option>
+                  <option value="All">All events</option>
+                </select>
+              </div>
+            </div>
             <div className="grid lg:grid-cols-4 gap-8">
               {/* Sidebar */}
               <aside className="lg:col-span-1">
@@ -66,34 +98,15 @@ export function EventsClient({ events }: EventsClientProps) {
               </aside>
               {/* Events Grid */}
               <div className="lg:col-span-3 grid md:grid-cols-2 gap-6">
-                {events.length === 0 ? (
+                {filteredEvents.length === 0 ? (
                   <div className="col-span-full flex flex-col items-center justify-center py-24 text-center">
-                    <h1 className="font-display text-5xl font-bold mb-4 text-primary">No Events Scheduled</h1>
-                    <p className="text-lg mb-6 text-muted-foreground max-w-md mx-auto">There are currently no upcoming events. Please check back soon for new birding trips and club activities!</p>
+                    <h1 className="font-display text-5xl font-bold mb-4 text-primary">No Matching Events</h1>
+                    <p className="text-lg mb-6 text-muted-foreground max-w-md mx-auto">Try a different search or filter.</p>
                   </div>
                 ) : (
-                  events.map(event => {
-                    const now = new Date()
-                    let status: 'Upcoming' | 'Current' | 'Past' = 'Upcoming'
+                  filteredEvents.map(event => {
+                    const status: EventStatus = getEventStatus(event.startDate, event.endDate, event.startTime, event.endTime)
                     const displayDate = formatDisplayDate(event.startDate, event.endDate ?? event.startDate)
-                    try {
-                      const start = event.startTime ? parseTimeToken(event.startDate, event.startTime) : null
-                      const end = event.endTime ? parseTimeToken(event.startDate, event.endTime) : null
-                      if (start && end) {
-                        if (now > end) status = 'Past'
-                        else if (now >= start && now <= end) status = 'Current'
-                      } else {
-                        const eventDate = isoToZonedDate(event.startDate, DEFAULT_TIMEZONE)
-                        const todayIso = new Date().toISOString().slice(0, 10)
-                        const today = isoToZonedDate(todayIso, DEFAULT_TIMEZONE)
-                        if (eventDate.getTime() < now.getTime()) status = 'Past'
-                        if (
-                          eventDate.getUTCFullYear() === today.getUTCFullYear() &&
-                          eventDate.getUTCMonth() === today.getUTCMonth() &&
-                          eventDate.getUTCDate() === today.getUTCDate()
-                        ) status = 'Current'
-                      }
-                    } catch { /* ignore */ }
                     
                     const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'
                     

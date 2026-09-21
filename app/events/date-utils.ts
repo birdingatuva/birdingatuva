@@ -1,5 +1,7 @@
 export const DEFAULT_TIMEZONE = 'America/New_York'
 
+export type EventStatus = 'Upcoming' | 'Current' | 'Past'
+
 export function tzOffsetMinutes(date: Date, timeZone: string) {
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -61,6 +63,30 @@ export function parseTimeToken(dateISO: string, token: string, timeZone = DEFAUL
   // hour/minute offset to that base instant rather than overwriting the UTC hour.
   const utcMs = d.getTime() + hour * 60 * 60 * 1000 + minute * 60 * 1000
   return new Date(utcMs)
+}
+
+export function getEventStatus(
+  startDate: string,
+  endDate: string | null,
+  startTime: string | null,
+  endTime: string | null,
+  now = new Date(),
+): EventStatus {
+  const effectiveEndDate = endDate || startDate
+  const start = startTime ? parseTimeToken(startDate, startTime) : isoToZonedDate(startDate)
+  const end = endTime
+    ? parseTimeToken(effectiveEndDate, endTime)
+    : new Date(isoToZonedDate(getNextDateIso(effectiveEndDate)).getTime() - 1)
+
+  if (!start || !end) return 'Upcoming'
+  if (now > end) return 'Past'
+  if (now >= start) return 'Current'
+  return 'Upcoming'
+}
+
+function getNextDateIso(dateIso: string) {
+  const [year, month, day] = dateIso.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day + 1)).toISOString().slice(0, 10)
 }
 
 export function formatTimeForDisplay(dateISO: string, time24: string | undefined, timeZone = DEFAULT_TIMEZONE) {
