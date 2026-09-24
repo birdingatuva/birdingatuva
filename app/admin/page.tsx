@@ -3,6 +3,7 @@ import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { useState, useRef, useEffect, useCallback } from "react"
 import { dedupeJson } from '@/lib/fetch-dedupe'
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
@@ -1223,15 +1224,21 @@ export default function AdminPage() {
                   <div className="space-y-3">
                     {events.map((ev) => (
                       <div key={ev.slug} className="flex items-center gap-4 p-3 border rounded-lg">
-                        <div className="relative w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
+                        <Link
+                          href={`/events/${ev.slug}`}
+                          aria-label={`View ${ev.title}`}
+                          className="relative block w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        >
                           {ev.imagePublicIds[0] ? (
                             <img src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,g_auto,f_auto,q_auto,w_256,h_160/${ev.imagePublicIds[0]}.webp`} alt={ev.title} className="object-cover w-full h-full" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
                           )}
-                        </div>
+                        </Link>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold truncate">{ev.title}</div>
+                          <Link href={`/events/${ev.slug}`} className="inline-block max-w-full align-bottom font-semibold truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm">
+                            {ev.title}
+                          </Link>
                           <div className="text-xs text-muted-foreground truncate">{ev.startDate}{ev.endDate ? ` - ${ev.endDate}` : ''} {ev.startTime ? ` | ${ev.startTime.slice(0, 5)}` : ''}{ev.endTime ? ` - ${ev.endTime.slice(0, 5)}` : ''} | {ev.location}</div>
                           <label className="text-xs flex items-center gap-2 mt-1">
                             <input type="checkbox" checked={!!ev.hidden} onChange={(e) => toggleHidden(ev.slug, e.target.checked)} />
