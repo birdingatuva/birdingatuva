@@ -64,7 +64,7 @@ export default function AdminPage() {
     bodyMarkdown: "",
     signupUrl: "",
     hasGoogleForm: false,
-    showFaqBanner: false,
+    showFaqBanner: true,
     hidden: false,
   }
   const [form, setForm] = useState(initialForm)
