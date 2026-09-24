@@ -1230,7 +1230,13 @@ export default function AdminPage() {
                           className="relative block w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
                           {ev.imagePublicIds[0] ? (
-                            <img src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,g_auto,f_auto,q_auto,w_256,h_160/${ev.imagePublicIds[0]}.webp`} alt={ev.title} className="object-cover w-full h-full" />
+                            <Image
+                              src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/${ev.imagePublicIds[0]}`}
+                              alt={ev.title}
+                              fill
+                              sizes="96px"
+                              className="object-cover"
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No image</div>
                           )}
