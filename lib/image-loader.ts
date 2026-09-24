@@ -45,35 +45,26 @@ function getDeploymentDomain(): string {
 export default function wsrvImageLoader({ src, width, quality }: ImageLoaderProps): string {
   const domain = getDeploymentDomain()
   
-  // For localhost, serve images directly without wsrv.nl
-  // wsrv.nl can't access your local machine
-  if (domain === 'localhost:3000' || domain.includes('localhost')) {
-    // For local images, just return the src with width parameter for Next.js
-    // This bypasses wsrv.nl entirely in development
-    if (src.startsWith('http://') || src.startsWith('https://')) {
-      return src
-    }
-    // For relative paths, return as-is (Next.js will serve from public folder)
-    return src
-  }
-  
   // For Cloudinary URLs, route through wsrv.nl for free optimization
-  // This avoids Cloudinary's paid transformation costs
+  // This also works during local development because Cloudinary is publicly reachable.
+  // Keeping this ahead of the localhost check ensures the requested width is applied.
   if (src.includes('cloudinary.com') || src.includes('res.cloudinary.com')) {
     // Extract just the URL without protocol
     const imageUrl = src.replace(/^https?:\/\//, '')
     return buildWsrvUrl(imageUrl, width, quality)
   }
-  
-  // For other external CDN URLs, use them directly
+
+  // All other external images are also publicly reachable from wsrv.nl.
   if (src.startsWith('http://') || src.startsWith('https://')) {
-    // Check if it's already from a CDN (avoid double-proxying)
-    if (src.includes('cdn.') || src.includes('cloudfront.net')) {
-      return src
-    }
-    // For other external URLs, you can optionally route through wsrv.nl
     const imageUrl = src.replace(/^https?:\/\//, '')
     return buildWsrvUrl(imageUrl, width, quality)
+  }
+
+  // wsrv.nl cannot access files served only by the local development server.
+  // Include the requested width in the local URL so each srcset candidate remains
+  // distinct and the custom loader still honors Next.js's width contract.
+  if (domain === 'localhost:3000' || domain.includes('localhost')) {
+    return addWidthParam(src, width)
   }
   
   // For production/preview deployments with local images, use wsrv.nl
@@ -88,6 +79,11 @@ export default function wsrvImageLoader({ src, width, quality }: ImageLoaderProp
   }
   
   return buildWsrvUrl(imageUrl, width, quality)
+}
+
+function addWidthParam(src: string, width: number): string {
+  const separator = src.includes('?') ? '&' : '?'
+  return `${src}${separator}w=${width}`
 }
 
 function buildWsrvUrl(imageUrl: string, width: number, quality?: number): string {
