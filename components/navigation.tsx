@@ -1,10 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, X } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 // Previous localStorage token helpers removed; now rely on HttpOnly cookie + session endpoint.
 import { Button } from "@/components/ui/button"
 import { CloudinaryImage } from "@/components/cloudinary-image"
@@ -12,7 +10,6 @@ import { CloudinaryImage } from "@/components/cloudinary-image"
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [authorized, setAuthorized] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [loginPassword, setLoginPassword] = useState("")
@@ -102,12 +99,6 @@ export function Navigation() {
     }
   }
 
-  // Toast for logout
-  const [showLogoutToast, setShowLogoutToast] = useState(false)
-  const logoutTimeout = useRef<NodeJS.Timeout | null>(null)
-  // Login toast state
-  const [showLoginToast, setShowLoginToast] = useState(false)
-  const loginTimeout = useRef<NodeJS.Timeout | null>(null)
   const handleLogout = async () => {
     await fetch('/api/logout', { method: 'POST' })
     setAuthorized(false)
@@ -129,11 +120,12 @@ export function Navigation() {
   }
 
   return (
-    <nav className="sticky top-0 z-40 bg-primary text-primary-foreground shadow-lg">
-      <div className="container mx-auto px-4 md:pl-6 md:pr-4">
-        <div className="flex items-center justify-between h-16">
+    <>
+      <nav className="sticky top-0 z-40 bg-primary text-primary-foreground shadow-lg">
+        <div className="container mx-auto px-4 md:px-5 lg:px-6">
+          <div className="flex min-h-16 flex-col min-[900px]:flex-row min-[900px]:items-center min-[900px]:justify-between">
           {/* Logo and Name */}
-          <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity md:-ml-12">
+          <Link href="/" className="flex h-16 shrink-0 items-center gap-3 self-center transition-opacity hover:opacity-90 min-[900px]:self-auto">
             <div className="relative w-[90px] h-[50px] overflow-hidden flex items-center">
               <CloudinaryImage
                 src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/banner-transparent`}
@@ -153,13 +145,13 @@ export function Navigation() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-1 md:ml-auto md:-mr-12">
-            {links.map((link, idx) => (
+          {/* Navigation wraps below the brand when there is not enough horizontal room. */}
+          <div className="flex w-full flex-wrap items-center justify-center gap-1 border-t border-primary-foreground/15 py-2 min-[900px]:ml-2 min-[900px]:w-auto min-[900px]:flex-nowrap min-[900px]:justify-end min-[900px]:border-t-0 min-[900px]:py-0 lg:ml-4">
+            {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-4 py-2 rounded-lg transition-all ${
+                className={`rounded-lg px-3 py-2 text-sm transition-all sm:px-4 sm:text-base ${
                   pathname === link.href
                     ? "bg-primary-foreground text-primary font-semibold"
                     : "hover:bg-primary-foreground/10"
@@ -168,60 +160,31 @@ export function Navigation() {
                 {link.label}
               </Link>
             ))}
-      {/* Logout Toast */}
-      {showLogoutToast && (
-        <div
-          className="absolute inset-0 flex items-center justify-center bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-1000 ease-in-out"
-          style={{ animation: "fade-out 1s forwards" }}
-        >
-          Logged out successfully
-        </div>
-      )}
-      {showLoginToast && (
-        <div
-          className="absolute top-6 left-1/2 -translate-x-1/2 z-[100] bg-green-600 text-white px-4 py-2 rounded-lg shadow-md text-sm font-medium animate-fade-in-out"
-          style={{ animationDuration: "1.5s" }}
-        >
-          Logged in successfully
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes fade-in-out {
-          0% {
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
-          100% {
-            opacity: 0;
-          }
-        }
-      `}</style>
             {/* Login/Logout button at far right */}
             {authorized ? (
               <button 
                 onClick={handleLogout}
-                className="px-4 py-2 rounded-lg transition-all hover:bg-primary-foreground/10 text-primary-foreground"
+                className="rounded-lg px-3 py-2 text-sm text-primary-foreground transition-all hover:bg-primary-foreground/10 sm:px-4 sm:text-base"
               >
                 Logout
               </button>
             ) : (
               <button 
                 onClick={() => setShowLogin(true)}
-                className="px-4 py-2 rounded-lg transition-all hover:bg-primary-foreground/10 text-primary-foreground"
+                className="rounded-lg px-3 py-2 text-sm text-primary-foreground transition-all hover:bg-primary-foreground/10 sm:px-4 sm:text-base"
               >
                 Login
               </button>
             )}
-      {/* Login Modal */}
+          </div>
+        </div>
+        </div>
+      </nav>
+
+      {/* Kept outside responsive navigation containers so it is always visible. */}
       {showLogin && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setShowLogin(false); setLoginError(""); setLoginSuccess(false); }}>
-          <form onSubmit={handleLogin} onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-lg border w-full max-w-sm flex flex-col relative overflow-visible" style={{ position: 'fixed', bottom: '40%', left: '50%', transform: 'translateX(-50%)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4 sm:p-6" onClick={() => { setShowLogin(false); setLoginError(""); setLoginSuccess(false); }}>
+          <form onSubmit={handleLogin} onClick={(e) => e.stopPropagation()} className="relative my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-y-auto rounded-xl border bg-white p-6 text-slate-900 shadow-lg dark:bg-slate-900 dark:text-slate-100 sm:p-8">
               <h2 className="text-xl font-bold mb-6 text-center">Admin Login</h2>
               {loginSuccess && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg text-sm mb-4">
@@ -240,7 +203,7 @@ export function Navigation() {
                 placeholder="Password" 
                 required 
                 autoFocus 
-                className="border rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-primary dark:bg-slate-800 dark:border-slate-700" 
+                className="mb-4 rounded-lg border px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
               <Button type="submit" className="focus:outline-none focus:ring-0 mb-4">Login</Button>
               <button 
@@ -257,61 +220,6 @@ export function Navigation() {
             </form>
         </div>
       )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden text-primary-foreground p-0"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {/* Force larger icon size with explicit w/h so the nav bar height stays the same */}
-            {mobileMenuOpen ? (
-              // add a class containing "size-" so the Button's svg override selector won't apply
-              <X className="size-7 w-7 h-7" />
-            ) : (
-              <Menu className="size-7 w-7 h-7" />
-            )}
-          </Button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pb-4 space-y-2">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-4 py-2 rounded-lg transition-all ${
-                  pathname === link.href
-                    ? "bg-primary-foreground text-primary font-semibold"
-                    : "hover:bg-primary-foreground/10"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {/* Login/Logout button in mobile menu */}
-            {authorized ? (
-              <button 
-                onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
-                className="block w-full text-left px-4 py-2 rounded-lg transition-all hover:bg-primary-foreground/10"
-              >
-                Logout
-              </button>
-            ) : (
-              <button 
-                onClick={() => { setShowLogin(true); setMobileMenuOpen(false); }}
-                className="block w-full text-left px-4 py-2 rounded-lg transition-all hover:bg-primary-foreground/10"
-              >
-                Login
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    </nav>
+    </>
   )
 }

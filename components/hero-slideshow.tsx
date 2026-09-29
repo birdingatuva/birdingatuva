@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 
 interface HeroSlideshowProps {
@@ -14,26 +14,21 @@ const FADE_DURATION_MS = 2000   // Fade transition duration (1.5 seconds)
 export function HeroSlideshow({ images }: HeroSlideshowProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  
-  // Randomize images order on component mount
-  const shuffledImages = useMemo(() => {
-    return [...images].sort(() => Math.random() - 0.5)
-  }, []) // Empty dependency array ensures this only runs once on mount
 
   useEffect(() => {
-    if (shuffledImages.length === 0) return
+    if (images.length === 0) return
 
     const interval = setInterval(() => {
       setIsTransitioning(true)
       
         setTimeout(() => {
-          setCurrentIndex((prevIndex) => (prevIndex + 1) % shuffledImages.length)
+          setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length)
           setIsTransitioning(false)
         }, FADE_DURATION_MS)
     }, SLIDE_INTERVAL_MS)
 
     return () => clearInterval(interval)
-  }, [shuffledImages.length])
+  }, [images.length])
 
   if (images.length === 0) {
     return (
@@ -43,10 +38,10 @@ export function HeroSlideshow({ images }: HeroSlideshowProps) {
 
   return (
     <div className="absolute inset-0 z-10" style={{ backgroundColor: 'hsla(36, 7%, 44%, 1.00)' }}>
-      {shuffledImages.map((imageName, index) => {
+      {images.map((imageName, index) => {
         // Only render current, previous, and next images to keep DOM lightweight
-        const prevIndex = (currentIndex - 1 + shuffledImages.length) % shuffledImages.length
-        const nextIndex = (currentIndex + 1) % shuffledImages.length
+        const prevIndex = (currentIndex - 1 + images.length) % images.length
+        const nextIndex = (currentIndex + 1) % images.length
         const shouldRender = index === currentIndex || index === prevIndex || index === nextIndex
         
         return (
