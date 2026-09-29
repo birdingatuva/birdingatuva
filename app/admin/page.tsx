@@ -704,7 +704,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const loadLinks = async () => {
-      if (!isAuthorized || activePage !== "Links") return
+      if (!isAuthorized) return
       try {
         setLoadingLinks(true)
         const data = await dedupeJson<{ setting: unknown }>('/api/pages/links/settings/links')
@@ -718,11 +718,11 @@ export default function AdminPage() {
       }
     }
     loadLinks()
-  }, [activePage, isAuthorized])
+  }, [isAuthorized])
 
   useEffect(() => {
     const loadLeadership = async () => {
-      if (!isAuthorized || activePage !== "Leadership") return
+      if (!isAuthorized) return
       try {
         setLoadingLeadership(true)
         const data = await dedupeJson<{ setting: unknown }>('/api/pages/leadership/settings/leadership')
@@ -736,7 +736,7 @@ export default function AdminPage() {
       }
     }
     loadLeadership()
-  }, [activePage, isAuthorized])
+  }, [isAuthorized])
 
   const togglePageVisibility = async (slug: string, published: boolean) => {
     setPageVisibility((current) => ({ ...current, [slug]: published }))
@@ -881,8 +881,8 @@ export default function AdminPage() {
               <aside className="h-fit rounded-lg border border-border bg-card p-3 lg:sticky lg:top-24">
                 <nav className="space-y-1" aria-label="Site pages">
                   {sitePages.map(({ name, icon: PageIcon }) => (
-                    <div key={name} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${activePage === name ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                      <button type="button" onClick={() => setActivePage(name)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                    <div key={name} className={`flex items-stretch rounded-md text-sm transition-colors ${activePage === name ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                      <button type="button" onClick={() => setActivePage(name)} className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 text-left">
                         <PageIcon className="h-4 w-4 shrink-0" />
                         <span className="truncate">{name}</span>
                       </button>
@@ -896,7 +896,7 @@ export default function AdminPage() {
                           }}
                           title={pageVisibility[name.toLowerCase()] === false ? `Show ${name} page` : `Hide ${name} page`}
                           aria-label={pageVisibility[name.toLowerCase()] === false ? `Show ${name} page` : `Hide ${name} page`}
-                          className="rounded p-1 hover:bg-background/20"
+                          className="my-1.5 mr-2 rounded p-1 hover:bg-background/20"
                         >
                           {pageVisibility[name.toLowerCase()] === false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -1320,7 +1320,7 @@ export default function AdminPage() {
                     <div>
                       {activePage === "Links" ? (
                         <div className="space-y-4">
-                          {loadingLinks ? <p className="text-sm text-muted-foreground">Loading Links settings...</p> : linkSettings.map((link, index) => (
+                          {linkSettings.map((link, index) => (
                             <div
                               key={`link-window-${index}`}
                               draggable
@@ -1353,18 +1353,14 @@ export default function AdminPage() {
                           <CardContent>
                           {activePage === "FAQ" ? (
                             <div className="space-y-4">
-                              {loadingFaq ? (
-                                <p className="text-sm text-muted-foreground">Loading FAQ content...</p>
-                              ) : (
-                                <LexicalMarkdownEditor value={faqMarkdown} onChange={setFaqMarkdown} placeholder="Write the FAQ page content..." />
-                              )}
+                              <LexicalMarkdownEditor value={faqMarkdown} onChange={setFaqMarkdown} placeholder="Write the FAQ page content..." />
                               <Button type="button" onClick={saveFaq} disabled={loadingFaq || savingFaq || !faqChanged} className="w-full sm:w-auto">
                                 {savingFaq ? "Saving..." : "Save Changes"}
                               </Button>
                             </div>
                           ) : activePage === "Leadership" ? (
                             <div className="space-y-4">
-                              {loadingLeadership ? <p className="text-sm text-muted-foreground">Loading Leadership settings...</p> : leadershipSettings.map((leader, index) => (
+                              {leadershipSettings.map((leader, index) => (
                                 <div key={`leader-${index}`} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-2">
                                   <Input value={leader.position} placeholder="Position" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, position: event.target.value } : item))} />
                                   <Input value={leader.name} placeholder="Name" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} />
