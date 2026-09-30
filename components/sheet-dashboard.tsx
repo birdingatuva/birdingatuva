@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react'
 import { Check, Clock } from 'lucide-react'
 import type { CarpoolData } from '@/lib/carpool-data'
 
+function CarIcon() {
+  return <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 fill-current text-primary" aria-hidden="true"><path fillRule="evenodd" d="M6.2 3a2 2 0 0 0-1.9 1.37L2.1 11a2 2 0 0 0-.1.63V19a2 2 0 0 0 4 0v-1h12v1a2 2 0 0 0 4 0v-7.37a2 2 0 0 0-.1-.63l-2.2-6.63A2 2 0 0 0 17.8 3H6.2ZM6.9 5h10.2l1.67 5H5.23L6.9 5ZM7 13H4v2h3v-2Zm13 0h-3v2h3v-2Z" clipRule="evenodd" /></svg>
+}
+
 export function SheetDashboard({ url }: { url: string }) {
   const [data, setData] = useState<CarpoolData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,7 +33,7 @@ export function SheetDashboard({ url }: { url: string }) {
         setData(result.data)
         setError('')
       } catch {
-        if (!controller.signal.aborted) setError('Could not update the dashboard. We’ll retry automatically, or you can open the sheet.')
+        if (!controller.signal.aborted) setError('Could not update the dashboard. We’ll retry automatically.')
       } finally {
         busy = false
         if (!controller.signal.aborted) setLoading(false)
@@ -55,8 +59,9 @@ export function SheetDashboard({ url }: { url: string }) {
               </p>
               {data.seatsRemaining === null && <p className="mt-2 text-sm text-muted-foreground">Availability has not been reported yet.</p>}
             </div>
-            <div className="grid gap-7 sm:grid-cols-2 sm:gap-8">
+            <div className="grid gap-7 sm:grid-cols-3 sm:gap-8">
               {[
+                { label: 'Drivers', people: data.drivers, empty: 'No drivers listed yet.', waiting: false, icon: CarIcon },
                 { label: 'Registered', people: data.registered, empty: 'No registrations yet.', waiting: false, icon: Check },
                 { label: 'Waitlisted', people: data.waitlisted, empty: 'No one on the waitlist.', waiting: true, icon: Clock },
               ].map(({ label, people, empty, waiting, icon: Icon }) => (
@@ -71,19 +76,10 @@ export function SheetDashboard({ url }: { url: string }) {
                 </div>
               ))}
             </div>
-            <div className="mt-7 border-t border-border pt-5">
-              <h4 className="flex items-center gap-2.5 text-lg font-semibold text-foreground"><svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 fill-current text-primary" aria-hidden="true"><path fillRule="evenodd" d="M6.2 3a2 2 0 0 0-1.9 1.37L2.1 11a2 2 0 0 0-.1.63V19a2 2 0 0 0 4 0v-1h12v1a2 2 0 0 0 4 0v-7.37a2 2 0 0 0-.1-.63l-2.2-6.63A2 2 0 0 0 17.8 3H6.2ZM6.9 5h10.2l1.67 5H5.23L6.9 5ZM7 13H4v2h3v-2Zm13 0h-3v2h3v-2Z" clipRule="evenodd" /></svg>Drivers</h4>
-              {data.drivers.length ? <ul className="mt-3 grid gap-x-8 gap-y-2 text-base leading-6 text-foreground sm:grid-cols-2">
-                {data.drivers.map((person, index) => <li key={index} className="min-w-0 whitespace-pre-line break-words">{person}</li>)}
-              </ul> : <p className="mt-3 text-sm text-muted-foreground">No drivers listed yet.</p>}
-            </div>
           </>}
 
         </div>
       )}
-      <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-        <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 underline underline-offset-4 transition-colors hover:text-foreground">View sheet<span className="sr-only"> (opens in a new tab)</span></a>
-      </div>
     </section>
   )
 }

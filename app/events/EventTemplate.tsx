@@ -164,8 +164,8 @@ export default async function EventTemplate({
                 </div>
               )}
               <div className="px-1 sm:px-2">
-                <h2 className="mb-3 font-display text-3xl font-bold text-primary sm:text-4xl">{title}</h2>
-                <div className="mb-10 space-y-3 border-y border-primary/15 py-4 text-foreground">
+                <h2 className="mb-5 font-display text-3xl font-bold text-primary sm:text-4xl">{title}</h2>
+                <div className="mb-10 space-y-3 text-foreground">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <MapPin className="h-5 w-5 shrink-0 text-primary" />
                     <span className="font-medium leading-snug">{location}</span>
@@ -199,7 +199,7 @@ export default async function EventTemplate({
 
                 {/* Image Gallery Section */}
                 {galleryImages.length > 0 && (
-                  <div className="mb-10 border-t border-border pt-8">
+                  <div className="my-12">
                     <h3 className="mb-4 font-display text-2xl font-bold text-primary">Gallery</h3>
                     <ImageGallery images={galleryImages} title={title} />
                   </div>
