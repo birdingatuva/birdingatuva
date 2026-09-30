@@ -26,7 +26,7 @@ export function FAQClient({ birdImages, contentMarkdown }: FAQClientProps) {
 
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
-            <article className="prose max-w-none px-1 text-base leading-relaxed text-foreground dark:prose-invert sm:px-2 sm:text-lg prose-headings:font-display prose-headings:text-primary prose-a:text-primary prose-a:underline-offset-4 prose-strong:text-foreground">
+            <article className="prose max-w-none px-1 text-base leading-relaxed text-foreground dark:prose-invert sm:px-2 sm:text-lg prose-headings:font-display prose-headings:text-primary prose-a:text-primary prose-a:underline-offset-4 prose-strong:text-foreground [&>h1:not(:first-child)]:border-t [&>h1:not(:first-child)]:border-border [&>h1:not(:first-child)]:pt-8 [&>h2:not(:first-child)]:border-t [&>h2:not(:first-child)]:border-border [&>h2:not(:first-child)]:pt-8 [&>h3:not(:first-child)]:border-t [&>h3:not(:first-child)]:border-border [&>h3:not(:first-child)]:pt-8 [&>hr+:is(h1,h2,h3)]:border-0 [&>hr+:is(h1,h2,h3)]:pt-0">
                   {contentMarkdown ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
