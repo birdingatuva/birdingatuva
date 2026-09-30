@@ -4,7 +4,6 @@ import { DecorativeBirds } from "@/components/decorative-birds";
 import { PageHeader } from "@/components/page-header";
 import { CloudinaryImage } from "@/components/cloudinary-image";
 import { ImageGallery } from "@/components/image-gallery";
-import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Calendar, Clock, CircleHelp } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -102,6 +101,20 @@ export interface EventTemplateProps {
   showFaqBanner?: boolean;
 }
 
+function getGoogleFormEmbedUrl(signupUrl: string): string {
+  try {
+    const url = new URL(signupUrl)
+    const isGoogleForm = url.hostname === "forms.gle" ||
+      (url.hostname === "docs.google.com" && url.pathname.includes("/forms/"))
+
+    if (isGoogleForm) url.searchParams.set("embedded", "true")
+
+    return url.toString()
+  } catch {
+    return signupUrl
+  }
+}
+
 export default function EventTemplate({
   title,
   description,
@@ -130,33 +143,33 @@ export default function EventTemplate({
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
             {showFaqBanner && (
-              <Link href="/faq" className="mb-6 flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-5 text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+              <Link href="/faq" className="mb-10 flex items-center gap-4 border-y border-border py-5 text-foreground transition-colors hover:border-primary/50">
                 <CircleHelp className="h-7 w-7 shrink-0 text-primary" />
                 <span className="font-display text-xl font-semibold leading-snug text-primary sm:text-2xl">New to birding at UVA? Read the FAQ to get started</span>
               </Link>
             )}
-            <Card className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden pt-0">
+            <article>
               {image ? (
-                <div className="relative h-72 overflow-hidden p-0 m-0 bg-muted">
+                <div className="relative mb-8 h-72 overflow-hidden rounded-2xl bg-muted shadow-sm sm:h-96">
                   <CloudinaryImage
                     src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${image}`}
                     alt={`${title} Image`}
                     fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="object-cover"
                   />
                 </div>
               ) : (
-                <div className="relative h-32 bg-muted flex items-center justify-center text-muted-foreground">
+                <div className="relative mb-8 flex h-32 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
                   <span className="text-sm">No image</span>
                 </div>
               )}
-              <CardContent>
-                <h2 className="font-display text-2xl font-bold mb-2">{title}</h2>
-                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <div className="px-1 sm:px-2">
+                <h2 className="mb-3 font-display text-3xl font-bold text-primary sm:text-4xl">{title}</h2>
+                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
                   <MapPin className="w-4 h-4" />
                   {location}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
+                <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     <span>{dateDisplay}</span>
@@ -168,7 +181,7 @@ export default function EventTemplate({
                     </div>
                   )}
                 </div>
-                <div className="mb-6 max-w-none text-foreground">
+                <div className="mb-10 max-w-none text-lg leading-relaxed text-foreground">
                   <ReactMarkdown
                     components={markdownComponents}
                     remarkPlugins={[remarkGfm, remarkLinkifyPlainDomains]}
@@ -180,42 +193,28 @@ export default function EventTemplate({
                 
                 {/* Image Gallery Section */}
                 {galleryImages.length > 0 && (
-                  <div className="mb-8">
-                    <h3 className="font-display text-xl font-bold mb-4 text-foreground">Gallery</h3>
+                  <div className="mb-10 border-t border-border pt-8">
+                    <h3 className="mb-4 font-display text-2xl font-bold text-primary">Gallery</h3>
                     <ImageGallery images={galleryImages} title={title} />
                   </div>
                 )}
                 
                 {hasGoogleForm && signupUrl ? (
-                  <div className="mb-6">
-                    <div className="bg-white/90 rounded-xl shadow-md border border-gray-100 p-6">
-                      <h3 className="font-display text-2xl font-bold mb-4">
-                        <a 
-                          href={signupUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-primary hover:text-primary/80 underline decoration-2 underline-offset-4 transition-colors"
-                        >
-                          Sign Up
-                        </a>
-                      </h3>
-                      <iframe
-                        src={signupUrl}
-                        width="100%"
-                        height="600"
-                        title={`${title} Signup`}
-                        className="rounded-lg border border-gray-200"
-                        style={{ background: 'transparent', border: 'none' }}
-                        allowFullScreen
-                        loading="lazy"
-                      >
-                        Loading…
-                      </iframe>
-                    </div>
-                  </div>
+                  <section className="mt-8 border-t border-border pt-8">
+                    <iframe
+                      src={getGoogleFormEmbedUrl(signupUrl)}
+                      title={`${title} Signup`}
+                      className="block h-[1200px] w-full border-0 bg-transparent sm:h-[1000px]"
+                      scrolling="no"
+                      allowFullScreen
+                      loading="lazy"
+                    >
+                      Loading…
+                    </iframe>
+                  </section>
                 ) : null}
-              </CardContent>
-            </Card>
+              </div>
+            </article>
           </div>
         </section>
       </main>
