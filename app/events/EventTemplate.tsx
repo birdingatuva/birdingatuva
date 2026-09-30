@@ -10,6 +10,8 @@ import React from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
+import { getEventSheets } from "@/lib/sheet-embed";
+import { SheetDashboard } from "@/components/sheet-dashboard";
 
 function normalizeLexicalMarkdown(markdown: string) {
   return markdown
@@ -130,6 +132,7 @@ export default function EventTemplate({
 }: EventTemplateProps) {
   // Gallery images are all images except the first one (header image)
   const galleryImages = images.length > 1 ? images.slice(1) : [];
+  const dashboards = getEventSheets(bodyMarkdown);
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva';
   
   return (
@@ -193,6 +196,10 @@ export default function EventTemplate({
                   </ReactMarkdown>
                 </div>
                 
+                {dashboards.map((dashboard) => (
+                  <SheetDashboard key={dashboard.id} embedUrl={dashboard.embedUrl} csvUrl={dashboard.csvUrl} url={dashboard.url} title={title} />
+                ))}
+
                 {/* Image Gallery Section */}
                 {galleryImages.length > 0 && (
                   <div className="mb-10 border-t border-border pt-8">
