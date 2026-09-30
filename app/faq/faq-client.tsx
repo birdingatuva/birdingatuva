@@ -6,7 +6,6 @@ import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
-import { Card, CardContent } from "@/components/ui/card"
 
 interface FAQClientProps {
   birdImages: string[]
@@ -26,19 +25,17 @@ export function FAQClient({ birdImages, contentMarkdown }: FAQClientProps) {
         />
 
         <section className="py-12 px-4">
-          <div className="container mx-auto max-w-6xl relative z-20">
-            <div className="mx-auto max-w-4xl space-y-8">
-              <Card>
-                <CardContent className="prose prose-slate max-w-none py-8 dark:prose-invert">
+          <div className="container mx-auto max-w-3xl relative z-20">
+            <article className="prose max-w-none px-1 text-base leading-relaxed text-foreground dark:prose-invert sm:px-2 sm:text-lg prose-headings:font-display prose-headings:text-primary prose-a:text-primary prose-a:underline-offset-4 prose-strong:text-foreground">
                   {contentMarkdown ? (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        h1: ({ children }) => <h1 className="font-display text-3xl text-primary">{children}</h1>,
-                        h2: ({ children }) => <h2 className="font-display text-2xl text-primary">{children}</h2>,
-                        h3: ({ children }) => <h3 className="font-display text-xl text-primary">{children}</h3>,
-                        p: ({ children }) => <p className="mb-8 leading-relaxed text-muted-foreground last:mb-0">{children}</p>,
-                        hr: () => <hr className="my-4 border-0 border-t-4 border-gray-700" />,
+                        h1: ({ children }) => <h1 className="mb-5 mt-10 font-display text-3xl font-bold text-primary first:mt-0 sm:text-4xl">{children}</h1>,
+                        h2: ({ children }) => <h2 className="mb-4 mt-10 font-display text-2xl font-bold text-primary first:mt-0 sm:text-3xl">{children}</h2>,
+                        h3: ({ children }) => <h3 className="mb-3 mt-8 font-display text-xl font-semibold text-primary first:mt-0 sm:text-2xl">{children}</h3>,
+                        p: ({ children }) => <p className="mb-6 leading-relaxed text-foreground last:mb-0">{children}</p>,
+                        hr: () => <hr className="my-10 border-0 border-t border-border" />,
                       }}
                     >
                       {contentMarkdown}
@@ -46,9 +43,7 @@ export function FAQClient({ birdImages, contentMarkdown }: FAQClientProps) {
                   ) : (
                     <p className="text-muted-foreground">FAQ content is not available right now.</p>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+            </article>
           </div>
         </section>
       </main>
