@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true // Allow dynamic slug paths not in generateStaticParams
+import { cookies } from "next/headers"
+import { verifyAdminToken } from "@/lib/auth"
 import { notFound } from "next/navigation"
 import EventTemplate from "../EventTemplate"
 import { getEvent, listEvents } from "@/lib/events-db"
@@ -21,8 +23,12 @@ export async function generateStaticParams() {
 export default async function EventPage(props: PageProps) {
   if (!(await getSitePage("events"))) notFound()
   const params = await props.params
-  const record = await getEvent(params.slug)
+  const record = await getEvent(params.slug, true)
   if (!record) return notFound()
+  if (record.hidden) {
+    const token = (await cookies()).get("admin_jwt")?.value
+    if (!token || !verifyAdminToken(token)) notFound()
+  }
 
   const bodyMarkdown = record.bodyMarkdown || "Event details coming soon."
   const signupUrl = record.signupUrl || ""
@@ -37,6 +43,7 @@ export default async function EventPage(props: PageProps) {
 
   return (
     <EventTemplate
+      preview={record.hidden}
       title={record.title}
       description={`${dateDisplay}${timeDisplay ? ` | ${timeDisplay}` : ""} | ${record.location}`}
       image={image}

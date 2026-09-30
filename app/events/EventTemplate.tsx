@@ -91,6 +91,7 @@ const markdownComponents: Components = {
 }
 
 export interface EventTemplateProps {
+  preview?: boolean;
   title: string;
   description: string;
   image: string;
@@ -105,6 +106,7 @@ export interface EventTemplateProps {
 }
 
 export default async function EventTemplate({
+  preview = false,
   title,
   description,
   image,
@@ -124,7 +126,7 @@ export default async function EventTemplate({
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva';
   
   return (
-    <div className="min-h-screen relative bg-background">
+    <div className={`min-h-screen relative bg-background${preview ? " preview-page-stripes" : ""}`}>
       <Navigation />
       <main className="relative z-20">
         <DecorativeBirds images={[]} />
@@ -133,6 +135,12 @@ export default async function EventTemplate({
         />
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
+            {preview && (
+              <div className="preview-stripes mb-8 rounded-lg border border-amber-500/50 p-4" role="status">
+                <p className="font-semibold">Preview mode — admins only</p>
+                <p className="text-sm">This event is hidden from the public. Select “Published” in Admin → Edit Events to make it public.</p>
+              </div>
+            )}
             {showFaqBanner && (
               <Link href="/faq" className="mb-10 flex items-center gap-4 border-y border-border py-5 text-foreground transition-colors hover:border-primary/50">
                 <CircleHelp className="h-7 w-7 shrink-0 text-primary" />

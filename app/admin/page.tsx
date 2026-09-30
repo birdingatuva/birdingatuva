@@ -77,6 +77,9 @@ export default function AdminPage() {
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([])
   const [password, setPassword] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [submitAction, setSubmitAction] = useState<"create" | "preview">("create")
+  const [visibilitySaving, setVisibilitySaving] = useState<string | null>(null)
+  const [visibilityError, setVisibilityError] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
@@ -447,6 +450,9 @@ export default function AdminPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const preview = (e.nativeEvent as SubmitEvent).submitter instanceof HTMLButtonElement
+      && ((e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement).value === "preview";
+    setSubmitAction(preview ? "preview" : "create");
     console.log("=== FORM SUBMISSION STARTED ===");
     setSubmitting(true);
     setError("");
@@ -476,6 +482,8 @@ export default function AdminPage() {
       console.log(`Form field: ${k} = ${String(v).substring(0, 100)}`);
     });
     
+    fd.set("hidden", String(preview));
+
     // Add header image as first image
     let imageIndex = 1
     if (headerImage) {
@@ -503,6 +511,7 @@ export default function AdminPage() {
       console.log("Response status:", res.status, res.statusText);
       
       if (res.ok) {
+        const created = await res.json();
         console.log("✅ Submission successful!");
         setForm(initialForm);
         setHeaderImage(null);
@@ -510,7 +519,7 @@ export default function AdminPage() {
         setAdditionalImages([]);
         setAdditionalImagePreviews([]);
         setSubmitted(true);
-        setSuccessMessage("Event submitted successfully")
+        setSuccessMessage(preview ? "Event saved in preview mode" : "Event submitted successfully")
         setShowSuccessToast(true);
         // Clear all saved form data from localStorage
         localStorage.removeItem("adminFormData");
@@ -521,6 +530,7 @@ export default function AdminPage() {
         router.refresh();
         // reload events for list below
   try { const d = await dedupeJson<{ events: any[] }>('/api/events?admin=true'); setEvents(d.events || []) } catch {}
+        if (preview) router.push(`/events/${created.slug}`);
       } else {
         console.log("❌ Submission failed with status:", res.status);
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
@@ -592,7 +602,6 @@ export default function AdminPage() {
         signupUrl: form.signupUrl || null,
         dashboardUrl: form.dashboardUrl || null,
         showFaqBanner: !!form.showFaqBanner,
-        hidden: !!form.hidden,
       }
       // Note: Editing images via re-upload not implemented here; could be added later
       const res = await fetch(`/api/events/${encodeURIComponent(editingSlug)}` , {
@@ -622,16 +631,22 @@ export default function AdminPage() {
   }
 
   const toggleHidden = async (slug: string, nextHidden: boolean) => {
-    // optimistic update
-    setEvents(prev => prev.map(ev => ev.slug === slug ? { ...ev, hidden: nextHidden } : ev))
-  const res = await fetch(`/api/events/${encodeURIComponent(slug)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hidden: nextHidden }),
-    })
-    if (!res.ok) {
-      // revert
-      setEvents(prev => prev.map(ev => ev.slug === slug ? { ...ev, hidden: !nextHidden } : ev))
+    if (visibilitySaving) return
+    setVisibilitySaving(slug)
+    setVisibilityError("")
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(slug)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hidden: nextHidden }),
+      })
+      if (!res.ok) throw new Error('Could not update event visibility. Please try again.')
+      setEvents(prev => prev.map(ev => ev.slug === slug ? { ...ev, hidden: nextHidden } : ev))
+      router.refresh()
+    } catch (error) {
+      setVisibilityError(error instanceof Error ? error.message : 'Could not update event visibility.')
+    } finally {
+      setVisibilitySaving(null)
     }
   }
 
@@ -1037,17 +1052,6 @@ export default function AdminPage() {
                         />
                         <label htmlFor="showFaqBanner" className="text-sm font-medium cursor-pointer">Show the new-to-birding FAQ banner on the event page</label>
                       </div>
-                      <div className="flex items-center gap-3 pt-2">
-                        <input
-                          id="hidden"
-                          name="hidden"
-                          type="checkbox"
-                          checked={form.hidden}
-                          onChange={handleChange}
-                          className="w-4 h-4 rounded border-gray-300"
-                        />
-                        <label htmlFor="hidden" className="text-sm font-medium cursor-pointer">Hide this event (won't be publicly listed)</label>
-                      </div>
                     </div>
                   </div>
 
@@ -1196,9 +1200,14 @@ export default function AdminPage() {
                         </Button>
                       </>
                     ) : (
-                      <Button type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
-                        {submitting ? "Submitting..." : submitted ? "✓ Submitted!" : "Create Event"}
-                      </Button>
+                      <>
+                        <Button type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
+                          {submitAction === "create" && submitting ? "Submitting..." : submitAction === "create" && submitted ? "✓ Submitted!" : "Create Event"}
+                        </Button>
+                        <Button type="submit" name="action" value="preview" variant="outline" disabled={submitting || submitted} className="preview-stripes flex-1 border-amber-500/50 text-foreground hover:bg-amber-500/15 hover:text-foreground dark:hover:bg-amber-500/20" size="lg">
+                          {submitAction === "preview" && submitting ? "Preparing preview..." : submitAction === "preview" && submitted ? "✓ Preview ready!" : "Preview Event"}
+                        </Button>
+                      </>
                     )}
                   </div>
                 </form>
@@ -1210,6 +1219,7 @@ export default function AdminPage() {
                 <CardTitle className="text-2xl">Edit Events</CardTitle>
               </CardHeader>
               <CardContent>
+                {visibilityError && <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">{visibilityError}</p>}
                 {loadingEvents ? (
                   <div className="text-sm text-muted-foreground">Loading events…</div>
                 ) : events.length === 0 ? (
@@ -1217,7 +1227,7 @@ export default function AdminPage() {
                 ) : (
                   <div className="space-y-3">
                     {events.map((ev) => (
-                      <div key={ev.slug} className="flex items-center gap-4 p-3 border rounded-lg">
+                      <div key={ev.slug} className={`flex items-center gap-4 p-3 border rounded-lg ${ev.hidden ? "preview-stripes border-amber-500/50" : ""}`}>
                         <Link
                           href={`/events/${ev.slug}`}
                           aria-label={`View ${ev.title}`}
@@ -1239,11 +1249,17 @@ export default function AdminPage() {
                           <Link href={`/events/${ev.slug}`} className="inline-block max-w-full align-bottom font-semibold truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm">
                             {ev.title}
                           </Link>
+                          {ev.hidden && <p className="text-xs font-semibold">Preview mode — admins only</p>}
                           <div className="text-xs text-muted-foreground truncate">{ev.startDate}{ev.endDate ? ` - ${ev.endDate}` : ''} {ev.startTime ? ` | ${ev.startTime.slice(0, 5)}` : ''}{ev.endTime ? ` - ${ev.endTime.slice(0, 5)}` : ''} | {ev.location}</div>
-                          <label className="text-xs flex items-center gap-2 mt-1">
-                            <input type="checkbox" checked={!!ev.hidden} onChange={(e) => toggleHidden(ev.slug, e.target.checked)} />
-                            Hide from public view
-                          </label>
+                          <div className="mt-2 inline-flex rounded-lg border border-border bg-background p-1 shadow-sm" role="group" aria-label={`Visibility for ${ev.title}`} aria-busy={visibilitySaving === ev.slug}>
+                            <button type="button" aria-pressed={ev.hidden} disabled={visibilitySaving !== null} onClick={() => !ev.hidden && toggleHidden(ev.slug, true)} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${ev.hidden ? "preview-stripes bg-amber-500/15 text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                              Preview
+                            </button>
+                            <button type="button" aria-pressed={!ev.hidden} disabled={visibilitySaving !== null} onClick={() => ev.hidden && toggleHidden(ev.slug, false)} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${!ev.hidden ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                              Published
+                            </button>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground" role="status">{visibilitySaving === ev.slug ? "Updating visibility..." : ev.hidden ? "Only admins can view this event" : "Visible to everyone"}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button size="sm" onClick={() => startEdit(ev)}>Edit</Button>

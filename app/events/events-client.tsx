@@ -15,6 +15,7 @@ import { formatTimeForDisplay, formatDisplayDate, getEventStatus, type EventStat
 import { useState } from "react"
 
 export interface EventsClientEvent {
+  hidden?: boolean
   slug: string
   title: string
   startDate: string
@@ -137,6 +138,11 @@ export function EventsClient({ events }: EventsClientProps) {
                             {status}
                           </Badge>
                         </Link>
+                        {event.hidden && (
+                          <div className="preview-stripes border-y border-amber-500/50 px-4 py-2 text-sm font-semibold" role="status">
+                            Preview mode — admins only
+                          </div>
+                        )}
                         <CardHeader>
                           <CardTitle className="font-display text-2xl">
                             <Link href={event.url} className="hover:no-underline focus:no-underline">

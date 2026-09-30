@@ -353,3 +353,28 @@ body {
   font-family: var(--font-display);
   letter-spacing: 0.02em;
 }
+
+/* Shared treatment for events saved in admin-only preview mode. */
+.preview-page-stripes {
+  --preview-side-stripes: repeating-linear-gradient(
+    135deg,
+    rgb(245 158 11 / 0.10) 0px,
+    rgb(245 158 11 / 0.10) 16px,
+    transparent 16px,
+    transparent 32px
+  );
+  background-image: var(--preview-side-stripes), var(--preview-side-stripes);
+  background-position: left top, right top;
+  background-size: clamp(8px, calc((100% - 52rem) / 2), 96px) 100%;
+  background-repeat: no-repeat;
+}
+
+.preview-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(245 158 11 / 0.14) 0px,
+    rgb(245 158 11 / 0.14) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
