@@ -1,4 +1,4 @@
-import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
+import { MAX_IMAGE_SIZE } from '@/lib/constants'
 import { verifyAdminToken } from '@/lib/auth'
 import { listEvents, listAllEvents } from '@/lib/events-db'
 import { revalidateEvents } from '@/lib/revalidate'
@@ -64,10 +64,8 @@ export async function POST(req: NextRequest) {
     const endTime = endTimeRaw && endTimeRaw.trim() !== '' ? endTimeRaw : null
     const signupUrl = signupUrlRaw && signupUrlRaw.trim() !== '' ? signupUrlRaw : null
   // signupEmbedUrl removed
-    // Handle multiple images
-    const imageCount = Math.min(Number(formData.get('imageCount') || 0), MAX_IMAGE_COUNT)
-  // We'll store Cloudinary public IDs (e.g., "ohill-birding-img1") in DB
-  let imagePublicIds: string[] = [];
+    const imageFile = formData.get('image') as File | null
+    let imagePublicId = ''
   
     // Create a unique slug if taken: base, base-2, base-3, ...
     let slug = baseSlug
@@ -99,31 +97,25 @@ export async function POST(req: NextRequest) {
       slug = baseSlug
     }
 
-    console.log(`Processing ${imageCount} images for event: ${slug}`)
+    console.log(`Processing event image for: ${slug}`)
 
     if (!(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)) {
-      if (imageCount > 0) {
+      if (imageFile) {
         console.error('Cloudinary not configured, skipping image uploads.')
       }
-    } else {
-      for (let i = 1; i <= imageCount; i++) {
-        const imageFile = formData.get(`image${i}`) as File | null
-        if (!imageFile) continue
-        if (imageFile.size > MAX_IMAGE_SIZE) {
-          console.warn(`Skipping image${i}: too large (${imageFile.size} bytes)`)
-          continue
-        }
+    } else if (imageFile) {
+      if (imageFile.size > MAX_IMAGE_SIZE) {
+        console.warn(`Skipping event image: too large (${imageFile.size} bytes)`)
+      } else {
         try {
           const arrayBuffer = await imageFile.arrayBuffer()
             .catch(err => { throw new Error('Failed to read image file: ' + (err as Error).message) })
           const buffer = Buffer.from(arrayBuffer)
           const base64 = buffer.toString('base64')
-          console.log(`Uploading image${i} to Cloudinary via SDK...`)
+          console.log('Uploading event image to Cloudinary via SDK...')
           const uploadRes = await cloudinary.uploader.upload(`data:${imageFile.type};base64,${base64}`,
             {
-              // Keep delivery URL flat: set public_id only (no folder).
-              public_id: `${slug}-img${i}`,
-              // Organize in Media Library without affecting URL using asset_folder.
+              public_id: `${slug}-img`,
               asset_folder: `event-images/${slug}`,
               overwrite: true,
               resource_type: 'image',
@@ -131,33 +123,32 @@ export async function POST(req: NextRequest) {
             }
           )
           if (uploadRes?.public_id) {
-            // Persist only the public_id in DB for flexibility; UI can construct any URL style.
-            imagePublicIds.push(uploadRes.public_id)
-            console.log(`Uploaded image${i} -> public_id: ${uploadRes.public_id}`)
+            imagePublicId = uploadRes.public_id
+            console.log(`Uploaded event image -> public_id: ${imagePublicId}`)
           } else {
-            console.error(`Cloudinary upload returned no secure_url for image${i}`, uploadRes)
+            console.error('Cloudinary upload returned no public_id', uploadRes)
           }
         } catch (err) {
-          console.error(`Error uploading image${i}:`, err)
+          console.error('Error uploading event image:', err)
         }
       }
     }
 
-  console.log(`Uploaded ${imagePublicIds.length} images total`)
+  console.log(`Event image uploaded: ${Boolean(imagePublicId)}`)
 
-    // Insert into database (store image public_ids as JSON array in image_urls column)
+    // Keep the existing JSON column format, but store at most one image.
     try {
       await sql`
         INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, dashboard_url, show_faq_banner, hidden)
         VALUES (
-          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${dashboardUrl}, ${showFaqBanner}, ${hidden}
+          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicId ? [imagePublicId] : [])}, ${bodyMarkdown}, ${signupUrl}, ${dashboardUrl}, ${showFaqBanner}, ${hidden}
         )
       `
       console.log(`Successfully inserted event: ${slug}`)
       // Trigger on-demand revalidation only when database is updated
       revalidateEvents(slug)
       console.log("=== API /api/events POST completed successfully ===");
-      return NextResponse.json({ success: true, slug, imageCount: imagePublicIds.length, imagePublicIds })
+      return NextResponse.json({ success: true, slug, imagePublicId })
     } catch (error) {
       console.error('❌ Database insertion error:', error)
       return NextResponse.json({ error: `Failed to save event to database: ${error}` }, { status: 500 })

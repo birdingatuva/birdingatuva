@@ -1,5 +1,4 @@
-// Shared constants for image upload limits
-export const MAX_IMAGE_COUNT = 10;
+// Shared constants for event image uploads
 export const MAX_IMAGE_MB = 5;
 export const MAX_IMAGE_SIZE = MAX_IMAGE_MB * 1024 * 1024;
 

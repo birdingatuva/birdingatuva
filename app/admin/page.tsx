@@ -1,5 +1,5 @@
 "use client"
-import { MAX_IMAGE_COUNT, MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
+import { MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { useState, useRef, useEffect, useCallback } from "react"
 import { dedupeJson } from '@/lib/fetch-dedupe'
 import { useRouter } from "next/navigation"
@@ -12,7 +12,7 @@ import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, ImageIcon, Link2, Pencil, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
+import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, Link2, Pencil, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
 import { BannerSettings } from "./BannerSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
@@ -74,8 +74,6 @@ export default function AdminPage() {
   const [checkingSlug, setCheckingSlug] = useState<boolean>(false)
   const [headerImage, setHeaderImage] = useState<File | null>(null)
   const [headerImagePreview, setHeaderImagePreview] = useState<string>("")
-  const [additionalImages, setAdditionalImages] = useState<File[]>([])
-  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([])
   const [password, setPassword] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitAction, setSubmitAction] = useState<"create" | "preview">("create")
@@ -85,7 +83,6 @@ export default function AdminPage() {
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
   const [error, setError] = useState("")
-  const [uploadError, setUploadError] = useState("")
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [birdImages, setBirdImages] = useState<string[]>([])
   // Edit Events state
@@ -97,7 +94,7 @@ export default function AdminPage() {
     startTime: string | null
     endTime: string | null
     location: string
-    imagePublicIds: string[]
+    imagePublicId: string
     hidden: boolean
     signupUrl: string | null
     dashboardUrl: string | null
@@ -130,8 +127,9 @@ export default function AdminPage() {
   const [savingLeadership, setSavingLeadership] = useState(false)
   const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null)
   const router = useRouter()
+  const imageSelectionVersion = useRef(0)
+  const [processingImage, setProcessingImage] = useState(false)
   const headerImageInputRef = useRef<HTMLInputElement>(null)
-  const additionalImagesInputRef = useRef<HTMLInputElement>(null)
 
   // No client-side JWT helpers required.
 
@@ -234,14 +232,6 @@ export default function AdminPage() {
       setHeaderImagePreview(savedHeaderPreview);
     }
     
-    const savedAdditionalPreviews = localStorage.getItem("adminAdditionalImagePreviews");
-    if (savedAdditionalPreviews) {
-      try {
-        setAdditionalImagePreviews(JSON.parse(savedAdditionalPreviews));
-      } catch (e) {
-        console.error("Failed to load saved image previews:", e);
-      }
-    }
   }, []);
 
   useEffect(() => {
@@ -296,103 +286,21 @@ export default function AdminPage() {
       return
     }
     
-    const resized = await resizeImage(file, 1200, 800)
-    const resizedFile = new File([resized], file.name, { type: file.type })
-    setHeaderImage(resizedFile)
-    
-    // Convert to base64 for localStorage persistence across page reloads
-    const base64Preview = await fileToBase64(resizedFile)
-    setHeaderImagePreview(base64Preview)
-    localStorage.setItem("adminHeaderImagePreview", base64Preview)
-  }
-
-  const handleAdditionalImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    const maxAdditional = MAX_IMAGE_COUNT - 1 // -1 for header image
-    
-    // Calculate how many more images we can add
-    const remainingSlots = maxAdditional - additionalImages.length
-    
-    if (files.length > remainingSlots) {
-      setUploadError(`You can only add ${remainingSlots} more image(s). Maximum total is ${maxAdditional}.`)
-      return
-    }
-    
-    // Clear any previous errors when successfully adding images
-    if (uploadError) {
-      setUploadError("")
-    }
-    
-    const resizedFiles: File[] = []
-    const previews: string[] = []
-    
-    for (const file of files) {
-      if (file.size > MAX_IMAGE_SIZE) {
-        setUploadError(`File ${file.name} is too large. Max size is ${MAX_IMAGE_MB}MB.`)
-        continue
-      }
+    const version = ++imageSelectionVersion.current
+    setProcessingImage(true)
+    try {
       const resized = await resizeImage(file, 1200, 800)
       const resizedFile = new File([resized], file.name, { type: file.type })
-      resizedFiles.push(resizedFile)
-      
-      // Convert to base64 for localStorage persistence across page reloads
-      const base64Preview = await fileToBase64(resizedFile)
-      previews.push(base64Preview)
+      const preview = await fileToBase64(resizedFile)
+      if (version !== imageSelectionVersion.current) return
+      setHeaderImage(resizedFile)
+      setHeaderImagePreview(preview)
+      if (!editMode) localStorage.setItem("adminHeaderImagePreview", preview)
+    } catch {
+      if (version === imageSelectionVersion.current) setError("Unable to read this image. Please choose another image.")
+    } finally {
+      if (version === imageSelectionVersion.current) setProcessingImage(false)
     }
-    
-    // Append to existing images instead of replacing
-    setAdditionalImages(prev => [...prev, ...resizedFiles])
-    setAdditionalImagePreviews(prev => {
-      const newPreviews = [...prev, ...previews]
-      // Save to localStorage
-      localStorage.setItem("adminAdditionalImagePreviews", JSON.stringify(newPreviews))
-      return newPreviews
-    })
-    
-    // Reset the input so the same files can be selected again if needed
-    if (additionalImagesInputRef.current) {
-      additionalImagesInputRef.current.value = ""
-    }
-  }
-
-  const removeHeaderImage = () => {
-    setHeaderImage(null)
-    setHeaderImagePreview("")
-    localStorage.removeItem("adminHeaderImagePreview")
-    if (headerImageInputRef.current) {
-      headerImageInputRef.current.value = ""
-    }
-  }
-
-  const removeAdditionalImage = (index: number) => {
-    setAdditionalImages(prev => prev.filter((_, i) => i !== index))
-    setAdditionalImagePreviews(prev => {
-      const newPreviews = prev.filter((_, i) => i !== index)
-      localStorage.setItem("adminAdditionalImagePreviews", JSON.stringify(newPreviews))
-      return newPreviews
-    })
-  }
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length > MAX_IMAGE_COUNT) {
-      alert(`You can upload a maximum of ${MAX_IMAGE_COUNT} images.`)
-      return
-    }
-    const resizedFiles: File[] = []
-    const previews: string[] = []
-    for (const file of files) {
-      if (file.size > MAX_IMAGE_SIZE) {
-        alert(`File ${file.name} is too large. Max size is ${MAX_IMAGE_MB}MB.`)
-        continue
-      }
-      const resized = await resizeImage(file, 1200, 800)
-      const resizedFile = new File([resized], file.name, { type: file.type })
-      resizedFiles.push(resizedFile)
-      previews.push(URL.createObjectURL(resizedFile))
-    }
-    setAdditionalImages(resizedFiles)
-    setAdditionalImagePreviews(previews)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -475,7 +383,6 @@ export default function AdminPage() {
 
     console.log("Form data:", form);
     console.log("Header image:", headerImage?.name, headerImage?.size, "bytes");
-    console.log("Additional images count:", additionalImages.length);
 
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => {
@@ -485,23 +392,8 @@ export default function AdminPage() {
     
     fd.set("hidden", String(preview));
 
-    // Add header image as first image
-    let imageIndex = 1
-    if (headerImage) {
-      fd.append(`image${imageIndex}`, headerImage);
-      console.log(`Added image${imageIndex}:`, headerImage.name);
-      imageIndex++
-    }
-    
-    // Add additional images
-    additionalImages.forEach((img) => {
-      fd.append(`image${imageIndex}`, img);
-      console.log(`Added image${imageIndex}:`, img.name);
-      imageIndex++
-    });
-    
-    fd.append("imageCount", String(imageIndex - 1));
-    console.log("Total images:", imageIndex - 1);
+    fd.append("image", headerImage);
+    console.log("Added event image:", headerImage.name);
 
     // Session handled via HttpOnly cookie; rely on server to reject if unauthorized
 
@@ -517,15 +409,12 @@ export default function AdminPage() {
         setForm(initialForm);
         setHeaderImage(null);
         setHeaderImagePreview("");
-        setAdditionalImages([]);
-        setAdditionalImagePreviews([]);
         setSubmitted(true);
         setSuccessMessage(preview ? "Event saved in preview mode" : "Event submitted successfully")
         setShowSuccessToast(true);
         // Clear all saved form data from localStorage
         localStorage.removeItem("adminFormData");
         localStorage.removeItem("adminHeaderImagePreview");
-        localStorage.removeItem("adminAdditionalImagePreviews");
         setTimeout(() => setSubmitted(false), 1500);
         setTimeout(() => setShowSuccessToast(false), 2000);
         router.refresh();
@@ -573,15 +462,15 @@ export default function AdminPage() {
     }
     setForm(eventForm)
     setOriginalEventForm(eventForm)
-    // Reset images (we won't auto-load existing images as files; keep previews empty)
+    // Keep the saved image visible; a replacement stays local until Save Changes.
+    imageSelectionVersion.current++
+    setProcessingImage(false)
     setHeaderImage(null)
-    setHeaderImagePreview("")
-    setAdditionalImages([])
-    setAdditionalImagePreviews([])
+    setHeaderImagePreview(e.imagePublicId ? `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/${e.imagePublicId}` : "")
+    if (headerImageInputRef.current) headerImageInputRef.current.value = ""
     // Clear any saved local draft since we're editing existing
     localStorage.removeItem("adminFormData")
     localStorage.removeItem("adminHeaderImagePreview")
-    localStorage.removeItem("adminAdditionalImagePreviews")
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -604,11 +493,17 @@ export default function AdminPage() {
         dashboardUrl: form.dashboardUrl || null,
         showFaqBanner: !!form.showFaqBanner,
       }
-      // Note: Editing images via re-upload not implemented here; could be added later
+      let body: BodyInit = JSON.stringify(payload)
+      if (headerImage) {
+        const upload = new FormData()
+        upload.append('data', JSON.stringify(payload))
+        upload.append('image', headerImage)
+        body = upload
+      }
       const res = await fetch(`/api/events/${encodeURIComponent(editingSlug)}` , {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: headerImage ? undefined : { 'Content-Type': 'application/json' },
+        body,
       })
       if (res.ok) {
         setSuccessMessage("Changes saved")
@@ -619,7 +514,7 @@ export default function AdminPage() {
         setEditMode(false)
         setEditingSlug(null)
         setOriginalEventForm(null)
-        setForm(initialForm)
+        clearForm()
       } else {
         const err = await res.json().catch(() => ({ error: 'Update failed' }))
         setError(err.error || 'Update failed')
@@ -857,14 +752,16 @@ export default function AdminPage() {
   }
 
   const clearForm = () => {
+    imageSelectionVersion.current++;
+    setProcessingImage(false);
+    localStorage.removeItem("adminHeaderImagePreview");
+    if (headerImageInputRef.current) headerImageInputRef.current.value = "";
     setForm(initialForm);
     setHeaderImage(null);
     setHeaderImagePreview("");
-    setAdditionalImages([]);
-    setAdditionalImagePreviews([]);
   };
 
-  const eventFormChanged = editMode && originalEventForm !== null && JSON.stringify(form) !== JSON.stringify(originalEventForm)
+  const eventFormChanged = editMode && originalEventForm !== null && (headerImage !== null || JSON.stringify(form) !== JSON.stringify(originalEventForm))
   const normalizeFaqMarkdown = (markdown: string) => markdown.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "")
   const faqChanged = normalizeFaqMarkdown(faqMarkdown) !== normalizeFaqMarkdown(originalFaqMarkdown)
   const linksChanged = JSON.stringify(linkSettings) !== JSON.stringify(originalLinkSettings)
@@ -1060,13 +957,10 @@ export default function AdminPage() {
                   </div>
 
                   <div className="border-t pt-6" data-section="header-image">
-                    <h3 className="text-lg font-semibold mb-4">Event Images</h3>
+                    <h3 className="text-lg font-semibold mb-4">Event Header Image (Required)</h3>
                     
                     {/* Header Image Upload */}
                     <div className="space-y-2 mb-6">
-                      <label className="text-sm font-medium">Event Header Image {editMode ? '(Optional to change)' : '(Required)'}</label>
-                      <p className="text-xs text-muted-foreground mb-3">This will be the main image displayed for your event</p>
-                      
                       {!headerImagePreview ? (
                         <label 
                           htmlFor="headerImage" 
@@ -1078,102 +972,37 @@ export default function AdminPage() {
                             <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to {MAX_IMAGE_MB}MB</p>
                             <p className="text-xs text-muted-foreground mt-1">Recommended: 1280x720px (16:9 ratio)</p>
                           </div>
-                          <input 
-                            id="headerImage" 
-                            ref={headerImageInputRef}
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={handleHeaderImageChange}
-                          />
                         </label>
                       ) : (
-                        <div className="relative w-1/2 aspect-[16/9] rounded-lg overflow-hidden border border-border group">
+                        <button type="button" onClick={() => headerImageInputRef.current?.click()} disabled={submitting || processingImage}
+                          aria-label="Upload new image"
+                          className="relative block w-full max-w-md aspect-[16/9] rounded-lg overflow-hidden border border-border group focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                           <Image 
                             src={headerImagePreview} 
                             alt="Header preview" 
                             fill 
                             className="object-cover" 
                           />
-                          <button
-                            type="button"
-                            onClick={removeHeaderImage}
-                            className="absolute top-3 right-3 p-2 rounded-full bg-background/90 hover:bg-background shadow-lg border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
-                            aria-label="Remove header image"
-                          >
-                            <X className="w-4 h-4 text-foreground" />
-                          </button>
-                        </div>
+                          <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 text-white transition-colors group-hover:bg-black/50 group-focus-visible:bg-black/50">
+                            <Upload className="h-8 w-8" aria-hidden="true" />
+                            <span className="text-sm font-semibold">Upload new image</span>
+                          </span>
+                        </button>
                       )}
-                    </div>
-
-                    {/* Additional Images Upload */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Additional Images (Optional, max {MAX_IMAGE_COUNT - 1})</label>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        Upload additional images for the event gallery
-                        {additionalImages.length > 0 && ` (${additionalImages.length}/${MAX_IMAGE_COUNT - 1} uploaded)`}
-                      </p>
-                      
-                      {/* Upload Error Message - displayed above the upload button */}
-                      {uploadError && (
-                        <div className="mb-4 bg-red-50 dark:bg-red-950/30 border-2 border-red-600 dark:border-red-500 text-red-600 dark:text-red-500 px-4 py-3 rounded-lg text-sm font-semibold flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                          <span>{uploadError}</span>
-                        </div>
-                      )}
-                      
-                      {additionalImages.length < MAX_IMAGE_COUNT - 1 && (
-                        <label 
-                          htmlFor="additionalImages" 
-                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <ImageIcon className="w-8 h-8 mb-2 text-muted-foreground" />
-                            <p className="mb-1 text-sm font-medium text-muted-foreground">
-                              {additionalImages.length > 0 ? 'Click to add more images' : 'Click to upload additional images'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">Multiple images allowed</p>
-                          </div>
                           <input 
-                            id="additionalImages" 
-                            ref={additionalImagesInputRef}
+                            id="headerImage"
+                            ref={headerImageInputRef}
                             type="file" 
                             className="hidden" 
                             accept="image/*"
-                            multiple
-                            onChange={handleAdditionalImagesChange}
+                            disabled={submitting || processingImage}
+                            onClick={(event) => { event.currentTarget.value = "" }}
+                            onChange={handleHeaderImageChange}
                           />
-                        </label>
-                      )}
-                      
-                      {additionalImagePreviews.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                          {additionalImagePreviews.map((src, i) => (
-                            <div key={i} className="relative group">
-                              <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border border-border">
-                                <Image 
-                                  src={src} 
-                                  alt={`Additional preview ${i + 1}`} 
-                                  fill 
-                                  className="object-cover" 
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => removeAdditionalImage(i)}
-                                className="absolute top-2 right-2 p-1.5 rounded-full bg-background/90 hover:bg-background shadow-lg border border-border opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110"
-                                aria-label={`Remove image ${i + 1}`}
-                              >
-                                <X className="w-3 h-3 text-foreground" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+
+                      {processingImage && <p className="text-sm text-muted-foreground" role="status">Preparing image…</p>}
                     </div>
+
                   </div>
 
                   <div className="border-t pt-6">
@@ -1196,10 +1025,10 @@ export default function AdminPage() {
                   <div className="flex gap-3 pt-4">
                     {editMode ? (
                       <>
-                        <Button key="save-event" type="button" onClick={saveChanges} disabled={submitting || !eventFormChanged} className="flex-1" size="lg">
+                        <Button key="save-event" type="button" onClick={saveChanges} disabled={submitting || processingImage || !eventFormChanged} className="flex-1" size="lg">
                           {submitting ? 'Saving...' : 'Save Changes'}
                         </Button>
-                        <Button key="cancel-edit" type="button" variant="outline" className="hover:bg-primary hover:text-foreground" size="lg" onClick={(event) => {
+                        <Button key="cancel-edit" type="button" disabled={submitting} variant="outline" className="hover:bg-primary hover:text-foreground" size="lg" onClick={(event) => {
                           // Cancel the click's default action before replacing edit controls with submit buttons.
                           event.preventDefault();
                           setEditMode(false);
@@ -1212,10 +1041,10 @@ export default function AdminPage() {
                       </>
                     ) : (
                       <>
-                        <Button key="publish-event" type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
+                        <Button key="publish-event" type="submit" disabled={submitting || processingImage || submitted} className="flex-1" size="lg">
                           {submitAction === "create" && submitting ? "Submitting..." : submitAction === "create" && submitted ? "✓ Submitted!" : "Publish Event"}
                         </Button>
-                        <Button key="preview-event" type="submit" name="action" value="preview" variant="outline" disabled={submitting || submitted} className="relative flex-1 text-foreground" size="lg">
+                        <Button key="preview-event" type="submit" name="action" value="preview" variant="outline" disabled={submitting || processingImage || submitted} className="relative flex-1 text-foreground" size="lg">
                           <span aria-hidden="true" className="preview-outline pointer-events-none absolute inset-0 rounded-[inherit] [--preview-outline-width:3px]" />
                           {submitAction === "preview" && submitting ? "Preparing preview..." : submitAction === "preview" && submitted ? "✓ Preview ready!" : "Preview Event"}
                         </Button>
@@ -1246,9 +1075,9 @@ export default function AdminPage() {
                           aria-label={`View ${ev.title}`}
                           className="relative block w-24 h-16 bg-muted rounded overflow-hidden flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
-                          {ev.imagePublicIds[0] ? (
+                          {ev.imagePublicId ? (
                             <Image
-                              src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/${ev.imagePublicIds[0]}`}
+                              src={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/${ev.imagePublicId}`}
                               alt={ev.title}
                               fill
                               sizes="96px"

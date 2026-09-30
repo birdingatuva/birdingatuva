@@ -38,16 +38,12 @@ export default async function EventPage(props: PageProps) {
     record.endTime ? formatTimeForDisplay(record.startDate, record.endTime || undefined) : null,
   ].filter(Boolean).join(" - ")
 
-  // Use first image public id (if any) for hero image
-  const image = record.imagePublicIds[0] || ""
-
   return (
     <EventTemplate
       preview={record.hidden}
       title={record.title}
       description={`${dateDisplay}${timeDisplay ? ` | ${timeDisplay}` : ""} | ${record.location}`}
-      image={image}
-      images={record.imagePublicIds}
+      image={record.imagePublicId}
       location={record.location}
       dateDisplay={dateDisplay}
       timeDisplay={timeDisplay}

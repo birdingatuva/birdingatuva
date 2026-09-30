@@ -8,7 +8,7 @@ export interface DbEventRow {
   start_time: string | null
   end_time: string | null
   location: string
-  image_urls: string[] | string | null // jsonb array of public_ids (can be array or string depending on driver)
+  image_urls: string[] | string | null // Legacy JSON column; new events contain at most one public_id.
   body_markdown: string | null
   signup_url: string | null
   dashboard_url: string | null
@@ -28,41 +28,31 @@ export interface EventRecord {
   signupUrl: string | null
   dashboardUrl: string | null
   showFaqBanner: boolean
-  imagePublicIds: string[]
+  imagePublicId: string
   hidden: boolean
 }
 
-function parseImagePublicIds(raw: string[] | string | null): string[] {
-  if (!raw) return []
+function parseEventImage(raw: string[] | string | null): string {
+  if (!raw) return ''
   
   // If it's already an array (jsonb returned as native array)
   if (Array.isArray(raw)) {
-    return raw
-      .filter(x => typeof x === 'string')
-      .map((x: string) => x.trim())
-      .filter(x => x.length > 0)
+    return raw.find((x): x is string => typeof x === 'string' && x.trim().length > 0)?.trim() || ''
   }
   
   // If it's a string, try to parse as JSON first
   if (typeof raw === 'string') {
     try {
-      const arr = JSON.parse(raw)
-      if (Array.isArray(arr)) {
-        return arr
-          .filter(x => typeof x === 'string')
-          .map((x: string) => x.trim())
-          .filter(x => x.length > 0)
-      }
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed.find((x): x is string => typeof x === 'string' && x.trim().length > 0)?.trim() || ''
+      if (typeof parsed === 'string') return parsed.trim()
     } catch {
-      // If JSON parsing fails, treat as comma-separated string
-      return raw
-        .split(',')
-        .map(x => x.trim())
-        .filter(x => x.length > 0)
+      // Support legacy comma-separated values while exposing only one event image.
+      return raw.split(',').map(x => x.trim()).find(Boolean) || ''
     }
   }
   
-  return []
+  return ''
 }
 
 function normalizeDate(val: unknown): string {
@@ -100,7 +90,7 @@ export async function listEvents(): Promise<EventRecord[]> {
       signupUrl: row.signup_url,
       dashboardUrl: row.dashboard_url,
       showFaqBanner: !!row.show_faq_banner,
-      imagePublicIds: parseImagePublicIds(row.image_urls),
+      imagePublicId: parseEventImage(row.image_urls),
       hidden: !!row.hidden,
     }
   })
@@ -126,7 +116,7 @@ export async function getEvent(slug: string, includeHidden = false): Promise<Eve
     signupUrl: r.signup_url,
     dashboardUrl: r.dashboard_url,
     showFaqBanner: !!r.show_faq_banner,
-    imagePublicIds: parseImagePublicIds(r.image_urls),
+    imagePublicId: parseEventImage(r.image_urls),
     hidden: !!r.hidden,
   }
 }
@@ -150,9 +140,8 @@ export async function listAllEvents(): Promise<EventRecord[]> {
       signupUrl: row.signup_url,
       dashboardUrl: row.dashboard_url,
       showFaqBanner: !!row.show_faq_banner,
-      imagePublicIds: parseImagePublicIds(row.image_urls),
+      imagePublicId: parseEventImage(row.image_urls),
       hidden: !!row.hidden,
     }
   })
 }
-

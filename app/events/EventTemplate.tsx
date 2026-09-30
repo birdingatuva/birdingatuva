@@ -3,7 +3,6 @@ import { Footer } from "@/components/footer";
 import { DecorativeBirds } from "@/components/decorative-birds";
 import { PageHeader } from "@/components/page-header";
 import { CloudinaryImage } from "@/components/cloudinary-image";
-import { ImageGallery } from "@/components/image-gallery";
 import { MapPin, Calendar, Clock, CircleHelp } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -95,7 +94,6 @@ export interface EventTemplateProps {
   title: string;
   description: string;
   image: string;
-  images?: string[]; // All images from the event
   location: string;
   dateDisplay: string;
   timeDisplay: string;
@@ -110,7 +108,6 @@ export default async function EventTemplate({
   title,
   description,
   image,
-  images = [],
   location,
   dateDisplay,
   timeDisplay,
@@ -119,8 +116,6 @@ export default async function EventTemplate({
   dashboardUrl = "",
   showFaqBanner = false,
 }: EventTemplateProps) {
-  // Gallery images are all images except the first one (header image)
-  const galleryImages = images.length > 1 ? images.slice(1) : [];
   const dashboard = getDashboardLink(dashboardUrl.trim());
   const formEmbedUrl = signupUrl.trim() ? await resolveGoogleForm(signupUrl.trim()) : null;
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva';
@@ -200,14 +195,6 @@ export default async function EventTemplate({
                   <SheetDashboard key={dashboard.id} url={dashboard.url} />
                 ) : <p role="status" className="my-8 border-t border-border pt-6 text-sm">The dashboard link is broken. Please contact the event organizer.</p>)}
 
-                {/* Image Gallery Section */}
-                {galleryImages.length > 0 && (
-                  <div className="my-12">
-                    <h3 className="mb-4 font-display text-2xl font-bold text-primary">Gallery</h3>
-                    <ImageGallery images={galleryImages} title={title} />
-                  </div>
-                )}
-                
                 {signupUrl.trim() ? (
                   <section className="mt-8 border-t border-border pt-8">
                     {formEmbedUrl ? <iframe

@@ -22,8 +22,7 @@ export default async function EventsPage() {
     endTime: e.endTime,
     location: e.location,
     bodyMarkdown: e.bodyMarkdown,
-    // Card image = first public_id or placeholder-like fallback
-    imagePublicId: e.imagePublicIds[0] || '',
+    imagePublicId: e.imagePublicId,
     url: `/events/${e.slug}`,
   }))
   return <EventsClient events={clientEvents} />
