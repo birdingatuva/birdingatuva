@@ -170,16 +170,19 @@ export default async function EventTemplate({
                     <MapPin className="h-5 w-5 shrink-0 text-primary" />
                     <span className="font-medium leading-snug">{location}</span>
                   </div>
-                  <div className="flex items-start gap-x-6">
+                  <div className="flex items-start gap-x-3 sm:gap-x-4">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <Calendar className="h-5 w-5 shrink-0 text-primary" />
                       <span className="font-medium leading-snug">{dateDisplay}</span>
                     </div>
                     {timeDisplay && (
+                      <>
+                      <span aria-hidden="true" className="h-5 w-px shrink-0 self-center bg-primary/20" />
                       <div className="flex min-w-0 items-center gap-2.5">
                         <Clock className="h-5 w-5 shrink-0 text-primary" />
                         <span className="font-medium leading-snug">{timeDisplay}</span>
                       </div>
+                      </>
                     )}
                   </div>
                 </div>
