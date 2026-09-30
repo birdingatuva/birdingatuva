@@ -165,21 +165,23 @@ export default function EventTemplate({
               )}
               <div className="px-1 sm:px-2">
                 <h2 className="mb-3 font-display text-3xl font-bold text-primary sm:text-4xl">{title}</h2>
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  {location}
-                </div>
-                <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{dateDisplay}</span>
+                <div className="mb-10 space-y-3 border-y border-primary/15 py-4 text-foreground">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <MapPin className="h-5 w-5 shrink-0 text-primary" />
+                    <span className="font-medium leading-snug">{location}</span>
                   </div>
-                  {timeDisplay && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{timeDisplay}</span>
+                  <div className="flex items-start gap-x-6">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <Calendar className="h-5 w-5 shrink-0 text-primary" />
+                      <span className="font-medium leading-snug">{dateDisplay}</span>
                     </div>
-                  )}
+                    {timeDisplay && (
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <Clock className="h-5 w-5 shrink-0 text-primary" />
+                        <span className="font-medium leading-snug">{timeDisplay}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="mb-10 max-w-none text-lg leading-relaxed text-foreground">
                   <ReactMarkdown
