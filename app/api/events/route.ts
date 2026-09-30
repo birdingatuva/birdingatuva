@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const bodyMarkdown = (formData.get('bodyMarkdown') as string) || ''
     const signupUrlRaw = (formData.get('signupUrl') as string) || ''
   // signupEmbedUrl removed
-  const hasGoogleForm = formData.get('hasGoogleForm') === 'true'
+  const dashboardUrl = ((formData.get('dashboardUrl') as string) || '').trim() || null
   const showFaqBanner = formData.get('showFaqBanner') === 'true'
   const hidden = formData.get('hidden') === 'true'
 
@@ -148,9 +148,9 @@ export async function POST(req: NextRequest) {
     // Insert into database (store image public_ids as JSON array in image_urls column)
     try {
       await sql`
-        INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, has_google_form, show_faq_banner, hidden)
+        INSERT INTO events (slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, dashboard_url, show_faq_banner, hidden)
         VALUES (
-          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${hasGoogleForm}, ${showFaqBanner}, ${hidden}
+          ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicIds)}, ${bodyMarkdown}, ${signupUrl}, ${dashboardUrl}, ${showFaqBanner}, ${hidden}
         )
       `
       console.log(`Successfully inserted event: ${slug}`)

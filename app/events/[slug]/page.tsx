@@ -46,7 +46,7 @@ export default async function EventPage(props: PageProps) {
       timeDisplay={timeDisplay}
       bodyMarkdown={bodyMarkdown}
       signupUrl={signupUrl}
-      hasGoogleForm={record.hasGoogleForm}
+      dashboardUrl={record.dashboardUrl || ""}
       showFaqBanner={record.showFaqBanner}
     />
   )

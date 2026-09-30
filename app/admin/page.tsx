@@ -64,7 +64,7 @@ export default function AdminPage() {
     location: "",
     bodyMarkdown: "",
     signupUrl: "",
-    hasGoogleForm: false,
+    dashboardUrl: "",
     showFaqBanner: true,
     hidden: false,
   }
@@ -96,7 +96,7 @@ export default function AdminPage() {
     imagePublicIds: string[]
     hidden: boolean
     signupUrl: string | null
-    hasGoogleForm: boolean
+    dashboardUrl: string | null
     showFaqBanner: boolean
     bodyMarkdown: string
   }>>([])
@@ -556,7 +556,7 @@ export default function AdminPage() {
       location: e.location,
       bodyMarkdown: e.bodyMarkdown || "",
       signupUrl: e.signupUrl || "",
-      hasGoogleForm: !!e.hasGoogleForm,
+      dashboardUrl: e.dashboardUrl || "",
       showFaqBanner: !!e.showFaqBanner,
       hidden: !!e.hidden,
     }
@@ -590,7 +590,7 @@ export default function AdminPage() {
         location: form.location,
         bodyMarkdown: form.bodyMarkdown || '',
         signupUrl: form.signupUrl || null,
-        hasGoogleForm: !!form.hasGoogleForm,
+        dashboardUrl: form.dashboardUrl || null,
         showFaqBanner: !!form.showFaqBanner,
         hidden: !!form.hidden,
       }
@@ -1021,16 +1021,10 @@ export default function AdminPage() {
                         <label className="text-sm font-medium">Signup URL</label>
                         <Input name="signupUrl" value={form.signupUrl} onChange={handleChange} placeholder="https://forms.gle/..." />
                       </div>
-                      <div className="flex items-center gap-3 pt-2">
-                        <input
-                          id="hasGoogleForm"
-                          name="hasGoogleForm"
-                          type="checkbox"
-                          checked={form.hasGoogleForm}
-                          onChange={handleChange}
-                          className="w-4 h-4 rounded border-gray-300"
-                        />
-                        <label htmlFor="hasGoogleForm" className="text-sm font-medium cursor-pointer">Include embedded Google Form on event page</label>
+                      <div className="space-y-2">
+                        <label htmlFor="dashboardUrl" className="text-sm font-medium">Carpool dashboard URL</label>
+                        <Input id="dashboardUrl" name="dashboardUrl" value={form.dashboardUrl || ""} onChange={handleChange} placeholder="https://docs.google.com/spreadsheets/d/.../edit" />
+                        <p className="text-xs text-muted-foreground">Use the public dashboard sheet link. Leave blank to hide the dashboard.</p>
                       </div>
                       <div className="flex items-center gap-3 pt-2">
                         <input

@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { Check, Clock } from 'lucide-react'
-import type { CarpoolData } from '@/lib/carpool-csv'
+import type { CarpoolData } from '@/lib/carpool-data'
 
-export function SheetDashboard({ embedUrl, csvUrl, url, title }: { embedUrl: string; csvUrl?: string; url: string; title: string }) {
+export function SheetDashboard({ url }: { url: string }) {
   const [data, setData] = useState<CarpoolData | null>(null)
-  const [loading, setLoading] = useState(Boolean(csvUrl))
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!csvUrl) return
     const controller = new AbortController()
     let busy = false
     async function refresh() {
@@ -18,7 +17,12 @@ export function SheetDashboard({ embedUrl, csvUrl, url, title }: { embedUrl: str
       busy = true
       setLoading(true)
       try {
-        const response = await fetch(`/api/carpool?${new URLSearchParams({ url: csvUrl! })}`, { signal: controller.signal, cache: 'no-store' })
+        const response = await fetch(`/api/carpool?${new URLSearchParams({ url: url })}`, { signal: controller.signal, cache: 'no-store' })
+        if (response.status === 422) {
+          setData(null)
+          setError('The dashboard link is broken or the sheet is not publicly accessible.')
+          return
+        }
         if (!response.ok) throw new Error('Dashboard unavailable')
         const result = await response.json()
         if (controller.signal.aborted) return
@@ -32,14 +36,14 @@ export function SheetDashboard({ embedUrl, csvUrl, url, title }: { embedUrl: str
       }
     }
     void refresh()
-    const timer = window.setInterval(() => { if (!document.hidden) void refresh() }, 60000)
+    const timer = window.setInterval(() => { if (!document.hidden) void refresh() }, 30000)
     return () => { controller.abort(); window.clearInterval(timer) }
-  }, [csvUrl])
+  }, [url])
 
   return (
     <section className="my-8 border-t border-border pt-8" aria-label="Carpool and waitlist">
       <h3 className="mb-6 font-display text-2xl font-bold text-primary">Carpool &amp; waitlist</h3>
-      {csvUrl ? (
+      {(
         <div aria-busy={loading}>
           {error && <p role="status" className="mb-4 rounded-lg border border-border bg-muted/50 p-3 text-sm">{error}{data ? ' Showing the last successful update.' : ''}</p>}
           {!data && !error && <p role="status" className="py-8 text-sm text-muted-foreground">Loading carpool details…</p>}
@@ -76,11 +80,8 @@ export function SheetDashboard({ embedUrl, csvUrl, url, title }: { embedUrl: str
           </>}
 
         </div>
-      ) : <>
-        <iframe src={embedUrl} title={`${title} carpool and waitlist dashboard`} className="block h-[360px] w-full border-0 bg-white [color-scheme:light]" loading="lazy" />
-      </>}
+      )}
       <div className="mt-6 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-        <p className="max-w-md">Allow about 2 minutes after submitting the form for your status to appear.{csvUrl ? ' Updates automatically.' : ''}</p>
         <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 underline underline-offset-4 transition-colors hover:text-foreground">View sheet<span className="sr-only"> (opens in a new tab)</span></a>
       </div>
     </section>

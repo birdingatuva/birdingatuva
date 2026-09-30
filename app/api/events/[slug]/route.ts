@@ -35,7 +35,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ slug
     if (data.location !== undefined) add('location', data.location)
     if (data.bodyMarkdown !== undefined) add('body_markdown', data.bodyMarkdown || '')
   if (data.signupUrl !== undefined) add('signup_url', data.signupUrl || null)
-    if (data.hasGoogleForm !== undefined) add('has_google_form', !!data.hasGoogleForm)
+    if (data.dashboardUrl !== undefined) add('dashboard_url', String(data.dashboardUrl || '').trim() || null)
     if (data.showFaqBanner !== undefined) add('show_faq_banner', !!data.showFaqBanner)
     if (data.hidden !== undefined) add('hidden', !!data.hidden)
     if (data.imagePublicIds !== undefined) {

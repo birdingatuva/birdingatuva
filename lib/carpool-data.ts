@@ -1,27 +1,4 @@
-export function parseCsv(text: string): string[][] {
-  const rows: string[][] = []
-  let row: string[] = [], cell = '', quoted = false
-  const input = text.replace(/^\uFEFF/, '')
-  for (let i = 0; i < input.length; i++) {
-    const c = input[i]
-    if (c === '"') {
-      if (quoted && input[i + 1] === '"') { cell += '"'; i++ }
-      else quoted = !quoted
-    } else if (!quoted && (c === ',' || c === '\n' || c === '\r')) {
-      row.push(cell.trim()); cell = ''
-      if (c !== ',') {
-        rows.push(row); row = []
-        if (c === '\r' && input[i + 1] === '\n') i++
-      }
-    } else cell += c
-  }
-  if (quoted) throw new Error('Incomplete CSV')
-  if (cell || row.length) { row.push(cell.trim()); rows.push(row) }
-  return rows
-}
-
-export function parseCarpoolCsv(text: string) {
-  const rows = parseCsv(text)
+export function parseCarpoolRows(rows: string[][]) {
   const header = rows.findIndex(row => row[0]?.toLowerCase() === 'total seats' && row[1]?.toLowerCase() === 'registered passengers' && row[2]?.toLowerCase() === 'waitlisted passengers' && row[3]?.toLowerCase() === 'driver list')
   if (header < 0) throw new Error('Dashboard columns not found')
   const body = rows.slice(header + 1)
@@ -38,4 +15,4 @@ export function parseCarpoolCsv(text: string) {
   }
 }
 
-export type CarpoolData = ReturnType<typeof parseCarpoolCsv>
+export type CarpoolData = ReturnType<typeof parseCarpoolRows>

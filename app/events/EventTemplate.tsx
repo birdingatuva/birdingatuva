@@ -10,7 +10,8 @@ import React from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
-import { getEventSheets } from "@/lib/sheet-embed";
+import { getDashboardLink } from "@/lib/sheet-embed";
+import { resolveGoogleForm } from "@/lib/google-form";
 import { SheetDashboard } from "@/components/sheet-dashboard";
 
 function normalizeLexicalMarkdown(markdown: string) {
@@ -99,25 +100,11 @@ export interface EventTemplateProps {
   timeDisplay: string;
   bodyMarkdown: string;
   signupUrl: string;
-  hasGoogleForm?: boolean;
+  dashboardUrl?: string;
   showFaqBanner?: boolean;
 }
 
-function getGoogleFormEmbedUrl(signupUrl: string): string {
-  try {
-    const url = new URL(signupUrl)
-    const isGoogleForm = url.hostname === "forms.gle" ||
-      (url.hostname === "docs.google.com" && url.pathname.includes("/forms/"))
-
-    if (isGoogleForm) url.searchParams.set("embedded", "true")
-
-    return url.toString()
-  } catch {
-    return signupUrl
-  }
-}
-
-export default function EventTemplate({
+export default async function EventTemplate({
   title,
   description,
   image,
@@ -127,12 +114,13 @@ export default function EventTemplate({
   timeDisplay,
   bodyMarkdown,
   signupUrl,
-  hasGoogleForm = false,
+  dashboardUrl = "",
   showFaqBanner = false,
 }: EventTemplateProps) {
   // Gallery images are all images except the first one (header image)
   const galleryImages = images.length > 1 ? images.slice(1) : [];
-  const dashboards = getEventSheets(bodyMarkdown);
+  const dashboard = getDashboardLink(dashboardUrl.trim());
+  const formEmbedUrl = signupUrl.trim() ? await resolveGoogleForm(signupUrl.trim()) : null;
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva';
   
   return (
@@ -196,9 +184,9 @@ export default function EventTemplate({
                   </ReactMarkdown>
                 </div>
                 
-                {dashboards.map((dashboard) => (
-                  <SheetDashboard key={dashboard.id} embedUrl={dashboard.embedUrl} csvUrl={dashboard.csvUrl} url={dashboard.url} title={title} />
-                ))}
+                {dashboardUrl.trim() && (dashboard ? (
+                  <SheetDashboard key={dashboard.id} url={dashboard.url} />
+                ) : <p role="status" className="my-8 border-t border-border pt-6 text-sm">The dashboard link is broken. Please contact the event organizer.</p>)}
 
                 {/* Image Gallery Section */}
                 {galleryImages.length > 0 && (
@@ -208,10 +196,10 @@ export default function EventTemplate({
                   </div>
                 )}
                 
-                {hasGoogleForm && signupUrl ? (
+                {signupUrl.trim() ? (
                   <section className="mt-8 border-t border-border pt-8">
-                    <iframe
-                      src={getGoogleFormEmbedUrl(signupUrl)}
+                    {formEmbedUrl ? <iframe
+                      src={formEmbedUrl}
                       title={`${title} Signup`}
                       className="block h-[1200px] w-full border-0 bg-transparent sm:h-[1000px]"
                       scrolling="no"
@@ -219,7 +207,7 @@ export default function EventTemplate({
                       loading="lazy"
                     >
                       Loading…
-                    </iframe>
+                    </iframe> : <p role="status" className="text-sm">The form link is broken or unavailable. Please contact the event organizer.</p>}
                   </section>
                 ) : null}
               </div>
