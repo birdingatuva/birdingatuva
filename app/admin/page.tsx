@@ -13,6 +13,7 @@ import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, Link2, Pencil, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
+import { GenerateCarpool } from "./GenerateCarpool"
 import { BannerSettings } from "./BannerSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
@@ -75,6 +76,7 @@ export default function AdminPage() {
   const [headerImage, setHeaderImage] = useState<File | null>(null)
   const [headerImagePreview, setHeaderImagePreview] = useState<string>("")
   const [password, setPassword] = useState("")
+  const [generatingCarpool, setGeneratingCarpool] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitAction, setSubmitAction] = useState<"create" | "preview">("create")
   const [visibilitySaving, setVisibilitySaving] = useState<string | null>(null)
@@ -446,6 +448,7 @@ export default function AdminPage() {
 
   // Admin: start editing an event -> populate form and switch to editMode
   const startEdit = (e: typeof events[number]) => {
+    if (generatingCarpool) return
     setEditMode(true)
     setEditingSlug(e.slug)
     // Populate form fields
@@ -783,6 +786,7 @@ export default function AdminPage() {
   }
 
   const clearForm = () => {
+    if (generatingCarpool) return
     imageSelectionVersion.current++;
     setProcessingImage(false);
     localStorage.removeItem("adminHeaderImagePreview");
@@ -866,6 +870,7 @@ export default function AdminPage() {
               </CardHeader>
               {(editMode || isCreateEventOpen) && <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  <fieldset disabled={generatingCarpool} className="space-y-6">
                   <style jsx>{`
                     form > div,
                     form input,
@@ -963,6 +968,7 @@ export default function AdminPage() {
 
                   <div className="border-t pt-6">
                     <h3 className="text-lg font-semibold mb-4">Signup Information (Optional)</h3>
+                    <GenerateCarpool onBusyChange={setGeneratingCarpool} key={editingSlug || 'new-event'} title={form.title} startDate={form.startDate} signupUrl={form.signupUrl} dashboardUrl={form.dashboardUrl} disabled={submitting || !isAuthorized} onGenerated={(links) => setForm(current => ({ ...current, signupUrl: links.signupUrl, dashboardUrl: links.dashboardUrl }))} />
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Signup URL</label>
@@ -1082,6 +1088,7 @@ export default function AdminPage() {
                       </>
                     )}
                   </div>
+                </fieldset>
                 </form>
               </CardContent>}
             </Card>
