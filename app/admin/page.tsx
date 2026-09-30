@@ -125,6 +125,9 @@ export default function AdminPage() {
   const [originalLeadershipSettings, setOriginalLeadershipSettings] = useState<typeof leadershipSettings>([])
   const [loadingLeadership, setLoadingLeadership] = useState(false)
   const [savingLeadership, setSavingLeadership] = useState(false)
+  const [leadershipImages, setLeadershipImages] = useState<Record<number, File>>({})
+  const [processingLeadershipImage, setProcessingLeadershipImage] = useState(false)
+  const leadershipImageVersion = useRef(0)
   const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null)
   const router = useRouter()
   const imageSelectionVersion = useRef(0)
@@ -713,16 +716,44 @@ export default function AdminPage() {
     }
   }
 
+  const selectLeadershipImage = async (index: number, file?: File) => {
+    if (!file) return
+    if (!file.type.startsWith('image/') || file.size > MAX_IMAGE_SIZE) {
+      setError(`Please choose an image up to ${MAX_IMAGE_MB}MB.`)
+      return
+    }
+    const version = ++leadershipImageVersion.current
+    setProcessingLeadershipImage(true)
+    try {
+      const resized = new File([await resizeImage(file, 1200, 1200)], file.name, { type: file.type })
+      const preview = await fileToBase64(resized)
+      if (version !== leadershipImageVersion.current) return
+      setLeadershipImages(current => ({ ...current, [index]: resized }))
+      setLeadershipSettings(current => current.map((item, i) => i === index ? { ...item, image: preview } : item))
+    } catch {
+      if (version === leadershipImageVersion.current) setError('Unable to read this image. Please choose another image.')
+    } finally {
+      if (version === leadershipImageVersion.current) setProcessingLeadershipImage(false)
+    }
+  }
+
   const saveLeadership = async () => {
     try {
       setSavingLeadership(true)
+      const upload = new FormData()
+      upload.append('setting', JSON.stringify(leadershipSettings.map((leader, index) => ({
+        ...leader, image: leadershipImages[index] ? '' : leader.image,
+      }))))
+      Object.entries(leadershipImages).forEach(([index, file]) => upload.append(`image-${index}`, file))
       const response = await fetch('/api/pages/leadership/settings/leadership', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setting: leadershipSettings }),
+        body: upload,
       })
       if (!response.ok) throw new Error('Unable to save Leadership settings.')
-      setOriginalLeadershipSettings(leadershipSettings)
+      const { setting } = await response.json()
+      setLeadershipSettings(setting)
+      setOriginalLeadershipSettings(setting)
+      setLeadershipImages({})
       setSuccessMessage('Changes saved')
       setShowSuccessToast(true)
       setTimeout(() => setShowSuccessToast(false), 1800)
@@ -1214,21 +1245,53 @@ export default function AdminPage() {
                           ) : activePage === "Leadership" ? (
                             <div className="space-y-4">
                               {leadershipSettings.map((leader, index) => (
-                                <div key={`leader-${index}`} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-2">
-                                  <Input value={leader.position} placeholder="Position" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, position: event.target.value } : item))} />
-                                  <Input value={leader.name} placeholder="Name" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} />
-                                  <Input value={leader.major} placeholder="Major" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, major: event.target.value } : item))} />
-                                  <Input value={leader.year} placeholder="Class year" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, year: event.target.value } : item))} />
-                                  <Input value={leader.email} placeholder="Email" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, email: event.target.value } : item))} />
-                                  <Input value={leader.image} placeholder="Photo path or URL" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, image: event.target.value } : item))} />
-                                  <Input value={leader.favoriteBird} placeholder="Favorite bird" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, favoriteBird: event.target.value } : item))} />
-                                  <Input value={leader.bio} placeholder="Bio" onChange={(event) => setLeadershipSettings((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, bio: event.target.value } : item))} />
-                                  <Button type="button" variant="outline" onClick={() => setLeadershipSettings((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove</Button>
-                                </div>
+                                <fieldset disabled={savingLeadership || processingLeadershipImage} key={`leader-${index}`} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-2">
+                                  <legend className="px-2 text-sm font-semibold">{leader.name || `Position ${index + 1}`}</legend>
+                                  {([
+                                    ['position', 'Position'], ['name', 'Name'], ['major', 'Major'],
+                                    ['year', 'Class year'], ['email', 'Email'], ['favoriteBird', 'Favorite bird'],
+                                  ] as const).map(([field, label]) => (
+                                    <div key={field} className="space-y-2">
+                                      <label htmlFor={`leader-${index}-${field}`} className="text-sm font-medium">{label}</label>
+                                      <Input id={`leader-${index}-${field}`} type={field === 'email' ? 'email' : 'text'} value={leader[field]} onChange={(event) => setLeadershipSettings(current => current.map((item, i) => i === index ? { ...item, [field]: event.target.value } : item))} />
+                                    </div>
+                                  ))}
+                                  <div className="space-y-2">
+                                    <label htmlFor={`leader-${index}-image`} className="text-sm font-medium">Profile image</label>
+                                    <button type="button" aria-label={`Upload new image for ${leader.name || `position ${index + 1}`}`}
+                                      onClick={() => document.getElementById(`leader-${index}-image`)?.click()}
+                                      className="relative block w-full max-w-xs aspect-square overflow-hidden rounded-lg border border-border group focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                                      {leader.image && <Image src={leader.image} alt={`${leader.name || 'Leadership'} profile preview`} fill unoptimized className="object-cover" />}
+                                      <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 text-white transition-colors group-hover:bg-black/50 group-focus-visible:bg-black/50">
+                                        <Upload className="h-8 w-8" aria-hidden="true" />
+                                        <span className="text-sm font-semibold">Upload new image</span>
+                                      </span>
+                                    </button>
+                                    <input id={`leader-${index}-image`} type="file" accept="image/*" className="hidden"
+                                      onClick={event => { event.currentTarget.value = '' }}
+                                      onChange={event => selectLeadershipImage(index, event.target.files?.[0])} />
+                                    <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to {MAX_IMAGE_MB}MB</p>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label htmlFor={`leader-${index}-bio`} className="text-sm font-medium">Bio</label>
+                                    <textarea id={`leader-${index}-bio`} value={leader.bio} rows={6} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onChange={event => setLeadershipSettings(current => current.map((item, i) => i === index ? { ...item, bio: event.target.value } : item))} />
+                                  </div>
+                                  <Button type="button" variant="outline" onClick={() => {
+                                    setLeadershipSettings(current => current.filter((_, i) => i !== index))
+                                    setLeadershipImages(current => Object.fromEntries(Object.entries(current).filter(([i]) => Number(i) !== index).map(([i, file]) => [Number(i) > index ? Number(i) - 1 : Number(i), file])))
+                                  }}>Remove</Button>
+                                </fieldset>
                               ))}
                               <div className="flex flex-wrap gap-3">
-                                <Button type="button" variant="outline" onClick={() => setLeadershipSettings((current) => [...current, { position: "", name: "", major: "", year: "", email: "", bio: "", image: "", favoriteBird: "" }])}>Add Position</Button>
-                                <Button type="button" onClick={saveLeadership} disabled={loadingLeadership || savingLeadership || !leadershipChanged}>{savingLeadership ? "Saving..." : "Save Changes"}</Button>
+                                <Button type="button" variant="outline" disabled={savingLeadership || processingLeadershipImage} onClick={() => setLeadershipSettings((current) => [...current, { position: "", name: "", major: "", year: "", email: "", bio: "", image: "", favoriteBird: "" }])}>Add Position</Button>
+                                <Button type="button" onClick={saveLeadership} disabled={loadingLeadership || savingLeadership || processingLeadershipImage || !leadershipChanged}>{savingLeadership ? "Saving..." : "Save Changes"}</Button>
+                                <Button type="button" variant="outline" disabled={savingLeadership || (!leadershipChanged && !processingLeadershipImage)} onClick={() => {
+                                  leadershipImageVersion.current++
+                                  setProcessingLeadershipImage(false)
+                                  setLeadershipSettings(originalLeadershipSettings)
+                                  setLeadershipImages({})
+                                }}>Cancel</Button>
+                                {processingLeadershipImage && <p role="status" className="text-sm text-muted-foreground">Preparing image…</p>}
                               </div>
                             </div>
                           ) : (
