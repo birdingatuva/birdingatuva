@@ -4,9 +4,12 @@ export function parseCarpoolRows(rows: string[][]) {
   const body = rows.slice(header + 1)
   const remaining = body.findIndex(row => row[0]?.toLowerCase() === 'seats remaining')
   const count = (value: string | undefined) => value && /^\d+$/.test(value) ? Number(value) : null
-  const list = (column: number) => body.map(row => row[column] || '').filter(Boolean)
+  const unavailable = /^(?:#?N\/?A)$/i
+  const list = (column: number) => body
+    .map(row => (row[column] || '').trim())
+    .filter(value => value && !unavailable.test(value))
   const lists = [list(1), list(2), list(3)]
-  const sheetError = /^#(?:N\/A|REF!|VALUE!|DIV\/0!|ERROR!|NAME\?|NUM!|SPILL!|NULL!)/
+  const sheetError = /^#(?:REF!|VALUE!|DIV\/0!|ERROR!|NAME\?|NUM!|SPILL!|NULL!)/
   if (lists.some(list => list.some(value => sheetError.test(value)))) throw new Error('The source sheet has formula errors')
   return {
     totalSeats: count(body[0]?.[0]),

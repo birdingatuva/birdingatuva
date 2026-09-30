@@ -62,7 +62,7 @@ export function SheetDashboard({ url }: { url: string }) {
             <div className="grid gap-7 sm:grid-cols-3 sm:gap-8">
               {[
                 { label: 'Drivers', people: data.drivers, empty: 'No drivers listed yet.', waiting: false, icon: CarIcon },
-                { label: 'Registered', people: data.registered, empty: 'No registrations yet.', waiting: false, icon: Check },
+                { label: 'Passengers', people: data.registered, empty: 'No passengers yet.', waiting: false, icon: Check },
                 { label: 'Waitlisted', people: data.waitlisted, empty: 'No one on the waitlist.', waiting: true, icon: Clock },
               ].map(({ label, people, empty, waiting, icon: Icon }) => (
                 <div key={label} className="min-w-0">
