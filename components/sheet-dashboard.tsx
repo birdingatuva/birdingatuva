@@ -42,7 +42,7 @@ export function SheetDashboard({ url }: { url: string }) {
 
   return (
     <section className="my-8 border-t border-border pt-8" aria-label="Carpool and waitlist">
-      <h3 className="mb-6 font-display text-2xl font-bold text-primary">Carpool &amp; waitlist</h3>
+      <h3 className="mb-6 font-display text-3xl font-bold text-primary">Carpool &amp; waitlist</h3>
       {(
         <div aria-busy={loading}>
           {error && <p role="status" className="mb-4 rounded-lg border border-border bg-muted/50 p-3 text-sm">{error}{data ? ' Showing the last successful update.' : ''}</p>}
@@ -61,7 +61,7 @@ export function SheetDashboard({ url }: { url: string }) {
                 { label: 'Waitlisted', people: data.waitlisted, empty: 'No one on the waitlist.', waiting: true, icon: Clock },
               ].map(({ label, people, empty, waiting, icon: Icon }) => (
                 <div key={label} className="min-w-0">
-                  <h4 className="flex items-center gap-2.5 border-b border-border pb-3 text-xl font-semibold text-foreground"><Icon className={`h-5 w-5 shrink-0 ${waiting ? "text-slate-950 dark:text-slate-100" : "text-primary"}`} strokeWidth={2.5} aria-hidden="true" />{label}</h4>
+                  <h4 className="flex items-center gap-2.5 border-b border-border pb-3 text-lg font-semibold text-foreground"><Icon className="h-6 w-6 shrink-0 text-primary" strokeWidth={2.5} aria-hidden="true" />{label}</h4>
                   {people.length ? <ul className="divide-y divide-border/50">
                     {people.map((person, index) => <li key={index} className="flex items-baseline gap-3 py-3 text-base leading-6">
                       {waiting && <span className="w-5 shrink-0 text-xs tabular-nums text-muted-foreground" aria-label={`List position ${index + 1}`}>{index + 1}.</span>}

@@ -358,8 +358,8 @@ body {
 .preview-page-stripes {
   --preview-side-stripes: repeating-linear-gradient(
     135deg,
-    rgb(245 158 11 / 0.10) 0px,
-    rgb(245 158 11 / 0.10) 16px,
+    #FEDC9A 0px,
+    #FEDC9A 16px,
     transparent 16px,
     transparent 32px
   );
@@ -372,9 +372,34 @@ body {
 .preview-stripes {
   background-image: repeating-linear-gradient(
     135deg,
-    rgb(245 158 11 / 0.14) 0px,
-    rgb(245 158 11 / 0.14) 10px,
+    #FEDC9A 0px,
+    #FEDC9A 10px,
     transparent 10px,
     transparent 20px
   );
+}
+
+/* Banner typography inherits the administrator's selected colors. */
+.announcement-content > * + * { margin-top: 0.35rem; }
+.announcement-content a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.announcement-content h1 { font-size: 1.5em; font-weight: 700; }
+.announcement-content h2 { font-size: 1.25em; font-weight: 700; }
+.announcement-content h3 { font-size: 1.125em; font-weight: 600; }
+.announcement-content ul { list-style: disc inside; }
+.announcement-content ol { list-style: decimal inside; }
+.announcement-content blockquote { font-style: italic; }
+.announcement-content table { margin-inline: auto; }
+
+/* Fill inward from the card edge using the shared preview stripe treatment. */
+.preview-outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--preview-outline-width, 7.5px);
+  background: repeating-linear-gradient(135deg, #FEDC9A 0px, #FEDC9A 10px, #ffffff 10px, #ffffff 20px);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
 }

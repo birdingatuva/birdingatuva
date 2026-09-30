@@ -12,7 +12,8 @@ import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, ImageIcon, Link2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
+import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, ImageIcon, Link2, Pencil, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
+import { BannerSettings } from "./BannerSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
@@ -631,7 +632,7 @@ export default function AdminPage() {
   }
 
   const toggleHidden = async (slug: string, nextHidden: boolean) => {
-    if (visibilitySaving) return
+    if (visibilitySaving || (editMode && editingSlug === slug)) return
     setVisibilitySaving(slug)
     setVisibilityError("")
     try {
@@ -925,7 +926,10 @@ export default function AdminPage() {
                 {activePage === "Events" ? (
                   <>
                     <h2 className="mb-6 px-6 font-display text-3xl text-primary">Events</h2>
-            <Card>
+            <Card className="relative">
+              {editMode && originalEventForm?.hidden && (
+                <div aria-hidden="true" className="preview-outline pointer-events-none absolute -inset-px z-10 rounded-[inherit]" />
+              )}
               <CardHeader className="flex justify-between items-center">
                 <CardTitle className="text-2xl">{editMode ? 'Edit Event' : 'Add New Event'}</CardTitle>
                 <Button onClick={clearForm} size="sm" variant={"outline"} className="hover:bg-primary hover:text-foreground">
@@ -1192,19 +1196,27 @@ export default function AdminPage() {
                   <div className="flex gap-3 pt-4">
                     {editMode ? (
                       <>
-                        <Button type="button" onClick={saveChanges} disabled={submitting || !eventFormChanged} className="flex-1" size="lg">
+                        <Button key="save-event" type="button" onClick={saveChanges} disabled={submitting || !eventFormChanged} className="flex-1" size="lg">
                           {submitting ? 'Saving...' : 'Save Changes'}
                         </Button>
-                        <Button type="button" variant="outline" className="hover:bg-primary hover:text-foreground" size="lg" onClick={() => { setEditMode(false); setEditingSlug(null); setOriginalEventForm(null); setForm(initialForm); }}>
+                        <Button key="cancel-edit" type="button" variant="outline" className="hover:bg-primary hover:text-foreground" size="lg" onClick={(event) => {
+                          // Cancel the click's default action before replacing edit controls with submit buttons.
+                          event.preventDefault();
+                          setEditMode(false);
+                          setEditingSlug(null);
+                          setOriginalEventForm(null);
+                          clearForm();
+                        }}>
                           Cancel
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Button type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
-                          {submitAction === "create" && submitting ? "Submitting..." : submitAction === "create" && submitted ? "✓ Submitted!" : "Create Event"}
+                        <Button key="publish-event" type="submit" disabled={submitting || submitted} className="flex-1" size="lg">
+                          {submitAction === "create" && submitting ? "Submitting..." : submitAction === "create" && submitted ? "✓ Submitted!" : "Publish Event"}
                         </Button>
-                        <Button type="submit" name="action" value="preview" variant="outline" disabled={submitting || submitted} className="preview-stripes flex-1 border-amber-500/50 text-foreground hover:bg-amber-500/15 hover:text-foreground dark:hover:bg-amber-500/20" size="lg">
+                        <Button key="preview-event" type="submit" name="action" value="preview" variant="outline" disabled={submitting || submitted} className="relative flex-1 text-foreground" size="lg">
+                          <span aria-hidden="true" className="preview-outline pointer-events-none absolute inset-0 rounded-[inherit] [--preview-outline-width:3px]" />
                           {submitAction === "preview" && submitting ? "Preparing preview..." : submitAction === "preview" && submitted ? "✓ Preview ready!" : "Preview Event"}
                         </Button>
                       </>
@@ -1227,7 +1239,8 @@ export default function AdminPage() {
                 ) : (
                   <div className="space-y-3">
                     {events.map((ev) => (
-                      <div key={ev.slug} className={`flex items-center gap-4 p-3 border rounded-lg ${ev.hidden ? "preview-stripes border-amber-500/50" : ""}`}>
+                      <div key={ev.slug} className={`relative flex flex-wrap items-center gap-4 p-3 border rounded-lg ${editMode && editingSlug === ev.slug ? "border-primary ring-[3px] ring-primary/50" : ""}`}>
+                        {ev.hidden && <span aria-hidden="true" className="preview-outline pointer-events-none absolute inset-0 rounded-[inherit] [--preview-outline-width:5.625px]" />}
                         <Link
                           href={`/events/${ev.slug}`}
                           aria-label={`View ${ev.title}`}
@@ -1249,21 +1262,20 @@ export default function AdminPage() {
                           <Link href={`/events/${ev.slug}`} className="inline-block max-w-full align-bottom font-semibold truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm">
                             {ev.title}
                           </Link>
-                          {ev.hidden && <p className="text-xs font-semibold">Preview mode — admins only</p>}
                           <div className="text-xs text-muted-foreground truncate">{ev.startDate}{ev.endDate ? ` - ${ev.endDate}` : ''} {ev.startTime ? ` | ${ev.startTime.slice(0, 5)}` : ''}{ev.endTime ? ` - ${ev.endTime.slice(0, 5)}` : ''} | {ev.location}</div>
-                          <div className="mt-2 inline-flex rounded-lg border border-border bg-background p-1 shadow-sm" role="group" aria-label={`Visibility for ${ev.title}`} aria-busy={visibilitySaving === ev.slug}>
-                            <button type="button" aria-pressed={ev.hidden} disabled={visibilitySaving !== null} onClick={() => !ev.hidden && toggleHidden(ev.slug, true)} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${ev.hidden ? "preview-stripes bg-amber-500/15 text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                        </div>
+                        <div className="ml-auto flex flex-wrap items-center gap-2">
+                          <div className={`inline-flex rounded-lg border border-border bg-background p-1 shadow-sm ${editMode && editingSlug === ev.slug ? "grayscale opacity-50" : ""}`} role="group" aria-label={`Visibility for ${ev.title}`} aria-busy={visibilitySaving === ev.slug}>
+                            <button type="button" aria-pressed={ev.hidden} disabled={(editMode && editingSlug === ev.slug) || visibilitySaving !== null} onClick={() => !ev.hidden && toggleHidden(ev.slug, true)} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${ev.hidden ? "preview-stripes bg-amber-500/15 text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                               Preview
                             </button>
-                            <button type="button" aria-pressed={!ev.hidden} disabled={visibilitySaving !== null} onClick={() => ev.hidden && toggleHidden(ev.slug, false)} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${!ev.hidden ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                            <button type="button" aria-pressed={!ev.hidden} disabled={(editMode && editingSlug === ev.slug) || visibilitySaving !== null} onClick={() => ev.hidden && toggleHidden(ev.slug, false)} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${!ev.hidden ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
                               Published
                             </button>
                           </div>
-                          <p className="mt-1 text-xs text-muted-foreground" role="status">{visibilitySaving === ev.slug ? "Updating visibility..." : ev.hidden ? "Only admins can view this event" : "Visible to everyone"}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" onClick={() => startEdit(ev)}>Edit</Button>
-                          <Button size="sm" variant="destructive" onClick={() => requestDelete(ev.slug, ev.title)} disabled={deleting}>Delete</Button>
+                          <span className="sr-only" role="status">{visibilitySaving === ev.slug ? "Updating visibility..." : ev.hidden ? "Only admins can view this event" : "Visible to everyone"}</span>
+                          <Button size="icon-sm" aria-label={`Edit ${ev.title}`} title="Edit event" disabled={visibilitySaving !== null} onClick={() => startEdit(ev)}><Pencil className="h-4 w-4" /></Button>
+                          <Button size="icon-sm" variant="destructive" aria-label={`Delete ${ev.title}`} title="Delete event" onClick={() => requestDelete(ev.slug, ev.title)} disabled={deleting}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </div>
                     ))}
@@ -1361,7 +1373,9 @@ export default function AdminPage() {
                       ) : (
                         <Card>
                           <CardContent>
-                          {activePage === "FAQ" ? (
+                          {activePage === "Home" ? (
+                            <BannerSettings />
+                          ) : activePage === "FAQ" ? (
                             <div className="space-y-4">
                               <LexicalMarkdownEditor value={faqMarkdown} onChange={setFaqMarkdown} placeholder="Write the FAQ page content..." />
                               <Button type="button" onClick={saveFaq} disabled={loadingFaq || savingFaq || !faqChanged} className="w-full sm:w-auto">

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { CloudinaryImage } from "@/components/cloudinary-image"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, Clock, Search } from "lucide-react"
+import { MapPin, Calendar, Clock, Search, LayoutGrid, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatTimeForDisplay, formatDisplayDate, getEventStatus, type EventStatus } from "./date-utils"
@@ -33,6 +33,7 @@ export interface EventsClientProps {
 }
 
 export function EventsClient({ events }: EventsClientProps) {
+  const [view, setView] = useState<"card" | "list">("card")
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"Upcoming" | "Current" | "Past" | "All">("Upcoming")
   const [locationFilter, setLocationFilter] = useState("All locations")
@@ -65,10 +66,14 @@ export function EventsClient({ events }: EventsClientProps) {
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-6xl relative z-20">
             <div className="mb-8 flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center">
-              <div className="flex-1">
-                <div className="relative flex h-10 items-center">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="relative flex h-10 min-w-0 flex-1 items-center">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input id="event-search" value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search all events, including past events" className="h-10 pl-9" />
+                </div>
+                <div className="flex shrink-0 gap-1" role="group" aria-label="Event view">
+                  <Button type="button" size="icon" variant={view === "card" ? "default" : "outline"} aria-label="Card view" title="Card view" aria-pressed={view === "card"} onClick={() => setView("card")}><LayoutGrid className="h-4 w-4" /></Button>
+                  <Button type="button" size="icon" variant={view === "list" ? "default" : "outline"} aria-label="List view" title="List view" aria-pressed={view === "list"} onClick={() => setView("list")}><List className="h-4 w-4" /></Button>
                 </div>
               </div>
               <div className="sm:w-48">
@@ -106,7 +111,7 @@ export function EventsClient({ events }: EventsClientProps) {
                 </div>
               </aside>
               {/* Events Grid */}
-              <div className="lg:col-span-3 grid md:grid-cols-2 gap-6">
+              <div className={`lg:col-span-3 grid content-start gap-6 ${view === "card" ? "md:grid-cols-2" : "grid-cols-1"}`}>
                 {filteredEvents.length === 0 ? (
                   <div className="col-span-full flex flex-col items-center justify-center py-24 text-center">
                     <h1 className="font-display text-5xl font-bold mb-4 text-primary">No Matching Events</h1>
@@ -120,8 +125,9 @@ export function EventsClient({ events }: EventsClientProps) {
                     const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'
                     
                     return (
-                      <Card key={event.slug} className="overflow-hidden pt-0">
-                        <Link href={event.url} className="block relative h-48 overflow-hidden p-0 m-0 bg-muted">
+                      <Card key={event.slug} className={`relative overflow-hidden ${view === "list" ? "grid grid-cols-[6rem_minmax(0,1fr)] gap-x-0 gap-y-3 py-0 sm:grid-cols-[10rem_minmax(0,1fr)]" : "pt-0"}`}>
+                        <Link href={event.url} aria-label={`View ${event.title}`} className={`block relative overflow-hidden p-0 m-0 bg-muted ${view === "list" ? "row-span-2 h-full min-h-36" : "h-48"}`}>
+
                           {event.imagePublicId ? (
                             <CloudinaryImage
                               src={`https://res.cloudinary.com/${cloudinaryCloudName}/image/upload/${event.imagePublicId}`}
@@ -134,17 +140,17 @@ export function EventsClient({ events }: EventsClientProps) {
                               <span className="text-sm">No image</span>
                             </div>
                           )}
-                          <Badge className="absolute top-4 right-4 shadow-lg font-semibold text-sm" style={{ backgroundColor: '#36834C', color: 'white' }}>
+                          <Badge className={`absolute shadow-lg font-semibold ${view === "list" ? "top-2 right-2 text-xs" : "top-4 right-4 text-sm"}`} style={{ backgroundColor: '#36834C', color: 'white' }}>
                             {status}
                           </Badge>
                         </Link>
                         {event.hidden && (
-                          <div className="preview-stripes border-y border-amber-500/50 px-4 py-2 text-sm font-semibold" role="status">
-                            Preview mode — admins only
+                          <div className="preview-outline pointer-events-none absolute -inset-px z-10 rounded-[inherit]" role="status">
+                            <span className="sr-only">Preview mode — admins only</span>
                           </div>
                         )}
-                        <CardHeader>
-                          <CardTitle className="font-display text-2xl">
+                        <CardHeader className={view === "list" ? "min-w-0 px-4 pt-4" : undefined}>
+                          <CardTitle className="break-words font-display text-2xl">
                             <Link href={event.url} className="hover:no-underline focus:no-underline">
                               {event.title}
                             </Link>
@@ -154,7 +160,7 @@ export function EventsClient({ events }: EventsClientProps) {
                             {event.location}
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className={view === "list" ? "min-w-0 space-y-4 px-4 pb-4" : "space-y-4"}>
                           <div className="flex items-start justify-between text-sm text-muted-foreground">
                             <div className="flex gap-1 pr-2 max-w-[70%]">
                               <Calendar className="w-4 h-4 mt-[0.0625rem] flex-shrink-0" />

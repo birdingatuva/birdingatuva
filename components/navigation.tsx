@@ -121,7 +121,7 @@ export function Navigation() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 bg-primary text-primary-foreground shadow-lg">
+      <nav style={{ top: "var(--announcement-height, 0px)" }} className="sticky z-40 bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-4 md:px-5 lg:px-6">
           <div className="flex min-h-16 flex-col min-[900px]:flex-row min-[900px]:items-center min-[900px]:justify-between">
           {/* Logo and Name */}
