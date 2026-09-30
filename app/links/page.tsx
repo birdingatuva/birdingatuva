@@ -3,6 +3,7 @@ import { getSitePage, getSitePageSetting } from "@/lib/pages-db"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
+import { ArrowUpRight } from "lucide-react"
 
 interface LinkSetting {
   label: string
@@ -25,10 +26,11 @@ export default async function LinksPage() {
         <PageHeader title="Links" />
         <section className="px-4 py-12">
           <div className="container mx-auto max-w-3xl">
-            <div className="space-y-4">
+            <div className="divide-y divide-border border-y border-border">
               {links.filter((link) => link.enabled && link.url).map((link) => (
-                <a key={link.label} href={link.url} target="_blank" rel="noreferrer" className="block rounded-md border border-border bg-card px-4 py-5 text-center text-lg font-semibold text-primary shadow-sm transition-colors hover:bg-muted">
-                  {link.label}
+                <a key={link.label} href={link.url} target="_blank" rel="noreferrer" className="group flex items-center justify-between gap-4 px-1 py-6 text-primary transition-colors hover:text-primary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:px-2 sm:py-8">
+                  <span className="font-display text-xl font-semibold leading-snug sm:text-2xl">{link.label}</span>
+                  <ArrowUpRight aria-hidden="true" className="h-5 w-5 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </a>
               ))}
             </div>
