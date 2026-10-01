@@ -22,14 +22,24 @@ export const metadata: Metadata = {
 		title: "Birding at UVA",
 		description: "Join UVA students and community members for birding trips, education, conservation, and community.",
 		url: "/",
+		siteName: "Birding at UVA",
+		type: "website",
 		images: [
-			`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dev-birdingatuva"}/image/upload/home-page/banner-transparent`,
+			{
+				url: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dev-birdingatuva"}/image/upload/home-page/banner-transparent`,
+				alt: "Birding at UVA club banner",
+			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
+		title: "Birding at UVA",
+		description: "Join UVA students and community members for birding trips, education, conservation, and community.",
 		images: [
-			`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dev-birdingatuva"}/image/upload/home-page/banner-transparent`,
+			{
+				url: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dev-birdingatuva"}/image/upload/home-page/banner-transparent`,
+				alt: "Birding at UVA club banner",
+			},
 		],
 	},
 }
