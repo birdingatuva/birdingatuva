@@ -74,7 +74,7 @@ export default async function HomePage() {
 							<Button
 								size="lg"
 								variant="secondary"
-								className="text-lg px-8 py-6 shadow-2xl hover:scale-105 transition-transform"
+								className="h-12 w-52 text-lg px-8 shadow-2xl hover:scale-105 transition-transform"
 								asChild
 							>
 								<Link href="#join">Join the Club</Link>
@@ -82,7 +82,7 @@ export default async function HomePage() {
 							<Button
 								size="lg"
 								variant="outline"
-								className="bg-white/10 text-white border-2 border-white hover:bg-white hover:text-white text-lg px-8 py-6 shadow-2xl hover:scale-105 transition-transform backdrop-blur-sm"
+								className="h-12 w-52 bg-white/10 text-white border-2 border-white hover:bg-white hover:text-white text-lg px-8 shadow-2xl hover:scale-105 transition-transform backdrop-blur-sm"
 								asChild
 							>
 								<Link href="/events">View Events</Link>
