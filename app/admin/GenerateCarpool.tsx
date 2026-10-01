@@ -44,7 +44,7 @@ export function GenerateCarpool(props: Props) {
     } finally { running.current = false; setBusy(false); props.onBusyChange(false) }
   }
   return <div className="space-y-2">
-    <Button type="button" variant="outline" onClick={generate} disabled={busy || props.disabled || !props.title.trim() || !props.startDate}>
+    <Button type="button" variant="outline" className="text-black hover:text-black dark:text-black dark:hover:text-black" onClick={generate} disabled={busy || props.disabled || !props.title.trim() || !props.startDate}>
       {busy ? 'Generating…' : 'Generate Google form and autofill URLs'}
     </Button>
     <p className="text-xs text-muted-foreground">Uses the event title and start date. Creates the signup form and carpool dashboard in Google Drive.</p>

@@ -25,10 +25,9 @@ export default async function EventPage(props: PageProps) {
   const params = await props.params
   const record = await getEvent(params.slug, true)
   if (!record) return notFound()
-  if (record.hidden) {
-    const token = (await cookies()).get("admin_jwt")?.value
-    if (!token || !verifyAdminToken(token)) notFound()
-  }
+  const token = (await cookies()).get("admin_jwt")?.value
+  const isAdmin = token ? !!verifyAdminToken(token) : false
+  if (record.hidden && !isAdmin) notFound()
 
   const bodyMarkdown = record.bodyMarkdown || "Event details coming soon."
   const signupUrl = record.signupUrl || ""
@@ -41,6 +40,8 @@ export default async function EventPage(props: PageProps) {
   return (
     <EventTemplate
       preview={record.hidden}
+      isAdmin={isAdmin}
+      eventSlug={record.slug}
       title={record.title}
       description={`${dateDisplay}${timeDisplay ? ` | ${timeDisplay}` : ""} | ${record.location}`}
       image={record.imagePublicId}

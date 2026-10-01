@@ -12,7 +12,7 @@ import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, Link2, Pencil, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
+import { CalendarDays, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, Link2, Pencil, Search, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
 import { GenerateCarpool } from "./GenerateCarpool"
 import { BannerSettings } from "./BannerSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
@@ -103,6 +103,7 @@ export default function AdminPage() {
     showFaqBanner: boolean
     bodyMarkdown: string
   }>>([])
+  const [eventSearchQuery, setEventSearchQuery] = useState("")
   const [loadingEvents, setLoadingEvents] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editingSlug, setEditingSlug] = useState<string | null>(null)
@@ -133,6 +134,7 @@ export default function AdminPage() {
   const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null)
   const router = useRouter()
   const imageSelectionVersion = useRef(0)
+  const eventEditFromUrlHandled = useRef<string | null>(null)
   const [processingImage, setProcessingImage] = useState(false)
   const headerImageInputRef = useRef<HTMLInputElement>(null)
 
@@ -447,7 +449,7 @@ export default function AdminPage() {
   }
 
   // Admin: start editing an event -> populate form and switch to editMode
-  const startEdit = (e: typeof events[number]) => {
+  const startEdit = useCallback((e: typeof events[number]) => {
     if (generatingCarpool) return
     setEditMode(true)
     setEditingSlug(e.slug)
@@ -478,7 +480,18 @@ export default function AdminPage() {
     localStorage.removeItem("adminFormData")
     localStorage.removeItem("adminHeaderImagePreview")
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  }, [generatingCarpool])
+
+  useEffect(() => {
+    const eventSlug = new URLSearchParams(window.location.search).get("edit")
+    if (!isAuthorized || !eventSlug || eventEditFromUrlHandled.current === eventSlug) return
+
+    const event = events.find((item) => item.slug === eventSlug)
+    if (!event) return
+
+    eventEditFromUrlHandled.current = eventSlug
+    startEdit(event)
+  }, [events, isAuthorized, startEdit])
 
   // Save changes for edited event (without re-uploading images unless provided)
   const saveChanges = async () => {
@@ -789,7 +802,15 @@ export default function AdminPage() {
     if (generatingCarpool) return
     imageSelectionVersion.current++;
     setProcessingImage(false);
+    setEditMode(false);
+    setEditingSlug(null);
+    setOriginalEventForm(null);
+    setIsCreateEventOpen(true);
+    setSubmitAction("create");
+    setSubmitted(false);
+    setError("");
     localStorage.removeItem("adminHeaderImagePreview");
+    localStorage.removeItem("adminFormData");
     if (headerImageInputRef.current) headerImageInputRef.current.value = "";
     setForm(initialForm);
     setHeaderImage(null);
@@ -797,6 +818,12 @@ export default function AdminPage() {
   };
 
   const eventFormChanged = editMode && originalEventForm !== null && (headerImage !== null || JSON.stringify(form) !== JSON.stringify(originalEventForm))
+  const filteredEvents = events.filter((event) => {
+    const query = eventSearchQuery.trim().toLowerCase()
+    if (!query) return true
+    return [event.title, event.location, event.startDate, event.endDate]
+      .some((value) => value?.toLowerCase().includes(query))
+  })
   const normalizeFaqMarkdown = (markdown: string) => markdown.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "")
   const faqChanged = normalizeFaqMarkdown(faqMarkdown) !== normalizeFaqMarkdown(originalFaqMarkdown)
   const linksChanged = JSON.stringify(linkSettings) !== JSON.stringify(originalLinkSettings)
@@ -1081,7 +1108,7 @@ export default function AdminPage() {
                         <Button key="publish-event" type="submit" disabled={submitting || processingImage || submitted} className="flex-1" size="lg">
                           {submitAction === "create" && submitting ? "Submitting..." : submitAction === "create" && submitted ? "✓ Submitted!" : "Publish Event"}
                         </Button>
-                        <Button key="preview-event" type="submit" name="action" value="preview" variant="outline" disabled={submitting || processingImage || submitted} className="relative flex-1 text-foreground" size="lg">
+                        <Button key="preview-event" type="submit" name="action" value="preview" variant="outline" disabled={submitting || processingImage || submitted} className="relative flex-1 text-black hover:text-black dark:text-black dark:hover:text-black" size="lg">
                           <span aria-hidden="true" className="preview-outline pointer-events-none absolute inset-0 rounded-[inherit] [--preview-outline-width:3px]" />
                           {submitAction === "preview" && submitting ? "Preparing preview..." : submitAction === "preview" && submitted ? "✓ Preview ready!" : "Preview Event"}
                         </Button>
@@ -1099,13 +1126,27 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 {visibilityError && <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">{visibilityError}</p>}
+                <div className="relative mb-4">
+                  <label htmlFor="event-search" className="sr-only">Search events</label>
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                  <Input
+                    id="event-search"
+                    type="search"
+                    value={eventSearchQuery}
+                    onChange={(event) => setEventSearchQuery(event.target.value)}
+                    placeholder="Search events by title, location, or date..."
+                    className="pl-9"
+                  />
+                </div>
                 {loadingEvents ? (
                   <div className="text-sm text-muted-foreground">Loading events…</div>
                 ) : events.length === 0 ? (
                   <div className="text-sm text-muted-foreground">No events found.</div>
+                ) : filteredEvents.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No events match your search.</div>
                 ) : (
                   <div className="space-y-3">
-                    {events.map((ev) => (
+                    {filteredEvents.map((ev) => (
                       <div key={ev.slug} className={`relative flex flex-wrap items-center gap-4 p-3 border rounded-lg ${editMode && editingSlug === ev.slug ? "border-primary ring-[3px] ring-primary/50" : ""}`}>
                         {ev.hidden && <span aria-hidden="true" className="preview-outline pointer-events-none absolute inset-0 rounded-[inherit] [--preview-outline-width:5.625px]" />}
                         <Link

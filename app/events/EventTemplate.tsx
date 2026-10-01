@@ -12,6 +12,7 @@ import rehypeSanitize from "rehype-sanitize";
 import { getDashboardLink } from "@/lib/sheet-embed";
 import { resolveGoogleForm } from "@/lib/google-form";
 import { SheetDashboard } from "@/components/sheet-dashboard";
+import { Button } from "@/components/ui/button";
 
 function normalizeLexicalMarkdown(markdown: string) {
   return markdown
@@ -91,6 +92,8 @@ const markdownComponents: Components = {
 
 export interface EventTemplateProps {
   preview?: boolean;
+  isAdmin?: boolean;
+  eventSlug: string;
   title: string;
   description: string;
   image: string;
@@ -105,6 +108,8 @@ export interface EventTemplateProps {
 
 export default async function EventTemplate({
   preview = false,
+  isAdmin = false,
+  eventSlug,
   title,
   description,
   image,
@@ -135,6 +140,13 @@ export default async function EventTemplate({
                 <span aria-hidden="true" className="preview-outline pointer-events-none absolute inset-0 rounded-[inherit]" />
                 <p className="font-semibold">Preview mode — admins only</p>
                 <p className="text-sm">This event is hidden from the public. Select “Published” in Admin → Edit Events to make it public.</p>
+              </div>
+            )}
+            {isAdmin && (
+              <div className="mb-8">
+                <Button asChild variant="outline" className="text-black hover:text-black dark:text-black dark:hover:text-black">
+                  <Link href={`/admin?edit=${encodeURIComponent(eventSlug)}`}>Edit in Admin Page</Link>
+                </Button>
               </div>
             )}
             {showFaqBanner && (

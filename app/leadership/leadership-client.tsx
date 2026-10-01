@@ -31,32 +31,32 @@ export function LeadershipClient({ birdImages, leaders }: LeadershipClientProps)
       <main className="relative z-20">
         <DecorativeBirds images={birdImages} />
         <PageHeader title="LEADERSHIP"  />
-        <section className="px-4 py-12 sm:px-6">
+        <section className="px-4 py-8 sm:px-6">
           <div className="container relative z-20 mx-auto max-w-5xl">
             <div className="divide-y divide-border">
               {leaders.map((leader, index) => (
-                <article key={`${leader.name}-${index}`} aria-labelledby={`leader-name-${index}`} className="grid items-start gap-6 py-10 first:pt-0 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-10 sm:py-12 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-14">
-                  <div className="relative aspect-square w-full max-w-sm overflow-hidden rounded-2xl bg-muted">
+                <article key={`${leader.name}-${index}`} aria-labelledby={`leader-name-${index}`} className="grid items-start gap-4 py-7 first:pt-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-7 sm:py-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+                  <div className="relative aspect-square w-full max-w-[17rem] overflow-hidden rounded-xl bg-muted">
                     <SafeImage src={leader.image || "/placeholder.svg"} alt={leader.name || leader.position} fill className="object-cover" />
                   </div>
-                  <div className="min-w-0 px-1 sm:py-2">
-                    <p className="mb-2 text-xl font-semibold text-primary sm:text-2xl">{leader.position}</p>
-                    <h2 id={`leader-name-${index}`} className="font-display text-4xl font-bold leading-tight text-primary sm:text-5xl">{leader.name}</h2>
+                  <div className="min-w-0 px-1 sm:py-1">
+                    <p className="mb-1.5 text-base font-semibold text-primary sm:text-lg">{leader.position}</p>
+                    <h2 id={`leader-name-${index}`} className="font-display text-3xl font-bold leading-tight text-primary sm:text-4xl">{leader.name}</h2>
                     {(leader.major || leader.year) && (
-                      <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground sm:text-base">
+                      <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                         {leader.major && <span>{leader.major}</span>}
                         {leader.major && leader.year && <span aria-hidden="true" className="h-4 w-px bg-primary/20" />}
                         {leader.year && <span>Class of {leader.year}</span>}
                       </p>
                     )}
-                    {leader.bio && <p className="mt-6 whitespace-pre-line text-base leading-relaxed text-foreground sm:text-lg">{leader.bio}</p>}
+                    {leader.bio && <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground sm:text-base">{leader.bio}</p>}
                     {leader.favoriteBird && (
-                      <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+                      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                         Favorite bird <span className="ml-2 font-medium text-foreground">{leader.favoriteBird}</span>
                       </p>
                     )}
                     {leader.email && (
-                      <a href={`mailto:${leader.email}`} className="mt-5 inline-flex max-w-full items-center gap-2.5 rounded-sm text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+                      <a href={`mailto:${leader.email}`} className="mt-3.5 inline-flex max-w-full items-center gap-2 rounded-sm text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
                         <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span className="break-all">{leader.email}</span>
                       </a>
