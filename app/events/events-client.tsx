@@ -125,8 +125,14 @@ export function EventsClient({ events }: EventsClientProps) {
                     const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'
                     
                     return (
-                      <Card key={event.slug} className={`relative overflow-hidden ${view === "list" ? "grid grid-cols-[6rem_minmax(0,1fr)] gap-x-0 gap-y-3 py-0 sm:grid-cols-[10rem_minmax(0,1fr)]" : "pt-0"}`}>
-                        <Link href={event.url} aria-label={`View ${event.title}`} className={`block relative overflow-hidden p-0 m-0 bg-muted ${view === "list" ? "row-span-2 h-full min-h-36" : "h-48"}`}>
+                      <Link
+                        key={event.slug}
+                        href={event.url}
+                        aria-label={`View ${event.title}`}
+                        className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        <Card className={`relative h-full overflow-hidden transition-shadow hover:shadow-md ${view === "list" ? "grid grid-cols-[6rem_minmax(0,1fr)] gap-x-0 gap-y-3 py-0 sm:grid-cols-[10rem_minmax(0,1fr)]" : "pt-0"}`}>
+                        <div className={`relative overflow-hidden p-0 m-0 bg-muted ${view === "list" ? "row-span-2 h-full min-h-36" : "h-48"}`}>
 
                           {event.imagePublicId ? (
                             <CloudinaryImage
@@ -143,7 +149,7 @@ export function EventsClient({ events }: EventsClientProps) {
                           <Badge className={`absolute shadow-lg font-semibold ${view === "list" ? "top-2 right-2 text-xs" : "top-4 right-4 text-sm"}`} style={{ backgroundColor: '#36834C', color: 'white' }}>
                             {status}
                           </Badge>
-                        </Link>
+                        </div>
                         {event.hidden && (
                           <div className="preview-outline pointer-events-none absolute -inset-px z-10 rounded-[inherit]" role="status">
                             <span className="sr-only">Preview mode — admins only</span>
@@ -151,9 +157,7 @@ export function EventsClient({ events }: EventsClientProps) {
                         )}
                         <CardHeader className={view === "list" ? "min-w-0 px-4 pt-4" : undefined}>
                           <CardTitle className="break-words font-display text-2xl">
-                            <Link href={event.url} className="hover:no-underline focus:no-underline">
-                              {event.title}
-                            </Link>
+                            {event.title}
                           </CardTitle>
                           <div className="flex items-center gap-2 text-muted-foreground text-sm">
                             <MapPin className="w-4 h-4" />
@@ -177,7 +181,8 @@ export function EventsClient({ events }: EventsClientProps) {
                             )}
                           </div>
                         </CardContent>
-                      </Card>
+                        </Card>
+                      </Link>
                     )
                   })
                 )}
