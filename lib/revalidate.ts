@@ -11,6 +11,7 @@ export function revalidateEvents(slug?: string) {
   try {
     // Always revalidate the events list page
     revalidatePath('/events', 'page')
+    revalidatePath('/sitemap.xml')
     
     // If a specific slug is provided, revalidate that event's page
     if (slug) {
@@ -36,6 +37,7 @@ export function revalidateMultipleEvents(slugs: string[]) {
   try {
     // Always revalidate the events list page
     revalidatePath('/events', 'page')
+    revalidatePath('/sitemap.xml')
     
     // Revalidate each specific event page
     slugs.forEach(slug => {
