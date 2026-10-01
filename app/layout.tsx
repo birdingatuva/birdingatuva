@@ -30,10 +30,22 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: "Birding at UVA",
-  description: "Birding Club at the University of Virginia  - Join us for birding trips, education, and community",
+  metadataBase: new URL("https://birdingatuva.org"),
+  title: {
+    default: "Birding at UVA",
+    template: "%s | Birding at UVA",
+  },
+  description: "Explore birds and nature with the Birding Club at the University of Virginia through local trips, education, conservation, and community.",
   icons: {
     icon: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`,
+  },
+  openGraph: {
+    siteName: "Birding at UVA",
+    type: "website",
+    images: [`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`],
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 }
 
@@ -52,19 +64,6 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>Birding at UVA</title>
-        <meta name="description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
-        <link rel="icon" href={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`} type="image/png" />
-        <meta property="og:title" content="Birding at UVA" />
-        <meta property="og:description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
-        <meta property="og:image" content={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`} />
-        <meta property="og:url" content="https://birdingatuva.org" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Birding at UVA" />
-        <meta name="twitter:description" content="Birding Club at the University of Virginia - Join us for birding trips, education, and community" />
-        <meta name="twitter:image" content={`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/home-page/logo-transparent`} />
-        <link rel="canonical" href="https://birdingatuva.org" />
         {/* Structured Data: Organization */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",

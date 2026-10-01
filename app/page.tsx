@@ -12,6 +12,18 @@ import fs from "fs"
 import path from "path"
 import { notFound } from "next/navigation"
 import { getSitePage } from "@/lib/pages-db"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+	title: { absolute: "Birding at UVA" },
+	description: "Explore birds and nature with the Birding Club at the University of Virginia through local trips, education, conservation, and community.",
+	alternates: { canonical: "/" },
+	openGraph: {
+		title: "Birding at UVA",
+		description: "Join UVA students and community members for birding trips, education, conservation, and community.",
+		url: "/",
+	},
+}
 
 export default async function HomePage() {
 	if (!(await getSitePage("home"))) notFound()

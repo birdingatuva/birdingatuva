@@ -4,6 +4,18 @@ import path from "path"
 import { notFound } from "next/navigation"
 import { getSitePage, getSitePageSetting } from "@/lib/pages-db"
 import { LeadershipClient, type Leader } from "./leadership-client"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Club Leadership",
+  description: "Meet the student leaders who organize Birding at UVA trips, programs, outreach, and club activities.",
+  alternates: { canonical: "/leadership" },
+  openGraph: {
+    title: "Club Leadership | Birding at UVA",
+    description: "Meet the student leaders behind Birding at UVA.",
+    url: "/leadership",
+  },
+}
 
 export default async function LeadershipPage() {
   if (!(await getSitePage("leadership"))) notFound()

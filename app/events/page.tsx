@@ -5,6 +5,18 @@ import { cookies } from "next/headers"
 import { verifyAdminToken } from "@/lib/auth"
 import { listAllEvents, listEvents } from "@/lib/events-db"
 import { getSitePage } from "@/lib/pages-db"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Birding Events",
+  description: "Find upcoming Birding at UVA trips, walks, meetings, and community events in Charlottesville and Central Virginia.",
+  alternates: { canonical: "/events" },
+  openGraph: {
+    title: "Birding Events | Birding at UVA",
+    description: "Find upcoming birding trips, walks, meetings, and community events with Birding at UVA.",
+    url: "/events",
+  },
+}
 
 export default async function EventsPage() {
   if (!(await getSitePage("events"))) notFound()

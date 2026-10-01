@@ -7,9 +7,37 @@ import EventTemplate from "../EventTemplate"
 import { getEvent, listEvents } from "@/lib/events-db"
 import { getSitePage } from "@/lib/pages-db"
 import { formatDisplayDate, formatTimeForDisplay } from "../date-utils"
+import type { Metadata } from "next"
 
 interface PageProps { 
   params: Promise<{ slug: string }> 
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params
+  const event = await getEvent(slug, true)
+
+  if (!event) return {}
+
+  const date = formatDisplayDate(event.startDate, event.endDate ?? event.startDate)
+  const description = `${date} at ${event.location}. View details for ${event.title}, hosted by Birding at UVA.`
+  const canonicalPath = `/events/${encodeURIComponent(event.slug)}`
+
+  return {
+    title: event.title,
+    description,
+    alternates: { canonical: canonicalPath },
+    robots: event.hidden ? { index: false, follow: false } : undefined,
+    openGraph: {
+      title: `${event.title} | Birding at UVA`,
+      description,
+      url: canonicalPath,
+      type: "article",
+      images: event.imagePublicId ? [
+        `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dev-birdingatuva"}/image/upload/${event.imagePublicId}`,
+      ] : undefined,
+    },
+  }
 }
 
 // Generate static params for all existing events at build time

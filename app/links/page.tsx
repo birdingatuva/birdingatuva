@@ -3,6 +3,18 @@ import { getSitePage, getSitePageSetting } from "@/lib/pages-db"
 import { Footer } from "@/components/footer"
 import { PageHeader } from "@/components/page-header"
 import { ArrowUpRight } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Club Links",
+  description: "Find Birding at UVA resources, social accounts, sign-up forms, and other useful club links.",
+  alternates: { canonical: "/links" },
+  openGraph: {
+    title: "Club Links | Birding at UVA",
+    description: "Birding at UVA resources, social accounts, and useful club links.",
+    url: "/links",
+  },
+}
 
 interface LinkSetting {
   label: string
