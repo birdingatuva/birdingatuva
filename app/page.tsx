@@ -22,6 +22,15 @@ export const metadata: Metadata = {
 		title: "Birding at UVA",
 		description: "Join UVA students and community members for birding trips, education, conservation, and community.",
 		url: "/",
+		images: [
+			`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dev-birdingatuva"}/image/upload/home-page/banner-transparent`,
+		],
+	},
+	twitter: {
+		card: "summary_large_image",
+		images: [
+			`https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dev-birdingatuva"}/image/upload/home-page/banner-transparent`,
+		],
 	},
 }
 
