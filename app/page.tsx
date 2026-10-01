@@ -73,7 +73,6 @@ export default async function HomePage() {
 						<div className="flex flex-wrap gap-4 justify-center">
 							<Button
 								size="lg"
-								variant="secondary"
 								className="h-12 w-52 text-lg px-8 shadow-2xl hover:scale-105 transition-transform"
 								asChild
 							>
