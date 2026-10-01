@@ -2,7 +2,6 @@
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
@@ -15,7 +14,6 @@ interface FAQClientProps {
 export function FAQClient({ birdImages, contentMarkdown }: FAQClientProps) {
   return (
     <div className="min-h-screen relative">
-      <Navigation />
 
       <main className="relative z-20">
         <DecorativeBirds images={birdImages} />

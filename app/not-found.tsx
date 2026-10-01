@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { DecorativeBirds } from "@/components/decorative-birds";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navigation />
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 text-center">
         <DecorativeBirds images={[]} />
         <h1 className="font-display text-6xl font-bold mb-4 text-primary">404</h1>

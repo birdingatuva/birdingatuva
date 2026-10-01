@@ -1,6 +1,5 @@
 "use client"
 
-import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
@@ -57,7 +56,6 @@ export function EventsClient({ events }: EventsClientProps) {
 
   return (
     <div className="flex-1 relative flex flex-col">
-      <Navigation />
       <main className="relative z-20 flex-1">
         <DecorativeBirds images={[]} />
         <PageHeader

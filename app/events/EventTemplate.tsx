@@ -1,4 +1,3 @@
-import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import { DecorativeBirds } from "@/components/decorative-birds";
 import { PageHeader } from "@/components/page-header";
@@ -127,7 +126,6 @@ export default async function EventTemplate({
   
   return (
     <div className={`min-h-screen relative bg-background${preview ? " preview-page-stripes" : ""}`}>
-      <Navigation />
       <main className="relative z-20">
         <DecorativeBirds images={[]} />
         <PageHeader 

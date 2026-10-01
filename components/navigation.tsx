@@ -7,28 +7,32 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { CloudinaryImage } from "@/components/cloudinary-image"
 
-export function Navigation() {
+export function Navigation({ initialAuthorized, initialVisiblePages }: {
+  initialAuthorized: boolean
+  initialVisiblePages: string[] | null
+}) {
   const pathname = usePathname()
   const router = useRouter()
-  const [authorized, setAuthorized] = useState(false)
+  const [authorized, setAuthorized] = useState(initialAuthorized)
   const [showLogin, setShowLogin] = useState(false)
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginSuccess, setLoginSuccess] = useState(false)
-  const [visiblePages, setVisiblePages] = useState<string[]>(["home", "events", "faq", "links"])
+  const [visiblePages, setVisiblePages] = useState<string[] | null>(initialVisiblePages)
   // Re-check session on route change
   useEffect(() => {
     checkSession()
   }, [pathname])
 
   useEffect(() => {
+    if (initialVisiblePages !== null) return
     fetch('/api/pages')
       .then((res) => res.ok ? res.json() : null)
       .then((data: { pages?: Array<{ slug: string }> } | null) => {
         if (data?.pages) setVisiblePages(data.pages.map((page) => page.slug))
       })
       .catch(() => undefined)
-  }, [])
+  }, [initialVisiblePages])
 
   useEffect(() => {
     const refreshPages = () => {
@@ -54,9 +58,9 @@ export function Navigation() {
   async function checkSession() {
     try {
       const res = await fetch('/api/admin-session')
-      setAuthorized(res.ok)
+      if (res.ok || res.status === 401) setAuthorized(res.ok)
     } catch {
-      setAuthorized(false)
+      // Keep the last confirmed state during temporary network failures.
     }
   }
 
@@ -114,7 +118,7 @@ export function Navigation() {
     { slug: "faq", href: "/faq", label: "FAQ" },
     { slug: "links", href: "/links", label: "Links" },
   ]
-  let links = pageLinks.filter((link) => visiblePages.includes(link.slug)).map(({ href, label }) => ({ href, label }))
+  let links = pageLinks.filter((link) => (visiblePages ?? []).includes(link.slug)).map(({ href, label }) => ({ href, label }))
   if (authorized) {
     links = [...links, { href: "/admin", label: "Admin" }]
   }
@@ -151,9 +155,10 @@ export function Navigation() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-lg px-3 py-2 text-sm transition-all sm:px-4 sm:text-base ${
+                aria-current={pathname === link.href ? "page" : undefined}
+                className={`rounded-lg px-3 py-2 text-sm font-normal antialiased transition-colors sm:px-4 sm:text-base ${
                   pathname === link.href
-                    ? "bg-primary-foreground text-primary font-semibold"
+                    ? "bg-primary-foreground text-primary"
                     : "hover:bg-primary-foreground/10"
                 }`}
               >
@@ -164,14 +169,14 @@ export function Navigation() {
             {authorized ? (
               <button 
                 onClick={handleLogout}
-                className="rounded-lg px-3 py-2 text-sm text-primary-foreground transition-all hover:bg-primary-foreground/10 sm:px-4 sm:text-base"
+                className="rounded-lg px-3 py-2 text-sm font-normal antialiased text-primary-foreground transition-colors hover:bg-primary-foreground/10 sm:px-4 sm:text-base"
               >
                 Logout
               </button>
             ) : (
               <button 
                 onClick={() => setShowLogin(true)}
-                className="rounded-lg px-3 py-2 text-sm text-primary-foreground transition-all hover:bg-primary-foreground/10 sm:px-4 sm:text-base"
+                className="rounded-lg px-3 py-2 text-sm font-normal antialiased text-primary-foreground transition-colors hover:bg-primary-foreground/10 sm:px-4 sm:text-base"
               >
                 Login
               </button>

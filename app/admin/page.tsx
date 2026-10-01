@@ -7,7 +7,6 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
-import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
@@ -783,7 +782,6 @@ export default function AdminPage() {
   if (!isAuthorized) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
-        <Navigation />
         <main className="flex-1 flex flex-col items-center justify-center text-center relative z-10">
           <h1 className="font-display text-5xl font-bold mb-4 text-primary">Access Restricted</h1>
           <p className="text-lg mb-6 text-muted-foreground max-w-md mx-auto">
@@ -836,7 +834,6 @@ export default function AdminPage() {
 
   return (
     <div className="flex-1 relative flex flex-col">
-      <Navigation />
       <main className="relative z-20 flex-1">
         {showSuccessToast && (
           <div role="status" className="fixed top-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-primary/25 bg-card px-4 py-2 text-sm font-medium text-foreground shadow-lg animate-in fade-in slide-in-from-top-2 duration-300">

@@ -1,7 +1,6 @@
 "use client"
 
 import { SafeImage } from "@/components/ui/safe-image"
-import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
@@ -27,7 +26,6 @@ interface LeadershipClientProps {
 export function LeadershipClient({ birdImages, leaders }: LeadershipClientProps) {
   return (
     <div className="min-h-screen relative">
-      <Navigation />
       <main className="relative z-20">
         <DecorativeBirds images={birdImages} />
         <PageHeader title="LEADERSHIP"  />

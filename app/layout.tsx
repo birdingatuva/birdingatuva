@@ -4,6 +4,10 @@ import type { Metadata } from "next"
 import { Bebas_Neue, Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import AppShell from "@/components/AppShell"
+import { cookies } from "next/headers"
+import { Navigation } from "@/components/navigation"
+import { verifyAdminToken } from "@/lib/auth"
+import { listSitePages } from "@/lib/pages-db"
 
 
 const bebasNeue = Bebas_Neue({
@@ -33,11 +37,18 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const [cookieStore, pages] = await Promise.all([
+    cookies(),
+    listSitePages().catch(() => null),
+  ])
+  const token = cookieStore.get("admin_jwt")?.value
+  const authorized = Boolean(token && verifyAdminToken(token))
+
   return (
     <html lang="en">
       <head>
@@ -71,6 +82,10 @@ export default function RootLayout({
         {/* AppShell is a client component that renders DevBanner and wraps the app */}
         <AppShell>
           <div className="min-h-screen flex flex-col">
+            <Navigation
+              initialAuthorized={authorized}
+              initialVisiblePages={pages?.map((page) => page.slug) ?? null}
+            />
             {children}
           </div>
   </AppShell>

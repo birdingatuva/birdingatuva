@@ -1,7 +1,5 @@
-export const dynamic = 'force-static'
 import Image from "next/image"
 import Link from "next/link"
-import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { HeroSlideshow } from "@/components/hero-slideshow"
@@ -48,7 +46,6 @@ export default async function HomePage() {
 
 		return (
 			<div className="min-h-screen relative bg-background" style={{background: 'var(--background)'}}>
-			<Navigation />
 
 			<main className="relative z-20 home-main">
 				<DecorativeBirds images={birdImages} />
