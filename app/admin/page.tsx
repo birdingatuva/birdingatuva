@@ -1355,8 +1355,12 @@ export default function AdminPage() {
                               </button>
                               <Input className="text-left" value={link.label} placeholder="Link name" onBlur={(event) => { event.currentTarget.scrollLeft = 0 }} onChange={(event) => updateLinkSetting(index, "label", event.target.value)} />
                               <Input className="text-left" value={link.url} placeholder="https://..." onBlur={(event) => { event.currentTarget.scrollLeft = 0 }} onChange={(event) => updateLinkSetting(index, "url", event.target.value)} />
-                              <Button type="button" variant="outline" onClick={() => updateLinkSetting(index, "enabled", !link.enabled)}>{link.enabled ? "Enabled" : "Disabled"}</Button>
-                              <Button type="button" variant="outline" onClick={() => setLinkSettings((current) => current.filter((_, linkIndex) => linkIndex !== index))}>Remove</Button>
+                              <button type="button" onClick={() => updateLinkSetting(index, "enabled", !link.enabled)} aria-label={`${link.enabled ? "Disable" : "Enable"} ${link.label || "link"}`} title={link.enabled ? "Disable link" : "Enable link"} aria-pressed={link.enabled} className="inline-flex items-center justify-center rounded-sm border-0 bg-transparent p-2 text-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                {link.enabled ? <Eye className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" /> : <EyeOff className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />}
+                              </button>
+                              <button type="button" onClick={() => setLinkSettings((current) => current.filter((_, linkIndex) => linkIndex !== index))} aria-label={`Remove ${link.label || "link"}`} title="Remove link" className="inline-flex items-center justify-center rounded-sm border-0 bg-transparent p-2 text-black hover:text-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                <Trash2 className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+                              </button>
                             </div>
                           ))}
                           <div className="flex flex-wrap gap-3">

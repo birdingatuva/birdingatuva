@@ -191,7 +191,7 @@ export default async function EventTemplate({
                     )}
                   </div>
                 </div>
-                <div className="mb-10 max-w-none text-lg leading-relaxed text-foreground">
+                <div className="mb-10 max-w-none text-base leading-relaxed text-foreground">
                   <ReactMarkdown
                     components={markdownComponents}
                     remarkPlugins={[remarkGfm, remarkLinkifyPlainDomains]}
