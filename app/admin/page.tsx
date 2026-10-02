@@ -1,6 +1,6 @@
 "use client"
 import { MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
 import { dedupeJson } from '@/lib/fetch-dedupe'
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -11,8 +11,9 @@ import { Footer } from "@/components/footer"
 import { DecorativeBirds } from "@/components/decorative-birds"
 import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarDays, CheckCircle2, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, Link2, Pencil, Search, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
+import { ChevronUp, CalendarDays, CheckCircle2, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, Link2, Pencil, Search, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
 import { GenerateCarpool } from "./GenerateCarpool"
+import { ShortlinkTools } from "./ShortlinkTools"
 import { BannerSettings } from "./BannerSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
@@ -118,6 +119,7 @@ export default function AdminPage() {
   const [originalFaqMarkdown, setOriginalFaqMarkdown] = useState("")
   const [loadingFaq, setLoadingFaq] = useState(false)
   const [savingFaq, setSavingFaq] = useState(false)
+  const [isEditEventsOpen, setIsEditEventsOpen] = useState(true)
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(true)
   const [linkSettings, setLinkSettings] = useState<Array<{ label: string; url: string; enabled: boolean }>>([])
   const [originalLinkSettings, setOriginalLinkSettings] = useState<Array<{ label: string; url: string; enabled: boolean }>>([])
@@ -130,7 +132,26 @@ export default function AdminPage() {
   const [leadershipImages, setLeadershipImages] = useState<Record<number, File>>({})
   const [processingLeadershipImage, setProcessingLeadershipImage] = useState(false)
   const leadershipImageVersion = useRef(0)
-  const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null)
+  const draggedLinkIndex = useRef<number | null>(null)
+  const dragOrder = useRef<typeof linkSettings | null>(null)
+  const linkIds = useRef(new WeakMap<object, string>())
+  const linkNodes = useRef(new Map<string, HTMLDivElement>())
+  const linkPositions = useRef(new Map<string, number>())
+  function linkId(link: object) {
+    let id = linkIds.current.get(link)
+    if (!id) { id = crypto.randomUUID(); linkIds.current.set(link, id) }
+    return id
+  }
+  useLayoutEffect(() => {
+    linkNodes.current.forEach((node, id) => {
+      const top = node.getBoundingClientRect().top
+      const previous = linkPositions.current.get(id)
+      if (draggedLinkIndex.current !== null && previous !== undefined && previous !== top && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        node.animate([{ transform: `translateY(${previous - top}px)` }, { transform: 'translateY(0)' }], { duration: 160, easing: 'ease-out' })
+      }
+      linkPositions.current.set(id, top)
+    })
+  }, [linkSettings])
   const router = useRouter()
   const imageSelectionVersion = useRef(0)
   const eventEditFromUrlHandled = useRef<string | null>(null)
@@ -710,22 +731,32 @@ export default function AdminPage() {
     }
   }
 
-  const reorderLinks = async (fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex) return
-    const reordered = [...linkSettings]
+  const reorderLinks = (toIndex: number) => {
+    const fromIndex = draggedLinkIndex.current
+    if (fromIndex === null || fromIndex === toIndex) return
+    const reordered = [...(dragOrder.current || linkSettings)]
     const [moved] = reordered.splice(fromIndex, 1)
     reordered.splice(toIndex, 0, moved)
+    draggedLinkIndex.current = toIndex
+    dragOrder.current = reordered
     setLinkSettings(reordered)
-    setOriginalLinkSettings(reordered)
+  }
+
+  const finishLinkDrag = async () => {
+    const reordered = dragOrder.current
+    draggedLinkIndex.current = null
+    dragOrder.current = null
+    if (!reordered) return
+    setSavingLinks(true)
     try {
-      await fetch('/api/pages/links/settings/links', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch('/api/pages/links/settings/links', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ setting: reordered }),
       })
-    } catch {
-      setError('Unable to save link order.')
-    }
+      if (!response.ok) throw new Error('Unable to save link order.')
+      setOriginalLinkSettings(reordered)
+    } catch { setError('Unable to save link order. Use Save Changes to retry.') }
+    finally { setSavingLinks(false) }
   }
 
   const selectLeadershipImage = async (index: number, file?: File) => {
@@ -1115,11 +1146,14 @@ export default function AdminPage() {
               </CardContent>}
             </Card>
             {/* Edit Events Section */}
-            <Card className="mt-10">
-              <CardHeader>
+            <Card className="mt-10 gap-0 overflow-hidden pt-0">
+              <button type="button" className="flex h-5 w-full items-center justify-center rounded-none bg-background text-black transition-colors hover:bg-accent hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:bg-input/30 dark:text-black dark:hover:bg-input/50 dark:hover:text-black" aria-label={isEditEventsOpen ? 'Collapse edit events' : 'Expand edit events'} aria-expanded={isEditEventsOpen} aria-controls="edit-events-content" onClick={() => setIsEditEventsOpen(open => !open)}>
+                {isEditEventsOpen ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+              </button>
+              <CardHeader className="pt-1">
                 <CardTitle className="text-2xl">Edit Events</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent id="edit-events-content" className="mt-6" hidden={!isEditEventsOpen}>
                 {visibilityError && <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">{visibilityError}</p>}
                 <div className="relative mb-4">
                   <label htmlFor="event-search" className="sr-only">Search events</label>
@@ -1244,20 +1278,25 @@ export default function AdminPage() {
                     <h2 className="mb-6 px-6 font-display text-3xl text-primary">{activePage}</h2>
                     <div>
                       {activePage === "Links" ? (
-                        <div className="space-y-4">
+                        <div className="space-y-2">
                           {linkSettings.map((link, index) => (
                             <div
-                              key={`link-window-${index}`}
-                              draggable
-                              onDragStart={() => setDraggedLinkIndex(index)}
-                              onDragOver={(event) => event.preventDefault()}
-                              onDrop={() => {
-                                if (draggedLinkIndex === null) return
-                                void reorderLinks(draggedLinkIndex, index)
-                                setDraggedLinkIndex(null)
+                              key={linkId(link)}
+                              ref={node => { const id = linkId(link); if (node) linkNodes.current.set(id, node); else linkNodes.current.delete(id) }}
+                              draggable={!savingLinks}
+                              onDragStart={event => { draggedLinkIndex.current = index; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', linkId(link)) }}
+                              onDragOver={event => {
+                                event.preventDefault()
+                                event.dataTransfer.dropEffect = 'move'
+                                const from = draggedLinkIndex.current
+                                if (from === null || from === index) return
+                                const rect = event.currentTarget.getBoundingClientRect()
+                                const midpoint = rect.top + rect.height / 2
+                                if ((from < index && event.clientY >= midpoint) || (from > index && event.clientY <= midpoint)) reorderLinks(index)
                               }}
-                              onDragEnd={() => setDraggedLinkIndex(null)}
-                              className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-[auto_1fr_2fr_auto_auto]"
+                              onDrop={event => { event.preventDefault(); void finishLinkDrag() }}
+                              onDragEnd={() => void finishLinkDrag()}
+                              className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:grid-cols-[auto_1fr_2fr_auto_auto]"
                             >
                               <button type="button" title="Drag to reorder" aria-label="Drag to reorder link" className="cursor-grab self-center text-muted-foreground active:cursor-grabbing">
                                 <GripVertical className="h-5 w-5" />
@@ -1272,6 +1311,7 @@ export default function AdminPage() {
                             <Button type="button" variant="outline" onClick={() => setLinkSettings((current) => [...current, { label: "", url: "", enabled: true }])}>Add Link</Button>
                             <Button type="button" onClick={saveLinks} disabled={loadingLinks || savingLinks || !linksChanged}>{savingLinks ? "Saving..." : "Save Changes"}</Button>
                           </div>
+                          <ShortlinkTools />
                         </div>
                       ) : (
                         <Card>
