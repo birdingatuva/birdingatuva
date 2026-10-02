@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronUp, CalendarDays, CheckCircle2, ChevronDown, CircleHelp, Eye, EyeOff, GripVertical, House, Link2, Pencil, Search, Trash2, ShieldCheck, Upload, UsersRound, X } from "lucide-react"
 import { GenerateCarpool } from "./GenerateCarpool"
+import { useLinkSort } from "./useLinkSort"
 import { ShortlinkTools } from "./ShortlinkTools"
 import { BannerSettings } from "./BannerSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
@@ -141,26 +142,44 @@ export default function AdminPage() {
   const [leadershipImages, setLeadershipImages] = useState<Record<number, File>>({})
   const [processingLeadershipImage, setProcessingLeadershipImage] = useState(false)
   const leadershipImageVersion = useRef(0)
-  const draggedLinkIndex = useRef<number | null>(null)
-  const dragOrder = useRef<typeof linkSettings | null>(null)
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null)
+  const [pendingLinkSettings, setPendingLinkSettings] = useState<typeof linkSettings | null>(null)
+  const linkFocusToRestore = useRef<string | null>(null)
+  const linkSaveQueue = useRef<Promise<void>>(Promise.resolve())
   const linkIds = useRef(new WeakMap<object, string>())
-  const linkNodes = useRef(new Map<string, HTMLDivElement>())
-  const linkPositions = useRef(new Map<string, number>())
   function linkId(link: object) {
     let id = linkIds.current.get(link)
     if (!id) { id = crypto.randomUUID(); linkIds.current.set(link, id) }
     return id
   }
-  useLayoutEffect(() => {
-    linkNodes.current.forEach((node, id) => {
-      const top = node.getBoundingClientRect().top
-      const previous = linkPositions.current.get(id)
-      if (draggedLinkIndex.current !== null && previous !== undefined && previous !== top && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        node.animate([{ transform: `translateY(${previous - top}px)` }, { transform: 'translateY(0)' }], { duration: 160, easing: 'ease-out' })
+  const linkSort = useLinkSort(ids => {
+    const byId = new Map(linkSettings.map(link => [linkId(link), link]))
+    const reordered = ids.map(id => byId.get(id)!)
+    linkFocusToRestore.current = selectedLinkId
+    setLinkSettings(reordered)
+    void finishLinkDrag(reordered)
+  })
+  useEffect(() => {
+    const deselect = (event: Event) => {
+      if (event.type === 'focusin' && linkFocusToRestore.current) return
+      if (!(event.target instanceof Node) || !Array.from(linkSort.nodes.current.values()).some(node => node.contains(event.target as Node))) {
+        setSelectedLinkId(null)
       }
-      linkPositions.current.set(id, top)
-    })
-  }, [linkSettings])
+    }
+    document.addEventListener('pointerdown', deselect)
+    document.addEventListener('focusin', deselect)
+    return () => {
+      document.removeEventListener('pointerdown', deselect)
+      document.removeEventListener('focusin', deselect)
+    }
+  }, [linkSort.nodes])
+  useLayoutEffect(() => {
+    const id = linkFocusToRestore.current
+    if (!id) return
+    // Moving a focused DOM node can send focus to the body in browsers.
+    linkSort.nodes.current.get(id)?.focus({ preventScroll: true })
+    linkFocusToRestore.current = null
+  }, [linkSettings, linkSort.nodes])
   const router = useRouter()
   const imageSelectionVersion = useRef(0)
   const eventEditFromUrlHandled = useRef<string | null>(null)
@@ -726,12 +745,17 @@ export default function AdminPage() {
   }
 
   const updateLinkSetting = (index: number, field: "label" | "url" | "enabled", value: string | boolean) => {
-    setLinkSettings((current) => current.map((link, linkIndex) => linkIndex === index ? { ...link, [field]: value } : link))
+    setLinkSettings((current) => current.map((link, linkIndex) => linkIndex === index ? (() => {
+      const updated = { ...link, [field]: value }
+      linkIds.current.set(updated, linkId(link))
+      return updated
+    })() : link))
   }
 
   const saveLinks = async () => {
     try {
       setSavingLinks(true)
+      await linkSaveQueue.current
       const response = await fetch('/api/pages/links/settings/links', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -749,32 +773,20 @@ export default function AdminPage() {
     }
   }
 
-  const reorderLinks = (toIndex: number) => {
-    const fromIndex = draggedLinkIndex.current
-    if (fromIndex === null || fromIndex === toIndex) return
-    const reordered = [...(dragOrder.current || linkSettings)]
-    const [moved] = reordered.splice(fromIndex, 1)
-    reordered.splice(toIndex, 0, moved)
-    draggedLinkIndex.current = toIndex
-    dragOrder.current = reordered
-    setLinkSettings(reordered)
-  }
-
-  const finishLinkDrag = async () => {
-    const reordered = dragOrder.current
-    draggedLinkIndex.current = null
-    dragOrder.current = null
-    if (!reordered) return
-    setSavingLinks(true)
-    try {
-      const response = await fetch('/api/pages/links/settings/links', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setting: reordered }),
-      })
-      if (!response.ok) throw new Error('Unable to save link order.')
-      setOriginalLinkSettings(reordered)
-    } catch { setError('Unable to save link order. Use Save Changes to retry.') }
-    finally { setSavingLinks(false) }
+  const finishLinkDrag = (reordered: typeof linkSettings) => {
+    setPendingLinkSettings(reordered)
+    // Serialize background saves so rapid reorders cannot persist out of order.
+    linkSaveQueue.current = linkSaveQueue.current.then(async () => {
+      try {
+        const response = await fetch('/api/pages/links/settings/links', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setting: reordered }),
+        })
+        if (!response.ok) throw new Error('Unable to save link order.')
+        setOriginalLinkSettings(reordered)
+      } catch { setError('Unable to save link order. Use Save Changes to retry.') }
+      finally { setPendingLinkSettings(pending => pending === reordered ? null : pending) }
+    })
   }
 
   const selectLeadershipImage = async (index: number, file?: File) => {
@@ -870,7 +882,7 @@ export default function AdminPage() {
   })
   const normalizeFaqMarkdown = (markdown: string) => markdown.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "")
   const faqChanged = normalizeFaqMarkdown(faqMarkdown) !== normalizeFaqMarkdown(originalFaqMarkdown)
-  const linksChanged = JSON.stringify(linkSettings) !== JSON.stringify(originalLinkSettings)
+  const linksChanged = JSON.stringify(linkSettings) !== JSON.stringify(pendingLinkSettings ?? originalLinkSettings)
 
   const sitePages: Array<{ name: AdminPageName; icon: typeof House }> = [
     { name: "Home", icon: House },
@@ -1300,23 +1312,45 @@ export default function AdminPage() {
                           {linkSettings.map((link, index) => (
                             <div
                               key={linkId(link)}
-                              ref={node => { const id = linkId(link); if (node) linkNodes.current.set(id, node); else linkNodes.current.delete(id) }}
-                              draggable={!savingLinks}
-                              onDragStart={event => { draggedLinkIndex.current = index; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', linkId(link)) }}
-                              onDragOver={event => {
-                                event.preventDefault()
-                                event.dataTransfer.dropEffect = 'move'
-                                const from = draggedLinkIndex.current
-                                if (from === null || from === index) return
-                                const rect = event.currentTarget.getBoundingClientRect()
-                                const midpoint = rect.top + rect.height / 2
-                                if ((from < index && event.clientY >= midpoint) || (from > index && event.clientY <= midpoint)) reorderLinks(index)
+                              ref={node => { const id = linkId(link); if (node) linkSort.nodes.current.set(id, node); else linkSort.nodes.current.delete(id) }}
+                              tabIndex={0}
+                              role="group"
+                              aria-label={`${link.label || 'Link'}, position ${index + 1} of ${linkSettings.length}. Use up and down arrow keys to reorder.`}
+                              onFocus={() => setSelectedLinkId(linkId(link))}
+                              onPointerDown={event => {
+                                setSelectedLinkId(linkId(link))
+                                const target = event.target as HTMLElement
+                                if (target.closest('input, button:not([data-link-drag-handle]), textarea, a')) return
+                                event.currentTarget.focus({ preventScroll: true })
+                                if (!savingLinks) linkSort.start(event, linkId(link), linkSettings.map(linkId))
                               }}
-                              onDrop={event => { event.preventDefault(); void finishLinkDrag() }}
-                              onDragEnd={() => void finishLinkDrag()}
-                              className="grid gap-3 rounded-lg border border-border bg-card p-3 sm:grid-cols-[auto_1fr_2fr_auto_auto]"
+                              onPointerMove={linkSort.move}
+                              onPointerUp={event => linkSort.finish(event)}
+                              onPointerCancel={event => linkSort.finish(event, true)}
+                              onLostPointerCapture={event => linkSort.finish(event, true)}
+                              onKeyDown={event => {
+                                if ((event.target as HTMLElement).closest('input, textarea, button:not([data-link-drag-handle])')) return
+                                if (event.key === 'Escape') { setSelectedLinkId(null); return }
+                                if (selectedLinkId !== linkId(link) || !['ArrowUp', 'ArrowDown'].includes(event.key)) return
+                                event.preventDefault()
+                                if (savingLinks || linkSort.drag) return
+                                const to = index + (event.key === 'ArrowUp' ? -1 : 1)
+                                if (to < 0 || to >= linkSettings.length) return
+                                const reordered = [...linkSettings]
+                                reordered.splice(to, 0, reordered.splice(index, 1)[0])
+                                linkFocusToRestore.current = linkId(link)
+                                setLinkSettings(reordered)
+                                finishLinkDrag(reordered)
+                              }}
+                              onDragStart={event => event.preventDefault()}
+                              style={{
+                                zIndex: linkSort.drag?.id === linkId(link) ? 10 : undefined,
+                                transition: linkSort.drag && linkSort.drag.id !== linkId(link) ? 'transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
+                              }}
+                              className={`relative grid outline-none focus-visible:ring-[3px] focus-visible:ring-primary/50 touch-none cursor-grab active:cursor-grabbing gap-3 rounded-lg border border-border bg-card p-3 sm:grid-cols-[auto_1fr_2fr_auto_auto] motion-reduce:!transition-none ${linkSort.drag?.id === linkId(link) ? 'shadow-lg ring-2 ring-primary/30 select-none' : selectedLinkId === linkId(link) ? 'ring-[3px] ring-primary/50' : ''}`}
                             >
-                              <button type="button" title="Drag to reorder" aria-label="Drag to reorder link" className="cursor-grab self-center text-muted-foreground active:cursor-grabbing">
+                              <button type="button" data-link-drag-handle title="Drag to reorder; use arrow keys to move" aria-label={`Reorder ${link.label || 'link'}`} disabled={savingLinks}
+                                className="outline-none focus-visible:ring-[3px] focus-visible:ring-primary/50 -my-3 -ml-3 flex min-h-12 min-w-12 touch-none items-center justify-center self-stretch rounded-l-lg text-muted-foreground">
                                 <GripVertical className="h-5 w-5" />
                               </button>
                               <Input className="text-left" value={link.label} placeholder="Link name" onBlur={(event) => { event.currentTarget.scrollLeft = 0 }} onChange={(event) => updateLinkSetting(index, "label", event.target.value)} />

@@ -7,6 +7,7 @@ import { LockKeyhole, LockKeyholeOpen, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SHORTLINK_ORIGIN, type Shortlink } from '@/lib/shortlinks'
+import { readShortlinkResponse } from '@/lib/shortlink-response'
 
 const logoUrl = process.env.NEXT_PUBLIC_QR_LOGO_URL || `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'}/image/upload/f_png/home-page/logo-transparent-white`
 
@@ -66,8 +67,7 @@ export function ShortlinkTools() {
     setError('')
     try {
       const response = await fetch('/api/admin/shortlinks', { cache: 'no-store' })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Unable to load shortlinks.')
+      const data = await readShortlinkResponse(response)
       setLinks(data.links)
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to load shortlinks.') }
     finally { setLoading(false) }
@@ -106,7 +106,7 @@ export function ShortlinkTools() {
   }
 
   async function save() {
-    if (loading || saving || generating || deleting !== null) return
+    if (loading || saving || generating || deleting !== null || !destination.trim() || !slug.trim()) return
     setSaving(true)
     setError('')
     setCopyFeedback(null)
@@ -114,8 +114,7 @@ export function ShortlinkTools() {
       const response = await fetch('/api/admin/shortlinks', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, destination }),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Unable to save shortlink.')
+      const data = await readShortlinkResponse(response)
       setLinks(current => [data.link, ...current])
       setSlug('')
       setDestination('')
@@ -131,8 +130,7 @@ export function ShortlinkTools() {
       const response = await fetch('/api/admin/shortlinks', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: link.slug, locked: !link.locked }),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Unable to update lock.')
+      const data = await readShortlinkResponse(response)
       setLinks(current => current.map(item => item.slug === link.slug ? data.link : item))
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to update lock.') }
     finally { setLocking(null) }
@@ -147,8 +145,7 @@ export function ShortlinkTools() {
       const response = await fetch('/api/admin/shortlinks', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: link.slug }),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Unable to delete shortlink.')
+      const data = await readShortlinkResponse(response)
       setLinks(current => current.filter(item => item.slug !== link.slug))
       setQr(current => current?.slug === link.slug ? null : current)
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to delete shortlink.') }
@@ -170,7 +167,7 @@ export function ShortlinkTools() {
           <div className="flex flex-wrap items-center gap-2"><span className="text-sm">birdingatuva.org/</span><Input id="shortlink-slug" className="w-full sm:w-64" required pattern="[A-Za-z0-9]{1,64}" maxLength={64} placeholder="xyz" value={slug} onChange={event => setSlug(event.target.value)} aria-describedby="shortlink-help" /></div>
           <p id="shortlink-help" className="text-xs text-muted-foreground">Letters and numbers only, up to 64 characters. Names are saved in lowercase. Existing site names such as events and leadership are reserved.</p>
         </div>
-        <Button type="submit" disabled={loading || saving || deleting !== null} aria-disabled={generating || undefined}>{saving ? 'Saving…' : 'Create shortlink & QR code'}</Button>
+        <Button type="submit" disabled={loading || saving || deleting !== null || !destination.trim() || !slug.trim()} aria-disabled={generating || undefined}>{saving ? 'Saving…' : 'Create shortlink & QR code'}</Button>
       </form>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       {copyFeedback && createPortal(
