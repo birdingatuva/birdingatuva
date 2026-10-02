@@ -11,8 +11,7 @@ import rehypeSanitize from "rehype-sanitize";
 import { getDashboardLink } from "@/lib/sheet-embed";
 import { resolveGoogleForm } from "@/lib/google-form";
 import { SheetDashboard } from "@/components/sheet-dashboard";
-import { Button } from "@/components/ui/button";
-import { GroupMeSendButton } from "@/components/groupme-send-button";
+import { EventAdminControls } from "@/components/event-admin-controls";
 
 function normalizeLexicalMarkdown(markdown: string) {
   return markdown
@@ -126,7 +125,8 @@ export default async function EventTemplate({
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva';
   
   return (
-    <div className={`min-h-screen relative bg-background${preview ? " preview-page-stripes" : ""}`}>
+    <div className="min-h-screen relative bg-background">
+      <div aria-hidden="true" className={`preview-page-stripes pointer-events-none absolute inset-0 transition-opacity duration-300 motion-reduce:transition-none ${preview ? "opacity-100" : "opacity-0"}`} />
       <main className="relative z-20">
         <DecorativeBirds images={[]} />
         <PageHeader 
@@ -134,21 +134,7 @@ export default async function EventTemplate({
         />
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
-            {preview && (
-              <div className="relative mb-8 rounded-lg border border-border p-4" role="status">
-                <span aria-hidden="true" className="preview-outline pointer-events-none absolute inset-0 rounded-[inherit]" />
-                <p className="font-semibold">Preview mode — admins only</p>
-                <p className="text-sm">This event is hidden from the public. Select “Published” in Admin → Edit Events to make it public.</p>
-              </div>
-            )}
-            {isAdmin && (
-              <div className="mb-8">
-                <Button asChild variant="outline" className="text-black hover:text-black dark:text-black dark:hover:text-black">
-                  <Link href={`/admin?edit=${encodeURIComponent(eventSlug)}`}>Edit in Admin Page</Link>
-                </Button>
-                <GroupMeSendButton slug={eventSlug} hidden={preview} />
-              </div>
-            )}
+            {isAdmin && <EventAdminControls slug={eventSlug} preview={preview} />}
             {showFaqBanner && (
               <Link href="/faq" className="mb-10 flex items-center gap-4 border-y border-border py-5 text-foreground transition-colors hover:border-primary/50">
                 <CircleHelp className="h-7 w-7 shrink-0 text-primary" />
