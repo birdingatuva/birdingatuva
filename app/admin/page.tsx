@@ -16,6 +16,7 @@ import { GenerateCarpool } from "./GenerateCarpool"
 import { useLinkSort } from "./useLinkSort"
 import { ShortlinkTools } from "./ShortlinkTools"
 import { BannerSettings } from "./BannerSettings"
+import { GroupMeSettings } from "./GroupMeSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
@@ -1255,9 +1256,7 @@ export default function AdminPage() {
                 <CardTitle className="text-2xl">Event Settings</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-                  Additional event settings will appear here.
-                </div>
+                <GroupMeSettings />
               </CardContent>
             </Card>
             {/* Delete confirmation modal */}

@@ -1,0 +1,39 @@
+import type { EventRecord } from './events-db'
+
+export const DEFAULT_GROUPME_TEMPLATE = 'Join us for {{title}}!\n\nWhen: {{date}} at {{time}} (Eastern)\nWhere: {{location}}\n\nDetails and signup: {{event_url}}'
+export const GROUPME_PLACEHOLDERS = ['title', 'date', 'time', 'location', 'event_url', 'signup_url'] as const
+export const GROUPME_MAX_LENGTH = 1000
+
+export function validateGroupMeTemplate(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return 'Enter a message template.'
+  if (value.length > GROUPME_MAX_LENGTH) return 'Keep the template within 1,000 characters.'
+  const remaining = value.replace(/{{\s*(\w+)\s*}}/g, (match, key) => GROUPME_PLACEHOLDERS.includes(key) ? '' : match)
+  if (remaining.includes('{{') || remaining.includes('}}')) return 'Use only the supported placeholders shown below.'
+  if (!/{{\s*event_url\s*}}/.test(value)) return 'Include {{event_url}} so members can open the trip page.'
+  return null
+}
+
+export function renderGroupMeMessage(template: string, event: EventRecord, origin: string): string {
+  const error = validateGroupMeTemplate(template)
+  if (error) throw new Error(error)
+  const date = (iso: string) => new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`))
+  const time = (value: string) => {
+    const [hour, minute] = value.split(':').map(Number)
+    return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`
+  }
+  const values: Record<string, string> = {
+    title: event.title,
+    date: date(event.startDate) + (event.endDate && event.endDate !== event.startDate ? ` – ${date(event.endDate)}` : ''),
+    time: event.startTime ? time(event.startTime) + (event.endTime ? ` – ${time(event.endTime)}` : '') : 'Time to be announced',
+    location: event.location,
+    event_url: `${new URL(origin).origin}/events/${encodeURIComponent(event.slug)}`,
+    signup_url: event.signupUrl || '',
+  }
+  const text = template.replace(/{{\s*(\w+)\s*}}/g, (_, key: string) => values[key]).trim()
+  if (text.length > GROUPME_MAX_LENGTH) throw new Error('The completed message exceeds 1,000 characters. Shorten the template in Event Settings.')
+  return text
+}
+
+// Destination verified through GroupMe's subgroup API.
+export const GROUPME_TOPIC_ID = '117911620'
+export const GROUPME_DESTINATION = 'Announcements · test groupme api'

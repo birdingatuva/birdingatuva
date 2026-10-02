@@ -12,6 +12,7 @@ import { getDashboardLink } from "@/lib/sheet-embed";
 import { resolveGoogleForm } from "@/lib/google-form";
 import { SheetDashboard } from "@/components/sheet-dashboard";
 import { Button } from "@/components/ui/button";
+import { GroupMeSendButton } from "@/components/groupme-send-button";
 
 function normalizeLexicalMarkdown(markdown: string) {
   return markdown
@@ -145,6 +146,7 @@ export default async function EventTemplate({
                 <Button asChild variant="outline" className="text-black hover:text-black dark:text-black dark:hover:text-black">
                   <Link href={`/admin?edit=${encodeURIComponent(eventSlug)}`}>Edit in Admin Page</Link>
                 </Button>
+                <GroupMeSendButton slug={eventSlug} hidden={preview} />
               </div>
             )}
             {showFaqBanner && (
