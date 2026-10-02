@@ -210,7 +210,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
                 autoFocus 
                 className="mb-4 rounded-lg border px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
-              <Button type="submit" className="focus:outline-none focus:ring-0 mb-4">Login</Button>
+              <Button type="submit" className="mb-4">Login</Button>
               <button 
                 type="button" 
                 onClick={() => { 
