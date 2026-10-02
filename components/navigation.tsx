@@ -84,6 +84,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
       // Cookie set server-side; poll session
       await checkSession()
       setAuthorized(true)
+      sessionStorage.removeItem("adminActivePage")
       setLoginError("");
       setLoginSuccess(true);
       
@@ -105,6 +106,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
 
   const handleLogout = async () => {
     await fetch('/api/logout', { method: 'POST' })
+    sessionStorage.removeItem("adminActivePage")
     setAuthorized(false)
     setShowLogin(false)
     router.push("/")

@@ -19,6 +19,15 @@ import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
 
+const ADMIN_ACTIVE_PAGE_KEY = "adminActivePage"
+const ADMIN_PAGES = ["Home", "Events", "FAQ", "Leadership", "Links", "Admin"] as const
+
+type AdminPageName = (typeof ADMIN_PAGES)[number]
+
+function isAdminPageName(value: string | null): value is AdminPageName {
+  return ADMIN_PAGES.some((page) => page === value)
+}
+
 function resizeImage(file: File, maxWidth: number, maxHeight: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new window.Image()
@@ -112,7 +121,7 @@ export default function AdminPage() {
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
   const [deletingTitle, setDeletingTitle] = useState<string>("")
   const [deleting, setDeleting] = useState(false)
-  const [activePage, setActivePage] = useState("Events")
+  const [activePage, setActivePage] = useState<AdminPageName>("Events")
   const [pageVisibility, setPageVisibility] = useState<Record<string, boolean>>({})
   const [visibilityPrompt, setVisibilityPrompt] = useState<{ slug: string; name: string; published: boolean } | null>(null)
   const [faqMarkdown, setFaqMarkdown] = useState("")
@@ -166,6 +175,10 @@ export default function AdminPage() {
       try {
         const data = await dedupeJson<{ authenticated: boolean }>('/api/admin-session')
         setIsAuthorized(!!data.authenticated)
+        if (data.authenticated) {
+          const savedPage = sessionStorage.getItem(ADMIN_ACTIVE_PAGE_KEY)
+          if (isAdminPageName(savedPage)) setActivePage(savedPage)
+        }
       } catch {
         setIsAuthorized(false)
       }
@@ -174,6 +187,11 @@ export default function AdminPage() {
     const interval = setInterval(checkAuth, 15000)
     return () => clearInterval(interval)
   }, [])
+
+  const selectAdminPage = (page: AdminPageName) => {
+    setActivePage(page)
+    sessionStorage.setItem(ADMIN_ACTIVE_PAGE_KEY, page)
+  }
 
   // Load events when authorized
   useEffect(() => {
@@ -854,7 +872,7 @@ export default function AdminPage() {
   const faqChanged = normalizeFaqMarkdown(faqMarkdown) !== normalizeFaqMarkdown(originalFaqMarkdown)
   const linksChanged = JSON.stringify(linkSettings) !== JSON.stringify(originalLinkSettings)
 
-  const sitePages = [
+  const sitePages: Array<{ name: AdminPageName; icon: typeof House }> = [
     { name: "Home", icon: House },
     { name: "Events", icon: CalendarDays },
     { name: "FAQ", icon: CircleHelp },
@@ -883,7 +901,7 @@ export default function AdminPage() {
                 <nav className="space-y-1" aria-label="Site pages">
                   {sitePages.map(({ name, icon: PageIcon }) => (
                     <div key={name} className={`flex items-stretch rounded-md text-sm transition-colors ${activePage === name ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                      <button type="button" onClick={() => setActivePage(name)} className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 text-left">
+                      <button type="button" onClick={() => selectAdminPage(name)} className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 text-left">
                         <PageIcon className="h-4 w-4 shrink-0" />
                         <span className="truncate">{name}</span>
                       </button>
