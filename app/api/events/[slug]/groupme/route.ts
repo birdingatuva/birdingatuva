@@ -4,7 +4,9 @@ import { sql } from '@vercel/postgres'
 import { verifyAdminToken } from '@/lib/auth'
 import { getEvent } from '@/lib/events-db'
 import { getSitePage, getSitePageSetting } from '@/lib/pages-db'
-import { DEFAULT_GROUPME_TEMPLATE, renderGroupMeMessage, GROUPME_TOPIC_ID } from '@/lib/groupme'
+import { DEFAULT_GROUPME_TEMPLATE, renderGroupMeMessage } from '@/lib/groupme'
+
+import { getGroupMeConfig, getGroupMeDestination, GROUPME_CONFIG_ERROR } from '@/lib/groupme-config'
 
 export const runtime = 'nodejs'
 type Context = { params: Promise<{ slug: string }> }
@@ -20,12 +22,13 @@ async function prepare(slug: string) {
 export async function GET(req: NextRequest, context: Context) {
   if (!verifyAdminToken(req.cookies.get('admin_jwt')?.value || '')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    if (!process.env.GROUPME_ACCESS_TOKEN?.trim()) return NextResponse.json({ error: 'Set GROUPME_ACCESS_TOKEN on the server before sending.' }, { status: 503 })
+    const config = getGroupMeConfig()
+    if (!config.configured) return NextResponse.json({ error: GROUPME_CONFIG_ERROR }, { status: 503 })
     const message = await prepare((await context.params).slug)
     if (!message) return NextResponse.json({ error: 'Publish the event and Events page before sending.' }, { status: 404 })
-    return NextResponse.json(message, { headers: { 'Cache-Control': 'no-store' } })
-  } catch {
-    return NextResponse.json({ error: 'Unable to preview. Check that the saved template produces a valid message within 1,000 characters.' }, { status: 500 })
+    return NextResponse.json({ ...message, destination: await getGroupMeDestination(config) }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to preview. Check that the saved template produces a valid message within 1,000 characters.' }, { status: 500 })
   }
 }
 
@@ -34,8 +37,8 @@ export async function POST(req: NextRequest, context: Context) {
   if (req.headers.get('origin') !== req.nextUrl.origin) return NextResponse.json({ error: 'Invalid request origin.' }, { status: 403 })
   let data
   try { data = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON.' }, { status: 400 }) }
-  const accessToken = process.env.GROUPME_ACCESS_TOKEN?.trim()
-  if (!accessToken) return NextResponse.json({ error: 'Set GROUPME_ACCESS_TOKEN on the server before sending.' }, { status: 503 })
+  const { accessToken, topicId, configured } = getGroupMeConfig()
+  if (!configured) return NextResponse.json({ error: GROUPME_CONFIG_ERROR }, { status: 503 })
   let message
   try {
     message = await prepare((await context.params).slug)
@@ -53,13 +56,13 @@ export async function POST(req: NextRequest, context: Context) {
     return NextResponse.json({ error: 'Unable to prepare the message. Check the template and run the GroupMe database setup.' }, { status: 500 })
   }
   try {
-    const response = await fetch(`https://api.groupme.com/v3/groups/${GROUPME_TOPIC_ID}/messages`, {
+    const response = await fetch(`https://api.groupme.com/v3/groups/${topicId}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Access-Token': accessToken },
       body: JSON.stringify({ message: { source_guid: randomUUID(), text: message.text } }),
       signal: AbortSignal.timeout(15000),
       redirect: 'error',
     })
-    if (!response.ok) return NextResponse.json({ error: `GroupMe returned an error (${response.status}). Check the group before retrying; verify your account can post in the Announcements topic.` }, { status: 502 })
+    if (!response.ok) return NextResponse.json({ error: `GroupMe returned an error (${response.status}). Check the group before retrying; verify your account can post in the configured topic.` }, { status: 502 })
     return NextResponse.json({ success: true })
   } catch {
     // An interrupted response can still mean delivery; never automatically retry.

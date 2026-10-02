@@ -33,7 +33,3 @@ export function renderGroupMeMessage(template: string, event: EventRecord, origi
   if (text.length > GROUPME_MAX_LENGTH) throw new Error('The completed message exceeds 1,000 characters. Shorten the template in Event Settings.')
   return text
 }
-
-// Destination verified through GroupMe's subgroup API.
-export const GROUPME_TOPIC_ID = '117911620'
-export const GROUPME_DESTINATION = 'Announcements · test groupme api'

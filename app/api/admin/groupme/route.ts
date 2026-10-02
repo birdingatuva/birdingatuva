@@ -3,12 +3,17 @@ import { verifyAdminToken } from '@/lib/auth'
 import { getSitePageSetting, updateSitePageSetting } from '@/lib/pages-db'
 import { DEFAULT_GROUPME_TEMPLATE, validateGroupMeTemplate } from '@/lib/groupme'
 
+import { getGroupMeConfig, getGroupMeDestination } from '@/lib/groupme-config'
+
 export const runtime = 'nodejs'
 export async function GET(req: NextRequest) {
   if (!verifyAdminToken(req.cookies.get('admin_jwt')?.value || '')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
+    const config = getGroupMeConfig()
+    const { configured } = config
+    const destination = await getGroupMeDestination(config)
     const saved = await getSitePageSetting('events', 'groupme_template')
-    return NextResponse.json({ template: typeof saved === 'string' ? saved : DEFAULT_GROUPME_TEMPLATE, configured: !!process.env.GROUPME_ACCESS_TOKEN?.trim() }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ template: typeof saved === 'string' ? saved : DEFAULT_GROUPME_TEMPLATE, configured, destination }, { headers: { 'Cache-Control': 'no-store' } })
   } catch {
     return NextResponse.json({ error: 'Unable to load GroupMe settings.' }, { status: 500 })
   }

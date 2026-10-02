@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { DEFAULT_GROUPME_TEMPLATE, GROUPME_DESTINATION, GROUPME_PLACEHOLDERS, validateGroupMeTemplate } from '@/lib/groupme'
+import { DEFAULT_GROUPME_TEMPLATE, GROUPME_PLACEHOLDERS, validateGroupMeTemplate } from '@/lib/groupme'
 
 export function GroupMeSettings() {
   const [template, setTemplate] = useState('')
   const [saved, setSaved] = useState('')
   const [loaded, setLoaded] = useState(false)
+  const [destination, setDestination] = useState('GroupMe')
   const [configured, setConfigured] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -18,7 +19,7 @@ export function GroupMeSettings() {
     fetch('/api/admin/groupme', { cache: 'no-store' }).then(async response => {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to load settings.')
-      if (active) { setTemplate(data.template); setSaved(data.template); setConfigured(data.configured); setLoaded(true) }
+      if (active) { setTemplate(data.template); setSaved(data.template); setConfigured(data.configured); setDestination(data.destination || 'GroupMe'); setLoaded(true) }
     }).catch(error => { if (active) setError(error.message) })
     return () => { active = false }
   }, [])
@@ -35,10 +36,10 @@ export function GroupMeSettings() {
   const validation = loaded ? validateGroupMeTemplate(template) : null
   return <div className="space-y-4">
     <h3 className="text-xl font-semibold">GroupMe trip announcements</h3>
-    <p className="text-sm text-muted-foreground">This template applies to every trip. Send announcements as the connected account to {GROUPME_DESTINATION} from each published event page. Saving or editing an event does not send a message.</p>
+    <p className="text-sm text-muted-foreground">This template applies to every trip. Send announcements as the connected account to {destination} from each published event page. Saving or editing an event does not send a message.</p>
     {!loaded && !error && <p role="status">Loading GroupMe settings...</p>}
     {loaded && <>
-      <p className="text-sm">{configured ? 'Account token configured. Any authorized site admin can send as this account.' : 'Account setup needed: add GROUPME_ACCESS_TOKEN to the server environment and redeploy.'}</p>
+      <p className="text-sm">{configured ? 'GroupMe destination and account configured. Any authorized site admin can send as this account.' : 'Account setup needed: add GROUPME_ACCESS_TOKEN and GROUPME_TOPIC_ID to the server environment and redeploy.'}</p>
       <label htmlFor="groupme-template" className="block text-sm font-medium">Message template</label>
       <Textarea id="groupme-template" rows={8} value={template} disabled={saving} onChange={event => { setTemplate(event.target.value); setStatus('') }} />
       <p className="text-sm text-muted-foreground">Placeholders: {GROUPME_PLACEHOLDERS.map(key => `{{${key}}}`).join(', ')}. Times are Eastern. Include the event URL. The completed message must fit within 1,000 characters.</p>

@@ -1,11 +1,11 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { GROUPME_DESTINATION } from '@/lib/groupme'
 import { Button } from '@/components/ui/button'
 
 export function GroupMeSendButton({ slug, hidden }: { slug: string; hidden: boolean }) {
   const [text, setText] = useState<string | null>(null)
+  const [destination, setDestination] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
@@ -20,7 +20,7 @@ export function GroupMeSendButton({ slug, hidden }: { slug: string; hidden: bool
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to contact GroupMe.')
       if (send) { setText(null); setStatus('Message sent to GroupMe.') }
-      else setText(data.text)
+      else { setText(data.text); setDestination(data.destination) }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to contact GroupMe.')
       if (send) setText(null)
@@ -30,7 +30,7 @@ export function GroupMeSendButton({ slug, hidden }: { slug: string; hidden: bool
     <Button type="button" variant="outline" disabled={busy || hidden || text !== null} onClick={() => act(false)}>{busy ? 'Please wait...' : 'Send GroupMe Message'}</Button>
     {hidden && <p className="text-sm text-muted-foreground">Publish this event before sending an announcement.</p>}
     {text !== null && <section aria-label="GroupMe message preview" className="space-y-3 rounded-md border border-border p-4">
-      <h3 className="font-semibold">Send to {GROUPME_DESTINATION}</h3>
+      <h3 className="font-semibold">Send to {destination}</h3>
       <p className="text-sm text-muted-foreground">This will post as the connected GroupMe account. Review the message below. Sending again posts another announcement.</p>
       <pre className="whitespace-pre-wrap break-words font-sans text-sm">{text}</pre>
       <p className="text-xs text-muted-foreground">{text.length}/1,000 characters</p>
