@@ -1,10 +1,9 @@
-import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@vercel/postgres'
 import { verifyAdminToken } from '@/lib/auth'
 import { getEvent } from '@/lib/events-db'
+import { claimDelivery, finishDelivery, getDelivery, groupMeRevision } from '@/lib/groupme-deliveries'
 import { getSitePage, getSitePageSetting } from '@/lib/pages-db'
-import { DEFAULT_GROUPME_TEMPLATE, renderGroupMeMessage } from '@/lib/groupme'
+import { renderGroupMeMessage } from '@/lib/groupme'
 
 import { getGroupMeConfig, getGroupMeDestination, GROUPME_CONFIG_ERROR } from '@/lib/groupme-config'
 
@@ -15,8 +14,10 @@ async function prepare(slug: string) {
   const event = await getEvent(slug)
   if (!event || !(await getSitePage('events'))) return null
   const saved = await getSitePageSetting('events', 'groupme_template')
-  const text = renderGroupMeMessage(typeof saved === 'string' ? saved : DEFAULT_GROUPME_TEMPLATE, event, process.env.GROUPME_SITE_URL || 'https://birdingatuva.org')
-  return { slug: event.slug, text }
+  const template = typeof saved === 'string' ? saved : await getSitePageSetting('events', 'groupme_default_template')
+  if (typeof template !== 'string' || !template.trim()) throw new Error('Save a GroupMe template in Event Settings before sending.')
+  const text = renderGroupMeMessage(template, event, process.env.GROUPME_SITE_URL || 'https://birdingatuva.org')
+  return { slug: event.slug, text, revision: groupMeRevision(event) }
 }
 
 export async function GET(req: NextRequest, context: Context) {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest, context: Context) {
     if (!config.configured) return NextResponse.json({ error: GROUPME_CONFIG_ERROR }, { status: 503 })
     const message = await prepare((await context.params).slug)
     if (!message) return NextResponse.json({ error: 'Publish the event and Events page before sending.' }, { status: 404 })
-    return NextResponse.json({ ...message, destination: await getGroupMeDestination(config) }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ ...message, delivery: await getDelivery(message.slug, message.revision), destination: await getGroupMeDestination(config) }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to preview. Check that the saved template produces a valid message within 1,000 characters.' }, { status: 500 })
   }
@@ -44,28 +45,26 @@ export async function POST(req: NextRequest, context: Context) {
     message = await prepare((await context.params).slug)
     if (!message) return NextResponse.json({ error: 'Publish the event and Events page before sending.' }, { status: 404 })
     // Never send arbitrary client-supplied text, or a message changed since preview.
-    if (data?.text !== message.text) return NextResponse.json({ error: 'The event or template changed. Close and reopen the preview.' }, { status: 409 })
-    const claim = await sql`
-      INSERT INTO groupme_send_attempts (event_slug, attempted_at) VALUES (${message.slug}, NOW())
-      ON CONFLICT (event_slug) DO UPDATE SET attempted_at = NOW()
-      WHERE groupme_send_attempts.attempted_at < NOW() - INTERVAL '60 seconds'
-      RETURNING event_slug
-    `
-    if (!claim.rows.length) return NextResponse.json({ error: 'A send was attempted recently. Check GroupMe and wait a minute before sending again.' }, { status: 429 })
+    if (data?.text !== message.text || data?.revision !== message.revision) return NextResponse.json({ error: 'The event or template changed. Close and reopen the preview.' }, { status: 409 })
+    if (!(await claimDelivery(message.slug, message.revision))) {
+      return NextResponse.json({ delivery: await getDelivery(message.slug, message.revision), alreadyClaimed: true })
+    }
   } catch {
     return NextResponse.json({ error: 'Unable to prepare the message. Check the template and run the GroupMe database setup.' }, { status: 500 })
   }
   try {
     const response = await fetch(`https://api.groupme.com/v3/groups/${topicId}/messages`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Access-Token': accessToken },
-      body: JSON.stringify({ message: { source_guid: randomUUID(), text: message.text } }),
+      body: JSON.stringify({ message: { source_guid: message.revision, text: message.text } }),
       signal: AbortSignal.timeout(15000),
       redirect: 'error',
     })
-    if (!response.ok) return NextResponse.json({ error: `GroupMe returned an error (${response.status}). Check the group before retrying; verify your account can post in the configured topic.` }, { status: 502 })
-    return NextResponse.json({ success: true })
+    if (!response.ok) throw new Error('GroupMe did not confirm delivery.')
+    await finishDelivery(message.slug, message.revision, 'sent')
+    return NextResponse.json({ success: true, delivery: 'sent' })
   } catch {
     // An interrupted response can still mean delivery; never automatically retry.
-    return NextResponse.json({ error: 'Delivery could not be confirmed. Check GroupMe before trying again to avoid a duplicate.' }, { status: 502 })
+    await finishDelivery(message.slug, message.revision, 'unconfirmed').catch(() => {})
+    return NextResponse.json({ delivery: 'unconfirmed', error: 'Delivery could not be confirmed. Check GroupMe. Sending is locked for this version of the trip to prevent duplicates.' }, { status: 502 })
   }
 }
