@@ -14,6 +14,12 @@ body {
   overflow-x: hidden;
 }
 
+/* Let the dialog reserve the removed scrollbar's width exactly once.
+   A fixed 100% body width would overflow its compensating right margin. */
+body[data-scroll-locked] {
+  width: auto;
+}
+
 :root {
   /* Updated theme to match UVA colors and nature-inspired design */
   --background: oklch(0.99 0.005 85);

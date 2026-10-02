@@ -2,7 +2,9 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import * as Dialog from "@radix-ui/react-dialog"
+import { Check, ArrowRight } from "lucide-react"
 // Previous localStorage token helpers removed; now rely on HttpOnly cookie + session endpoint.
 import { Button } from "@/components/ui/button"
 import { CloudinaryImage } from "@/components/cloudinary-image"
@@ -15,9 +17,12 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
   const router = useRouter()
   const [authorized, setAuthorized] = useState(initialAuthorized)
   const [showLogin, setShowLogin] = useState(false)
+  const loginTriggerRef = useRef<HTMLButtonElement>(null)
+  const loginPasswordRef = useRef<HTMLInputElement>(null)
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [loginSuccess, setLoginSuccess] = useState(false)
+  const [loginPending, setLoginPending] = useState(false)
   const [visiblePages, setVisiblePages] = useState<string[] | null>(initialVisiblePages)
   // Re-check session on route change
   useEffect(() => {
@@ -68,39 +73,49 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loginPending || loginSuccess) return;
 
     if (!loginPassword || loginPassword.trim() === "") {
       setLoginError((prev) => prev !== "Please enter a password." ? "Please enter a password." : prev);
       return;
     }
 
-    const res = await fetch("/api/validate-admin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: loginPassword }),
-    });
+    setLoginPending(true)
+    setLoginError("")
+    try {
+      const res = await fetch("/api/validate-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: loginPassword }),
+      });
 
-    if (res.ok) {
-      // Cookie set server-side; poll session
-      await checkSession()
-      setAuthorized(true)
-      sessionStorage.removeItem("adminActivePage")
-      setLoginError("");
-      setLoginSuccess(true);
-      
-      setTimeout(() => {
-        setShowLogin(false);
-        setLoginSuccess(false);
+      if (res.ok) {
+        // Cookie set server-side; poll session
+        await checkSession()
+        setAuthorized(true)
+        sessionStorage.removeItem("adminActivePage")
+        setLoginError("");
+        setLoginSuccess(true);
         setLoginPassword("");
-        if (pathname === "/admin") {
-          window.location.reload();
-        } else {
-          router.push("/admin");
-        }
-      }, 700);
-    } else {
-      setLoginError((prev) => prev !== "Invalid password. Please try again." ? "Invalid password. Please try again." : prev);
-      setLoginSuccess(false);
+
+        setTimeout(() => {
+          setShowLogin(false);
+          setLoginSuccess(false);
+          setLoginPassword("");
+          if (pathname === "/admin") {
+            window.location.reload();
+          } else {
+            router.push("/admin");
+          }
+        }, 700);
+      } else {
+        setLoginError((prev) => prev !== "Invalid password. Please try again." ? "Invalid password. Please try again." : prev);
+        setLoginSuccess(false);
+      }
+    } catch {
+      setLoginError("Unable to sign in. Please try again.")
+    } finally {
+      setLoginPending(false)
     }
   }
 
@@ -177,6 +192,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
               </button>
             ) : (
               <button 
+                ref={loginTriggerRef}
                 onClick={() => setShowLogin(true)}
                 className="rounded-lg px-3 py-2 text-sm font-normal antialiased text-primary-foreground transition-colors hover:bg-primary-foreground/10 sm:px-4 sm:text-base"
               >
@@ -188,45 +204,71 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
         </div>
       </nav>
 
-      {/* Kept outside responsive navigation containers so it is always visible. */}
-      {showLogin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4 sm:p-6" onClick={() => { setShowLogin(false); setLoginError(""); setLoginSuccess(false); }}>
-          <form onSubmit={handleLogin} onClick={(e) => e.stopPropagation()} className="relative my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-sm flex-col overflow-y-auto rounded-xl border bg-white p-6 text-slate-900 shadow-lg dark:bg-slate-900 dark:text-slate-100 sm:p-8">
-              <h2 className="text-xl font-bold mb-6 text-center">Admin Login</h2>
-              {loginSuccess && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg text-sm mb-4">
-                  Logged in successfully!
+      <Dialog.Root open={showLogin} onOpenChange={(open) => {
+        if (loginPending || loginSuccess) return
+        if (!open) {
+          // Blur before unmounting so autofill providers see the field lose focus.
+          loginPasswordRef.current?.blur()
+          setLoginError("")
+          setLoginPassword("")
+        }
+        setShowLogin(open)
+      }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/50" />
+          <Dialog.Content onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            loginTriggerRef.current?.focus({ preventScroll: true })
+          }} className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-slate-200 bg-white text-slate-900 shadow-xl outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Birding at UVA</p>
+              <Dialog.Title className="text-xl font-semibold tracking-tight">Admin login</Dialog.Title>
+              <Dialog.Description className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                Sign in to manage the club website.
+              </Dialog.Description>
+            </div>
+            {loginSuccess ? (
+              <div role="status" aria-live="polite" className="px-6 py-7">
+                <div className="flex items-center gap-2.5 text-sm font-medium">
+                  <Check aria-hidden="true" className="size-4 text-slate-600 dark:text-slate-300" />
+                  Signed in successfully
                 </div>
-              )}
-              {loginError && !loginSuccess && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm mb-4">
-                  {loginError}
+                <p className="mt-2 pl-[26px] text-sm text-slate-500 dark:text-slate-400">Opening your admin dashboard…</p>
+              </div>
+            ) : (
+              <form onSubmit={handleLogin} aria-busy={loginPending} className="px-6 pb-5 pt-6">
+                <label htmlFor="admin-password" className="mb-2 block text-sm font-medium">Password</label>
+                <input
+                  id="admin-password"
+                  ref={loginPasswordRef}
+                  type="password"
+                  autoComplete="current-password"
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  disabled={loginPending}
+                  aria-invalid={Boolean(loginError)}
+                  aria-describedby={loginError ? "admin-login-error" : undefined}
+                  className="h-11 w-full rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-400/25 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-slate-400"
+                />
+                {loginError && (
+                  <p id="admin-login-error" role="alert" className="mt-3 text-sm leading-relaxed text-red-700 dark:text-red-400">{loginError}</p>
+                )}
+                <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+                  <Dialog.Close asChild>
+                    <button type="button" disabled={loginPending} className="rounded-sm px-3 py-2 text-sm text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-slate-400 disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-100">Cancel</button>
+                  </Dialog.Close>
+                  <Button type="submit" disabled={loginPending} className="h-10 rounded-sm bg-slate-900 px-4 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
+                    {loginPending ? "Signing in…" : "Sign in"}
+                    {!loginPending && <ArrowRight aria-hidden="true" className="size-4" />}
+                  </Button>
                 </div>
-              )}
-              <input 
-                type="password" 
-                value={loginPassword} 
-                onChange={e => setLoginPassword(e.target.value)} 
-                placeholder="Password" 
-                required 
-                autoFocus 
-                className="mb-4 rounded-lg border px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-              />
-              <Button type="submit" className="mb-4">Login</Button>
-              <button 
-                type="button" 
-                onClick={() => { 
-                  setShowLogin(false); 
-                  setLoginError(""); 
-                  setLoginPassword(""); // Clear password field on cancel
-                }} 
-                className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-              >
-                Cancel
-              </button>
-            </form>
-        </div>
-      )}
+              </form>
+            )}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </>
   )
 }
