@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminToken } from '@/lib/auth'
 import { getEvent } from '@/lib/events-db'
 import { claimDelivery, finishDelivery, getDelivery, groupMeRevision } from '@/lib/groupme-deliveries'
-import { getSitePage, getSitePageSetting } from '@/lib/pages-db'
+import { getSitePage, getSitePageSetting, updateSitePageSetting } from '@/lib/pages-db'
 import { renderGroupMeMessage } from '@/lib/groupme'
 
 import { getGroupMeConfig, getGroupMeDestination, GROUPME_CONFIG_ERROR } from '@/lib/groupme-config'
@@ -10,13 +10,16 @@ import { getGroupMeConfig, getGroupMeDestination, GROUPME_CONFIG_ERROR } from '@
 export const runtime = 'nodejs'
 type Context = { params: Promise<{ slug: string }> }
 
-async function prepare(slug: string) {
-  const event = await getEvent(slug)
-  if (!event || !(await getSitePage('events'))) return null
-  const saved = await getSitePageSetting('events', 'groupme_template')
-  const template = typeof saved === 'string' ? saved : await getSitePageSetting('events', 'groupme_default_template')
-  if (typeof template !== 'string' || !template.trim()) throw new Error('Save a GroupMe template in Event Settings before sending.')
-  const text = renderGroupMeMessage(template, event, process.env.GROUPME_SITE_URL || 'https://birdingatuva.org')
+async function prepare(slug: string, includeHidden = false) {
+  const event = await getEvent(slug, includeHidden)
+  if (!event || !(await getSitePage('events', includeHidden))) return null
+  const custom = await getSitePageSetting('events', `groupme_message:${event.slug}`)
+  let text = typeof custom === 'string' ? custom : ''
+  if (typeof custom !== 'string') {
+    const saved = await getSitePageSetting('events', 'groupme_template')
+    const template = typeof saved === 'string' ? saved : await getSitePageSetting('events', 'groupme_default_template')
+    if (typeof template === 'string' && template.trim()) text = renderGroupMeMessage(template, event, process.env.GROUPME_SITE_URL || 'https://birdingatuva.org', true)
+  }
   return { slug: event.slug, text, revision: groupMeRevision(event) }
 }
 
@@ -24,12 +27,28 @@ export async function GET(req: NextRequest, context: Context) {
   if (!verifyAdminToken(req.cookies.get('admin_jwt')?.value || '')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const config = getGroupMeConfig()
-    if (!config.configured) return NextResponse.json({ error: GROUPME_CONFIG_ERROR }, { status: 503 })
-    const message = await prepare((await context.params).slug)
+    const message = await prepare((await context.params).slug, true)
     if (!message) return NextResponse.json({ error: 'Publish the event and Events page before sending.' }, { status: 404 })
-    return NextResponse.json({ ...message, delivery: await getDelivery(message.slug, message.revision), destination: await getGroupMeDestination(config) }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ ...message, delivery: await getDelivery(message.slug, message.revision), configured: config.configured, destination: await getGroupMeDestination(config).catch(() => 'GroupMe') }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to preview. Check that the saved template produces a valid message within 1,000 characters.' }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest, context: Context) {
+  if (!verifyAdminToken(req.cookies.get('admin_jwt')?.value || '')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (req.headers.get('origin') !== req.nextUrl.origin) return NextResponse.json({ error: 'Invalid request origin.' }, { status: 403 })
+  let data
+  try { data = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON.' }, { status: 400 }) }
+  if (typeof data?.text !== 'string' || !data.text.trim() || data.text.length > 1000) return NextResponse.json({ error: 'Enter a message within 1,000 characters.' }, { status: 400 })
+  try {
+    const event = await getEvent((await context.params).slug, true)
+    if (!event) return NextResponse.json({ error: 'Event not found.' }, { status: 404 })
+    const saved = await updateSitePageSetting('events', `groupme_message:${event.slug}`, data.text)
+    if (saved === null) throw new Error('Missing Events page')
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: 'Unable to save the event message.' }, { status: 500 })
   }
 }
 
@@ -44,8 +63,9 @@ export async function POST(req: NextRequest, context: Context) {
   try {
     message = await prepare((await context.params).slug)
     if (!message) return NextResponse.json({ error: 'Publish the event and Events page before sending.' }, { status: 404 })
+    if (!message.text.trim() || message.text.length > 1000) return NextResponse.json({ error: 'Save a message within 1,000 characters before sending.' }, { status: 400 })
     // Never send arbitrary client-supplied text, or a message changed since preview.
-    if (data?.text !== message.text || data?.revision !== message.revision) return NextResponse.json({ error: 'The event or template changed. Close and reopen the preview.' }, { status: 409 })
+    if (data?.text !== message.text || data?.revision !== message.revision) return NextResponse.json({ error: 'The event or message changed. Reload the page before sending.' }, { status: 409 })
     if (!(await claimDelivery(message.slug, message.revision))) {
       return NextResponse.json({ delivery: await getDelivery(message.slug, message.revision), alreadyClaimed: true })
     }

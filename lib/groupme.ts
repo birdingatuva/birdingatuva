@@ -16,7 +16,7 @@ export function validateGroupMeTemplate(value: unknown): string | null {
   return null
 }
 
-export function renderGroupMeMessage(template: string, event: EventRecord, origin: string): string {
+export function renderGroupMeMessage(template: string, event: EventRecord, origin: string, allowOversized = false): string {
   const error = validateGroupMeTemplate(template)
   if (error) throw new Error(error)
   const date = (iso: string) => new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`))
@@ -41,6 +41,6 @@ export function renderGroupMeMessage(template: string, event: EventRecord, origi
     signup_url: event.signupUrl || '',
   }
   const text = normalizeGroupMeTemplate(template).replace(/(?<![\w@])@(title|date\/time|date|time|location|event_url|signup_url)\b/g, (_, key: string) => values[key]).trim()
-  if (text.length > GROUPME_MAX_LENGTH) throw new Error('The completed message exceeds 1,000 characters. Shorten the template in Event Settings.')
+  if (!allowOversized && text.length > GROUPME_MAX_LENGTH) throw new Error('The completed message exceeds 1,000 characters. Shorten the template in Event Settings.')
   return text
 }

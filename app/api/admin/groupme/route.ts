@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const destination = await getGroupMeDestination(config)
     const saved = await getSitePageSetting('events', 'groupme_template')
     const defaultTemplate = await getSitePageSetting('events', 'groupme_default_template')
-    return NextResponse.json({ template: typeof saved === 'string' ? saved : typeof defaultTemplate === 'string' ? defaultTemplate : '', defaultTemplate: typeof defaultTemplate === 'string' ? defaultTemplate : '', configured, destination }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({ template: typeof saved === 'string' ? saved : typeof defaultTemplate === 'string' ? defaultTemplate : '', configured, destination }, { headers: { 'Cache-Control': 'no-store' } })
   } catch {
     return NextResponse.json({ error: 'Unable to load GroupMe settings.' }, { status: 500 })
   }
@@ -28,7 +28,7 @@ export async function PUT(req: NextRequest) {
   const error = validateGroupMeTemplate(data?.template)
   if (error) return NextResponse.json({ error }, { status: 400 })
   try {
-    const saved = await updateSitePageSetting('events', data.target === 'default' ? 'groupme_default_template' : 'groupme_template', data.template)
+    const saved = await updateSitePageSetting('events', 'groupme_template', data.template)
     if (saved === null) throw new Error('Missing events page')
     return NextResponse.json({ success: true })
   } catch {
