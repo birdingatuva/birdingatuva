@@ -20,7 +20,7 @@ export function BannerSettings() {
 
   useEffect(() => {
     let active = true
-    fetch('/api/banner', { cache: 'no-store' }).then(async response => {
+    fetch('/api/banner?admin=true', { cache: 'no-store' }).then(async response => {
       if (!response.ok) throw new Error('Unable to load banner settings. Reload to try again.')
       const data = await response.json()
       if (active) {

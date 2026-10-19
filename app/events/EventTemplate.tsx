@@ -190,7 +190,7 @@ export default async function EventTemplate({
                 </div>
                 
                 {dashboardUrl.trim() && (dashboard ? (
-                  <SheetDashboard key={dashboard.id} url={dashboard.url} />
+                  <SheetDashboard key={dashboard.id} eventSlug={eventSlug} />
                 ) : <p role="status" className="my-8 border-t border-border pt-6 text-sm">The dashboard link is broken. Please contact the event organizer.</p>)}
 
                 {signupUrl.trim() ? (

@@ -109,7 +109,10 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
           }
         }, 700);
       } else {
-        setLoginError((prev) => prev !== "Invalid password. Please try again." ? "Invalid password. Please try again." : prev);
+        const message = res.status === 429
+          ? 'Too many sign-in attempts. Please wait before trying again.'
+          : res.status >= 500 ? 'Sign-in is temporarily unavailable. Please try again.' : 'Invalid password. Please try again.'
+        setLoginError(message);
         setLoginSuccess(false);
       }
     } catch {
@@ -120,7 +123,10 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
   }
 
   const handleLogout = async () => {
-    await fetch('/api/logout', { method: 'POST' })
+    const response = await fetch('/api/logout', { method: 'POST' })
+    if (!response.ok) { setLoginError('Unable to log out. Please retry.'); return }
+    localStorage.removeItem('adminFormData')
+    localStorage.removeItem('adminHeaderImagePreview')
     sessionStorage.removeItem("adminActivePage")
     setAuthorized(false)
     setShowLogin(false)

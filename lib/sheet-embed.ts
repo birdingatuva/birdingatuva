@@ -1,7 +1,7 @@
 export function getDashboardLink(url: string) {
   try {
     const source = new URL(url)
-    if (source.protocol !== 'https:' || source.hostname !== 'docs.google.com') return null
+    if (source.protocol !== 'https:' || source.hostname !== 'docs.google.com' || source.username || source.password || source.port) return null
     const match = source.pathname.match(/^\/spreadsheets\/d\/([a-zA-Z0-9_-]+)(?:\/(?:edit|view|preview|htmlembed))?\/?$/)
     if (!match) return null
     const gid = new URLSearchParams(source.hash.slice(1)).get('gid') || source.searchParams.get('gid') || '0'

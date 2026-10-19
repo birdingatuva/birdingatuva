@@ -792,7 +792,7 @@ export default function AdminPage() {
 
   const selectLeadershipImage = async (index: number, file?: File) => {
     if (!file) return
-    if (!file.type.startsWith('image/') || file.size > MAX_IMAGE_SIZE) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > MAX_IMAGE_SIZE) {
       setError(`Please choose an image up to ${MAX_IMAGE_MB}MB.`)
       return
     }
@@ -1115,7 +1115,7 @@ export default function AdminPage() {
                             ref={headerImageInputRef}
                             type="file" 
                             className="hidden" 
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp"
                             disabled={submitting || processingImage}
                             onClick={(event) => { event.currentTarget.value = "" }}
                             onChange={handleHeaderImageChange}
@@ -1405,7 +1405,7 @@ export default function AdminPage() {
                                         <span className="text-sm font-semibold">Upload new image</span>
                                       </span>
                                     </button>
-                                    <input id={`leader-${index}-image`} type="file" accept="image/*" className="hidden"
+                                    <input id={`leader-${index}-image`} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
                                       onClick={event => { event.currentTarget.value = '' }}
                                       onChange={event => selectLeadershipImage(index, event.target.files?.[0])} />
                                     <p className="text-xs text-muted-foreground">PNG, JPG, WEBP up to {MAX_IMAGE_MB}MB</p>

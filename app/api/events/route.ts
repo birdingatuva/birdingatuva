@@ -1,3 +1,8 @@
+import { randomUUID } from 'node:crypto'
+import { eventCreate } from '@/lib/input-validation'
+import { safeImage } from '@/lib/image-upload'
+import { RequestError } from '@/lib/api-security'
+import { secureRoute } from '@/lib/api-security'
 import { MAX_IMAGE_SIZE } from '@/lib/constants'
 import { verifyAdminToken } from '@/lib/auth'
 import { listEvents, listAllEvents } from '@/lib/events-db'
@@ -29,13 +34,15 @@ if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
   })
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
+  let uploadedImageId: string | undefined
+  let committed = false
   console.log("=== API /api/events POST started ===");
   
   try {
     // Validate authorization from HttpOnly cookie
     const cookieToken = req.cookies.get('admin_jwt')?.value || ''
-    const valid = cookieToken ? verifyAdminToken(cookieToken) : null
+    const valid = cookieToken ? (await verifyAdminToken(cookieToken)) : null
     console.log("Auth check - cookie present:", !!cookieToken, "jwt valid:", !!valid);
     if (!valid) {
       console.log("❌ Unauthorized");
@@ -43,30 +50,22 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData()
-    const title = (formData.get('title') as string) || ''
-  const baseSlugRaw = (formData.get('slug') as string) || ''
-  const baseSlug = baseSlugRaw.trim().toLowerCase()
-    const startDate = (formData.get('startDate') as string) || ''
-    const endDateRaw = (formData.get('endDate') as string) || ''
-    const startTimeRaw = (formData.get('startTime') as string) || ''
-    const endTimeRaw = (formData.get('endTime') as string) || ''
-    const location = (formData.get('location') as string) || ''
-    const bodyMarkdown = (formData.get('bodyMarkdown') as string) || ''
-    const signupUrlRaw = (formData.get('signupUrl') as string) || ''
-  // signupEmbedUrl removed
-  const dashboardUrl = ((formData.get('dashboardUrl') as string) || '').trim() || null
-  const showFaqBanner = formData.get('showFaqBanner') === 'true'
-  const hidden = formData.get('hidden') === 'true'
-
-    // Normalize optional fields to null instead of empty strings for DB
-    const endDate = endDateRaw && endDateRaw.trim() !== '' ? endDateRaw : null
-    const startTime = startTimeRaw && startTimeRaw.trim() !== '' ? startTimeRaw : null
-    const endTime = endTimeRaw && endTimeRaw.trim() !== '' ? endTimeRaw : null
-    const signupUrl = signupUrlRaw && signupUrlRaw.trim() !== '' ? signupUrlRaw : null
-  // signupEmbedUrl removed
-    const imageFile = formData.get('image') as File | null
+    const raw = Object.fromEntries(Array.from(formData.entries()).filter(([key]) => key !== 'image'))
+    for (const key of ['hidden', 'showFaqBanner']) {
+      if (raw[key] !== undefined && raw[key] !== 'true' && raw[key] !== 'false') return NextResponse.json({ error: 'Invalid boolean field.' }, { status: 400 })
+    }
+    const parsed = eventCreate.safeParse({ ...raw, hidden: raw.hidden === 'true', showFaqBanner: raw.showFaqBanner === 'true' })
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid event fields.' }, { status: 400 })
+    const { title, slug: baseSlug, startDate, location, bodyMarkdown = '', showFaqBanner = false, hidden = false } = parsed.data
+    const endDate = parsed.data.endDate || null
+    const startTime = parsed.data.startTime || null
+    const endTime = parsed.data.endTime || null
+    const signupUrl = parsed.data.signupUrl || null
+    const dashboardUrl = parsed.data.dashboardUrl || null
+    const imageFile = formData.get('image')
+    if (typeof imageFile === 'string') return NextResponse.json({ error: 'Invalid image.' }, { status: 400 })
+    const imageBuffer = imageFile ? await safeImage(imageFile) : null
     let imagePublicId = ''
-  
     // Create a unique slug if taken: base, base-2, base-3, ...
     let slug = baseSlug
     try {
@@ -97,44 +96,14 @@ export async function POST(req: NextRequest) {
       slug = baseSlug
     }
 
-    console.log(`Processing event image for: ${slug}`)
-
-    if (!(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)) {
-      if (imageFile) {
-        console.error('Cloudinary not configured, skipping image uploads.')
-      }
-    } else if (imageFile) {
-      if (imageFile.size > MAX_IMAGE_SIZE) {
-        console.warn(`Skipping event image: too large (${imageFile.size} bytes)`)
-      } else {
-        try {
-          const arrayBuffer = await imageFile.arrayBuffer()
-            .catch(err => { throw new Error('Failed to read image file: ' + (err as Error).message) })
-          const buffer = Buffer.from(arrayBuffer)
-          const base64 = buffer.toString('base64')
-          console.log('Uploading event image to Cloudinary via SDK...')
-          const uploadRes = await cloudinary.uploader.upload(`data:${imageFile.type};base64,${base64}`,
-            {
-              public_id: `${slug}-img`,
-              asset_folder: `event-images/${slug}`,
-              overwrite: true,
-              resource_type: 'image',
-              tags: [`event:${slug}`],
-            }
-          )
-          if (uploadRes?.public_id) {
-            imagePublicId = uploadRes.public_id
-            console.log(`Uploaded event image -> public_id: ${imagePublicId}`)
-          } else {
-            console.error('Cloudinary upload returned no public_id', uploadRes)
-          }
-        } catch (err) {
-          console.error('Error uploading event image:', err)
-        }
-      }
+    if (imageBuffer) {
+      if (!(CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET)) return NextResponse.json({ error: 'Image uploads are unavailable.' }, { status: 503 })
+      const upload = await cloudinary.uploader.upload(`data:image/webp;base64,${imageBuffer.toString('base64')}`, {
+        public_id: `event-${randomUUID()}`, asset_folder: `event-images/${slug}`, overwrite: false, resource_type: 'image', tags: [`event:${slug}`],
+      })
+      imagePublicId = upload.public_id
+      uploadedImageId = imagePublicId
     }
-
-  console.log(`Event image uploaded: ${Boolean(imagePublicId)}`)
 
     // Keep the existing JSON column format, but store at most one image.
     try {
@@ -144,25 +113,27 @@ export async function POST(req: NextRequest) {
           ${slug}, ${title}, ${startDate}, ${endDate}, ${startTime}, ${endTime}, ${location}, ${JSON.stringify(imagePublicId ? [imagePublicId] : [])}, ${bodyMarkdown}, ${signupUrl}, ${dashboardUrl}, ${showFaqBanner}, ${hidden}
         )
       `
+      committed = true
       console.log(`Successfully inserted event: ${slug}`)
       // Trigger on-demand revalidation only when database is updated
       revalidateEvents(slug)
       console.log("=== API /api/events POST completed successfully ===");
       return NextResponse.json({ success: true, slug, imagePublicId })
     } catch (error) {
-      console.error('❌ Database insertion error:', error)
-      return NextResponse.json({ error: `Failed to save event to database: ${error}` }, { status: 500 })
+      console.error('Database insertion error:', error)
+      if (uploadedImageId) await cloudinary.uploader.destroy(uploadedImageId).catch(() => {})
+      return NextResponse.json({ error: 'Unable to save event.' }, { status: 500 })
     }
   } catch (outerError) {
-    console.error('❌ API route error:', outerError);
-    return NextResponse.json({ 
-      error: `Server error: ${outerError instanceof Error ? outerError.message : 'Unknown error'}` 
-    }, { status: 500 })
+    if (uploadedImageId && !committed) await cloudinary.uploader.destroy(uploadedImageId).catch(() => {})
+    if (outerError instanceof RequestError) throw outerError
+    console.error('Event creation failed')
+    return NextResponse.json({ error: 'Unable to save event.' }, { status: 500 })
   }
 }
 
 // GET: list events. If admin=true and auth valid -> include hidden. Else public list.
-export async function GET(req: NextRequest) {
+async function GETHandler(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const isAdminRequested = searchParams.get('admin') === 'true'
@@ -170,7 +141,7 @@ export async function GET(req: NextRequest) {
     let isPrivate = false
     if (isAdminRequested) {
       const cookieToken = req.cookies.get('admin_jwt')?.value || ''
-      const valid = cookieToken ? verifyAdminToken(cookieToken) : null
+      const valid = cookieToken ? (await verifyAdminToken(cookieToken)) : null
       if (valid) {
         events = await listAllEvents()
         isPrivate = true // do not cache private/admin view
@@ -198,3 +169,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to list events' }, { status: 500 })
   }
 }
+
+export const POST = secureRoute(POSTHandler)
+
+export const GET = secureRoute(GETHandler)

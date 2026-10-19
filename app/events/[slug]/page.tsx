@@ -15,7 +15,10 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
-  const event = await getEvent(slug, true)
+  const token = (await cookies()).get('admin_jwt')?.value
+  const admin = !!token && !!(await verifyAdminToken(token))
+  if (!(await getSitePage('events'))) return {}
+  const event = await getEvent(slug, admin)
 
   if (!event) return {}
 
@@ -51,11 +54,10 @@ export async function generateStaticParams() {
 export default async function EventPage(props: PageProps) {
   if (!(await getSitePage("events"))) notFound()
   const params = await props.params
-  const record = await getEvent(params.slug, true)
-  if (!record) return notFound()
   const token = (await cookies()).get("admin_jwt")?.value
-  const isAdmin = token ? !!verifyAdminToken(token) : false
-  if (record.hidden && !isAdmin) notFound()
+  const isAdmin = token ? !!(await verifyAdminToken(token)) : false
+  const record = await getEvent(params.slug, isAdmin)
+  if (!record) notFound()
 
   const bodyMarkdown = record.bodyMarkdown || "Event details coming soon."
   const signupUrl = record.signupUrl || ""

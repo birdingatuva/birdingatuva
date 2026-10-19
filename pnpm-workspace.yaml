@@ -1,4 +1,8 @@
 allowBuilds:
   bcrypt: true
   bufferutil: true
+  esbuild: true
   sharp: true
+overrides:
+  'source-map-js@<1.2.2': '^1.2.2'
+  '@tailwindcss/typography>postcss-selector-parser': '^7.1.6'

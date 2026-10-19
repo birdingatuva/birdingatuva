@@ -1,3 +1,4 @@
+import { secureRoute } from '@/lib/api-security'
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@vercel/postgres'
 import { verifyAdminToken } from '@/lib/auth'
@@ -6,17 +7,17 @@ import { normalizeShortlink, normalizeDestination } from '@/lib/shortlinks'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
-function authorizationError(request: NextRequest) {
+async function authorizationError(request: NextRequest) {
   try {
     const token = request.cookies.get('admin_jwt')?.value
-    if (!token || !verifyAdminToken(token)) return json({ error: 'Unauthorized' }, 401)
+    if (!token || !(await verifyAdminToken(token))) return json({ error: 'Unauthorized' }, 401)
   } catch (error) {
     console.error('Shortlink authentication failed:', error)
     return json({ error: 'Unable to verify the admin session. Check the server configuration.' }, 500)
   }
 }
-export async function GET(request: NextRequest) {
-  const authError = authorizationError(request)
+async function GETHandler(request: NextRequest) {
+  const authError = await authorizationError(request)
   if (authError) return authError
   try {
     const result = await sql`SELECT slug, destination, created_at, locked FROM shortlinks ORDER BY created_at DESC, slug`
@@ -25,8 +26,8 @@ export async function GET(request: NextRequest) {
     console.error('Unable to load shortlinks:', error)
     return json({ error: 'Unable to load shortlinks. Check that the shortlinks SQL migration has been run.' }, 500) }
 }
-export async function POST(request: NextRequest) {
-  const authError = authorizationError(request)
+async function POSTHandler(request: NextRequest) {
+  const authError = await authorizationError(request)
   if (authError) return authError
   let slug: string, destination: string
   try {
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest) {
     return json({ error: 'Unable to save the shortlink. Check that the shortlinks SQL migration has been run.' }, 500) }
 }
 
-export async function DELETE(request: NextRequest) {
-  const authError = authorizationError(request)
+async function DELETEHandler(request: NextRequest) {
+  const authError = await authorizationError(request)
   if (authError) return authError
   let slug: string
   try {
@@ -62,8 +63,8 @@ export async function DELETE(request: NextRequest) {
     return json({ error: 'Unable to delete the shortlink. Please try again.' }, 500) }
 }
 
-export async function PATCH(request: NextRequest) {
-  const authError = authorizationError(request)
+async function PATCHHandler(request: NextRequest) {
+  const authError = await authorizationError(request)
   if (authError) return authError
   let slug: string, locked: boolean
   try {
@@ -80,3 +81,11 @@ export async function PATCH(request: NextRequest) {
     console.error('Unable to update shortlinks:', error)
     return json({ error: 'Unable to update the lock. Check that the shortlink lock SQL migration has been run.' }, 500) }
 }
+
+export const GET = secureRoute(GETHandler)
+
+export const POST = secureRoute(POSTHandler)
+
+export const DELETE = secureRoute(DELETEHandler)
+
+export const PATCH = secureRoute(PATCHHandler)

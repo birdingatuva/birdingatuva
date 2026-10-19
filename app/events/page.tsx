@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default async function EventsPage() {
   if (!(await getSitePage("events"))) notFound()
   const token = (await cookies()).get("admin_jwt")?.value
-  const isAdmin = token ? !!verifyAdminToken(token) : false
+  const isAdmin = token ? !!(await verifyAdminToken(token)) : false
   const events = await (isAdmin ? listAllEvents() : listEvents())
   // Map to client-friendly minimal shape
   const clientEvents = events.map(e => ({

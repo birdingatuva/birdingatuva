@@ -1,3 +1,5 @@
+import { verifyAdminToken } from '@/lib/auth'
+import { secureRoute } from '@/lib/api-security'
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@vercel/postgres'
 
@@ -5,10 +7,11 @@ export const runtime = 'nodejs'
 
 // Return a unique slug suggestion. Only increment if there is an exact base match.
 // Ignore non-numeric hyphenated variants like base-other; only consider base-N where N is an integer.
-export async function GET(req: NextRequest) {
+async function GETHandler(req: NextRequest) {
+  if (!(await verifyAdminToken(req.cookies.get('admin_jwt')?.value || ''))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { searchParams } = new URL(req.url)
   const base = (searchParams.get('base') || '').trim().toLowerCase()
-  if (!base) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(base) || base.length > 100) {
     return NextResponse.json({ error: 'Missing base slug' }, { status: 400 })
   }
   try {
@@ -40,3 +43,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Database error' }, { status: 500 })
   }
 }
+
+export const GET = secureRoute(GETHandler)

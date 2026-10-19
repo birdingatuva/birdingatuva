@@ -8,7 +8,7 @@ function CarIcon() {
   return <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 fill-current text-primary" aria-hidden="true"><path fillRule="evenodd" d="M6.2 3a2 2 0 0 0-1.9 1.37L2.1 11a2 2 0 0 0-.1.63V19a2 2 0 0 0 4 0v-1h12v1a2 2 0 0 0 4 0v-7.37a2 2 0 0 0-.1-.63l-2.2-6.63A2 2 0 0 0 17.8 3H6.2ZM6.9 5h10.2l1.67 5H5.23L6.9 5ZM7 13H4v2h3v-2Zm13 0h-3v2h3v-2Z" clipRule="evenodd" /></svg>
 }
 
-export function SheetDashboard({ url }: { url: string }) {
+export function SheetDashboard({ eventSlug }: { eventSlug: string }) {
   const [data, setData] = useState<CarpoolData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -21,7 +21,7 @@ export function SheetDashboard({ url }: { url: string }) {
       busy = true
       setLoading(true)
       try {
-        const response = await fetch(`/api/carpool?${new URLSearchParams({ url: url })}`, { signal: controller.signal, cache: 'no-store' })
+        const response = await fetch(`/api/carpool?${new URLSearchParams({ event: eventSlug })}`, { signal: controller.signal, cache: 'no-store' })
         if (response.status === 422) {
           setData(null)
           setError('The dashboard link is broken or the sheet is not publicly accessible.')
@@ -42,7 +42,7 @@ export function SheetDashboard({ url }: { url: string }) {
     void refresh()
     const timer = window.setInterval(() => { if (!document.hidden) void refresh() }, 30000)
     return () => { controller.abort(); window.clearInterval(timer) }
-  }, [url])
+  }, [eventSlug])
 
   return (
     <section className="my-8 border-t border-border pt-8" aria-label="Carpool and waitlist">

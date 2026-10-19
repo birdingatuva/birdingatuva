@@ -1,16 +1,17 @@
+import { secureRoute } from '@/lib/api-security'
 import { verifyAdminToken } from '@/lib/auth'
 import { getSitePage, updateSitePageContent } from '@/lib/pages-db'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+async function GETHandler(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params
     const request = _request
     const adminRequested = new URL(request.url).searchParams.get('admin') === 'true'
     const token = request.cookies.get('admin_jwt')?.value || ''
-    const page = await getSitePage(slug, adminRequested && !!token && !!verifyAdminToken(token))
+    const page = await getSitePage(slug, adminRequested && !!token && !!(await verifyAdminToken(token)))
     if (!page) return NextResponse.json({ error: 'Page not found' }, { status: 404 })
     return NextResponse.json({ page }, { headers: { 'Cache-Control': 'no-store' } })
   } catch {
@@ -18,16 +19,16 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+async function PUTHandler(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const token = request.cookies.get('admin_jwt')?.value || ''
-  if (!token || !verifyAdminToken(token)) {
+  if (!token || !(await verifyAdminToken(token))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const { slug } = await params
     const body = await request.json() as { contentMarkdown?: unknown }
-    if (typeof body.contentMarkdown !== 'string') {
+    if (!['faq'].includes(slug) || typeof body.contentMarkdown !== 'string' || body.contentMarkdown.length > 100000) {
       return NextResponse.json({ error: 'contentMarkdown must be a string' }, { status: 400 })
     }
 
@@ -38,3 +39,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Failed to save page' }, { status: 500 })
   }
 }
+export const GET = secureRoute(GETHandler)
+
+export const PUT = secureRoute(PUTHandler)

@@ -4,7 +4,7 @@ import type { Metadata } from "next"
 import { Bebas_Neue, Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import AppShell from "@/components/AppShell"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { Navigation } from "@/components/navigation"
 import { verifyAdminToken } from "@/lib/auth"
 import { listSitePages } from "@/lib/pages-db"
@@ -59,13 +59,14 @@ export default async function RootLayout({
     listSitePages().catch(() => null),
   ])
   const token = cookieStore.get("admin_jwt")?.value
-  const authorized = Boolean(token && verifyAdminToken(token))
+  const nonce = (await headers()).get('x-nonce') || undefined
+  const authorized = Boolean(token && (await verifyAdminToken(token)))
 
   return (
     <html lang="en">
       <head>
         {/* Structured Data: Organization */}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
           "name": "Birding at UVA",
@@ -75,7 +76,7 @@ export default async function RootLayout({
             "https://instagram.com/birdingatuva",
             "https://linktr.ee/birdingatuva"
           ]
-        }) }} />
+        }).replace(/</g, '\\u003c') }} />
       </head>
       <body className={`${inter.variable} ${bebasNeue.variable} ${playfair.variable} font-sans antialiased bg-background`}>
         {/* AppShell is a client component that renders DevBanner and wraps the app */}

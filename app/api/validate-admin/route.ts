@@ -1,44 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcrypt';
-import { ADMIN_SESSION_EXP_SECONDS, signAdminToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcrypt'
+import { ADMIN_SESSION_EXP_SECONDS, signAdminToken } from '@/lib/auth'
+import { secureRoute } from '@/lib/api-security'
+import { clientBucket, rateLimit } from '@/lib/rate-limit'
 
-// Load the hashed password from environment variables
-// Expected to be base64-encoded to avoid issues with $ characters in .env files
-const envHash = process.env.ADMIN_PASSWORD_HASH;
-const ADMIN_PASSWORD_HASH = envHash ? Buffer.from(envHash, 'base64').toString('utf-8') : '';
-
-if (!ADMIN_PASSWORD_HASH || ADMIN_PASSWORD_HASH.length !== 60) {
-  throw new Error('ADMIN_PASSWORD_HASH is not properly set in environment variables. Must be a base64-encoded bcrypt hash.');
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const { password } = await req.json();
-
-    if (!password) {
-      return NextResponse.json({ error: 'Password is required.' }, { status: 400 });
-    }
-
-    // Compare the provided password with the stored hash
-    const isValid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
-
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid password.' }, { status: 401 });
-    }
-
-  // Issue short-lived JWT as HttpOnly SameSite cookie
-  const token = signAdminToken('admin');
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set('admin_jwt', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: ADMIN_SESSION_EXP_SECONDS,
-  });
-  return res;
-  } catch (error) {
-    console.error('Error validating admin password:', error);
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+async function POSTHandler(req: NextRequest) {
+  const { password } = await req.json()
+  if (typeof password !== 'string' || !password || Buffer.byteLength(password, 'utf8') > 72) {
+    return NextResponse.json({ error: 'Enter a password of at most 72 UTF-8 bytes.' }, { status: 400 })
   }
+  for (const [key, limit, seconds] of [[`login:${clientBucket(req)}`, 8, 900], ['login:global', 100, 60]] as const) {
+    const result = await rateLimit(key, limit, seconds)
+    if (!result.allowed) return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429, headers: { 'Retry-After': String(result.retryAfter) } })
+  }
+  const hash = Buffer.from(process.env.ADMIN_PASSWORD_HASH || '', 'base64').toString('utf8')
+  if (!/^\$2[aby]\$\d{2}\$.{53}$/.test(hash)) throw new Error('Admin credentials are not configured')
+  if (!(await bcrypt.compare(password, hash))) return NextResponse.json({ error: 'Invalid password.' }, { status: 401 })
+  const token = await signAdminToken('admin')
+  const response = NextResponse.json({ ok: true })
+  response.cookies.set('admin_jwt', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: ADMIN_SESSION_EXP_SECONDS })
+  return response
 }
+export const POST = secureRoute(POSTHandler)

@@ -98,7 +98,7 @@ export async function listEvents(): Promise<EventRecord[]> {
 
 export async function getEvent(slug: string, includeHidden = false): Promise<EventRecord | null> {
   const s = (slug || '').trim()
-  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, dashboard_url, show_faq_banner, hidden FROM events WHERE lower(trim(slug)) = lower(${s}) LIMIT 1;`
+  const { rows } = await sql`SELECT slug, title, start_date, end_date, start_time, end_time, location, image_urls, body_markdown, signup_url, dashboard_url, show_faq_banner, hidden FROM events WHERE lower(trim(slug)) = lower(${s}) AND (${includeHidden} OR hidden IS NOT TRUE) LIMIT 1;`
   if (rows.length === 0) return null
   const r = rows[0] as unknown as DbEventRow
   if (r.hidden === true && !includeHidden) return null
