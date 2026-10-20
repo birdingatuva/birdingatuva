@@ -10,8 +10,8 @@ export function proxy(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://res.cloudinary.com https://wsrv.nl",
     "font-src 'self' data:",
-    `connect-src 'self' https://vitals.vercel-insights.com${development ? ' ws: wss:' : ''}`,
-    'frame-src https://docs.google.com',
+    `connect-src 'self' https://vitals.vercel-insights.com https://challenges.cloudflare.com${development ? ' ws: wss:' : ''}`,
+    'frame-src https://docs.google.com https://challenges.cloudflare.com',
     "frame-ancestors 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'self'",
   ].join('; ')
   const headers = new Headers(request.headers)

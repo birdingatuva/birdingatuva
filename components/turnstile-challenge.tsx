@@ -36,7 +36,10 @@ export function TurnstileChallenge({ onToken }: { onToken: (token: string) => vo
       size: 'flexible',
       callback: (token: string) => { setError(''); onToken(token) },
       'expired-callback': () => onToken(''),
-      'error-callback': () => { onToken(''); setError('Security check failed to load. Please reopen the login dialog to retry.') },
+      'error-callback': (code: string) => {
+        onToken('')
+        setError(`Security check failed (code ${code}). Please reopen the login dialog to retry.`)
+      },
     })
     return () => { onToken(''); api.remove(id) }
   }, [localDevelopment, ready, sitekey, onToken])
@@ -51,7 +54,7 @@ export function TurnstileChallenge({ onToken }: { onToken: (token: string) => vo
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
         strategy="afterInteractive"
         onReady={() => setReady(true)}
-        onError={() => setError('Security check failed to load. Please reopen the login dialog to retry.')}
+        onError={() => setError('Unable to load the security check script. Check your connection or browser content blocker, then reload.')}
       />
       <div ref={container} />
       {!sitekey ? <p role="alert" className="text-sm text-red-700 dark:text-red-400">Sign-in is temporarily unavailable.</p>
