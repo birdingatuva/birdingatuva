@@ -135,7 +135,7 @@ export default async function EventTemplate({
         />
         <section className="py-12 px-4">
           <div className="container mx-auto max-w-3xl relative z-20">
-            {isAdmin && <EventAdminControls slug={eventSlug} preview={preview} />}
+            {isAdmin && <EventAdminControls slug={eventSlug} preview={preview} hasDashboard={!!dashboardUrl.trim()} />}
             {showFaqBanner && (
               <Link href="/faq" className="mb-10 flex items-center gap-4 border-y border-border py-5 text-foreground transition-colors hover:border-primary/50">
                 <CircleHelp className="h-7 w-7 shrink-0 text-primary" />

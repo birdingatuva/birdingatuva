@@ -8,7 +8,7 @@ import { GroupMeSendButton } from '@/components/groupme-send-button'
 import { EventEmailComposer } from '@/components/event-email-composer'
 import { EventTextComposer } from '@/components/event-text-composer'
 
-export function EventAdminControls({ slug, preview }: { slug: string; preview: boolean }) {
+export function EventAdminControls({ slug, preview, hasDashboard }: { slug: string; preview: boolean; hasDashboard: boolean }) {
   const router = useRouter()
   const [hidden, setHidden] = useState(preview)
   const [saving, setSaving] = useState(false)
@@ -54,7 +54,9 @@ export function EventAdminControls({ slug, preview }: { slug: string; preview: b
     <span className="sr-only" role="status">{saving ? 'Updating visibility...' : hidden ? 'Only admins can view this event' : 'Visible to everyone'}</span>
     {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
     <GroupMeSendButton slug={slug} hidden={hidden} />
-    <EventTextComposer slug={slug} />
-    <EventEmailComposer slug={slug} />
+    {hasDashboard && <>
+      <EventTextComposer slug={slug} />
+      <EventEmailComposer slug={slug} />
+    </>}
   </div>
 }
