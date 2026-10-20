@@ -1,12 +1,14 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { GROUPME_PLACEHOLDERS } from '@/lib/groupme'
 
 const tokenPattern = /((?<![\w@])@(?:title|date\/time|date|time|location|event_url|signup_url)\b)/g
 const completeToken = /^@(?:title|date\/time|date|time|location|event_url|signup_url)$/
 
-export function GroupMeTemplateEditor({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled: boolean }) {
+export function GroupMeTemplateEditor({ value, onChange, disabled, label = 'GroupMe trip announcements template', maxLength = 1000 }: { value: string; onChange: (value: string) => void; disabled: boolean; label?: string; maxLength?: number }) {
+  const editorId = useId()
+  const completionId = `${editorId}-completion`
   const input = useRef<HTMLTextAreaElement>(null)
   const [caret, setCaret] = useState<number | null>(null)
   const [hoveredToken, setHoveredToken] = useState<number | null>(null)
@@ -72,9 +74,9 @@ export function GroupMeTemplateEditor({ value, onChange, disabled }: { value: st
       <div aria-hidden="true" className="pointer-events-none relative z-10 whitespace-pre-wrap break-words px-3 py-5 font-mono text-sm leading-6">
         {query ? <>{highlighted(value.slice(0, query.start))}<span key={query.start} data-token-start={query.start} className={tokenClass(query.start, query.end)}>{value.slice(query.start, query.end)}</span>{suggestion && <span className="inline-block w-0 overflow-visible align-baseline"><button type="button" tabIndex={-1} onMouseDown={event => event.preventDefault()} onClick={() => insert(suggestion)} className="groupme-suggestion pointer-events-auto relative z-20 inline-block whitespace-nowrap bg-background p-0 align-baseline font-semibold leading-[inherit] text-blue-600"><span className="groupme-ghost">{suggestion.slice(query.text.length)}</span></button></span>}{highlighted(value.slice(query.end), query.end)}</> : highlighted(value)}{'\u200b'}
       </div>
-      <textarea ref={input} id="groupme-template" aria-label="GroupMe trip announcements template" value={value} disabled={disabled} rows={1} spellCheck={false}
+      <textarea ref={input} id={editorId} aria-label={label} value={value} disabled={disabled} rows={1} spellCheck={false}
         className="absolute inset-0 block h-full w-full resize-none overflow-hidden bg-transparent px-3 py-5 font-mono text-sm leading-6 text-transparent caret-foreground outline-none selection:bg-blue-200/40"
-        aria-autocomplete="inline" aria-describedby={suggestion ? 'groupme-completion' : undefined}
+        aria-autocomplete="inline" aria-describedby={suggestion ? completionId : undefined}
         onChange={event => { setCaret(event.target.selectionStart); onChange(event.target.value); updateQuery(event.target.value, event.target.selectionStart) }}
         onClick={() => setQuery(null)}
         onFocus={event => setCaret(event.currentTarget.selectionStart === event.currentTarget.selectionEnd ? event.currentTarget.selectionStart : null)}
@@ -84,8 +86,8 @@ export function GroupMeTemplateEditor({ value, onChange, disabled }: { value: st
           if (event.key === 'Tab' && suggestion) { event.preventDefault(); insert(suggestion) }
           else if (['Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) setQuery(null)
         }} />
-      <span className={`pointer-events-none absolute bottom-1 right-3 text-xs ${value.length > 1000 ? 'text-destructive' : 'text-muted-foreground'}`}>{value.length}/1000</span>
-      {suggestion && <span id="groupme-completion" className="sr-only">Press Tab to complete @{suggestion}.</span>}
+      <span className={`pointer-events-none absolute bottom-1 right-3 text-xs ${value.length > maxLength ? 'text-destructive' : 'text-muted-foreground'}`}>{value.length}/{maxLength}</span>
+      {suggestion && <span id={completionId} className="sr-only">Press Tab to complete @{suggestion}.</span>}
     </div>
     <style jsx>{`
       .groupme-editor :global(.groupme-active), .groupme-ghost, .groupme-option:hover {

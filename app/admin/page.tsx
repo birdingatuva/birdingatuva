@@ -17,6 +17,8 @@ import { useLinkSort } from "./useLinkSort"
 import { ShortlinkTools } from "./ShortlinkTools"
 import { BannerSettings } from "./BannerSettings"
 import { GroupMeSettings } from "./GroupMeSettings"
+import { EmailSettings } from "./EmailSettings"
+import { SmsSettings } from "./SmsSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
@@ -1257,6 +1259,8 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <GroupMeSettings />
+                <div className="mt-8 border-t border-border pt-8"><SmsSettings /></div>
+                <div className="mt-8 border-t border-border pt-8"><EmailSettings /></div>
               </CardContent>
             </Card>
             {/* Delete confirmation modal */}

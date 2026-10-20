@@ -69,8 +69,10 @@ export function GroupMeSendButton({ slug, hidden }: { slug: string; hidden: bool
       <p className="text-sm text-muted-foreground">This will post as the connected GroupMe account. Review the message below. Each version of a trip can only be sent once. Edit the trip to send an updated announcement.</p>
       {busy && text === null && <p role="status" className="text-sm text-muted-foreground">Loading message preview...</p>}
       {text !== null && <>
-        <label htmlFor="event-groupme-message" className="text-sm font-medium">Event message</label>
-        <Textarea id="event-groupme-message" value={text} disabled={busy || saving} rows={7} onChange={event => { setText(event.target.value); setStatus('') }} />
+        <div className="space-y-2">
+          <label htmlFor="event-groupme-message" className="block text-sm font-medium">Event message</label>
+          <Textarea id="event-groupme-message" value={text} disabled={busy || saving} rows={7} onChange={event => { setText(event.target.value); setStatus('') }} />
+        </div>
         {invalid && <p role="alert" className="text-sm text-destructive">Enter a message within 1,000 characters.</p>}
       </>}
       <p className="text-xs text-muted-foreground">{text?.length || 0}/1000 characters</p>
