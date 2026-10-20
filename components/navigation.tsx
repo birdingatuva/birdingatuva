@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react"
 import * as Dialog from "@radix-ui/react-dialog"
 import { Check, ArrowRight } from "lucide-react"
 // Previous localStorage token helpers removed; now rely on HttpOnly cookie + session endpoint.
+import { TurnstileChallenge } from "@/components/turnstile-challenge"
 import { Button } from "@/components/ui/button"
 import { CloudinaryImage } from "@/components/cloudinary-image"
 
@@ -23,6 +24,8 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
   const [loginError, setLoginError] = useState("")
   const [loginSuccess, setLoginSuccess] = useState(false)
   const [loginPending, setLoginPending] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState("")
+  const [challengeVersion, setChallengeVersion] = useState(0)
   const [visiblePages, setVisiblePages] = useState<string[] | null>(initialVisiblePages)
   // Re-check session on route change
   useEffect(() => {
@@ -80,13 +83,18 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
       return;
     }
 
+    if (!turnstileToken) {
+      setLoginError("Please complete the security check.")
+      return
+    }
+
     setLoginPending(true)
     setLoginError("")
     try {
       const res = await fetch("/api/validate-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: loginPassword }),
+        body: JSON.stringify({ password: loginPassword, turnstileToken }),
       });
 
       if (res.ok) {
@@ -109,8 +117,8 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
           }
         }, 700);
       } else {
-        const message = res.status === 429
-          ? 'Too many sign-in attempts. Please wait before trying again.'
+        const message = res.status === 403
+          ? 'Security check failed. Please complete it again.'
           : res.status >= 500 ? 'Sign-in is temporarily unavailable. Please try again.' : 'Invalid password. Please try again.'
         setLoginError(message);
         setLoginSuccess(false);
@@ -118,6 +126,8 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
     } catch {
       setLoginError("Unable to sign in. Please try again.")
     } finally {
+      setTurnstileToken("")
+      setChallengeVersion((version) => version + 1)
       setLoginPending(false)
     }
   }
@@ -217,6 +227,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
           loginPasswordRef.current?.blur()
           setLoginError("")
           setLoginPassword("")
+          setTurnstileToken("")
         }
         setShowLogin(open)
       }}>
@@ -258,6 +269,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
                   aria-describedby={loginError ? "admin-login-error" : undefined}
                   className="h-11 w-full rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-400/25 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-950/40 dark:text-slate-100 dark:focus:border-slate-400"
                 />
+                <TurnstileChallenge key={challengeVersion} onToken={setTurnstileToken} />
                 {loginError && (
                   <p id="admin-login-error" role="alert" className="mt-3 text-sm leading-relaxed text-red-700 dark:text-red-400">{loginError}</p>
                 )}
@@ -265,7 +277,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
                   <Dialog.Close asChild>
                     <button type="button" disabled={loginPending} className="rounded-sm px-3 py-2 text-sm text-slate-600 transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-slate-400 disabled:opacity-50 dark:text-slate-400 dark:hover:text-slate-100">Cancel</button>
                   </Dialog.Close>
-                  <Button type="submit" disabled={loginPending} className="h-10 rounded-sm bg-slate-900 px-4 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
+                  <Button type="submit" disabled={loginPending || !turnstileToken} className="h-10 rounded-sm bg-slate-900 px-4 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
                     {loginPending ? "Signing in…" : "Sign in"}
                     {!loginPending && <ArrowRight aria-hidden="true" className="size-4" />}
                   </Button>

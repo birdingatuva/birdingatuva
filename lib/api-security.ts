@@ -46,7 +46,7 @@ export function secureRoute<T extends unknown[]>(handler: (request: NextRequest,
         if (path === '/api/events' && request.method === 'POST' && !multipart) throw new RequestError('Expected an event form.', 415)
         const emptyAllowed = request.method === 'DELETE' && /^\/api\/events\/[^/]+$/.test(path) || path === '/api/logout'
         if (!(type === 'application/json' || multipart && uploadsAllowed || !type && emptyAllowed)) throw new RequestError('Unsupported content type.', 415)
-        const limit = multipart ? 26 * 1024 * 1024 : path === '/api/validate-admin' ? 1024 : 256 * 1024
+        const limit = multipart ? 26 * 1024 * 1024 : path === '/api/validate-admin' ? 4096 : 256 * 1024
         const bytes = await boundedBody(request, limit)
         if (type === 'application/json') {
           try {
