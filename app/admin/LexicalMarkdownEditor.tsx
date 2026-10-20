@@ -1,5 +1,7 @@
 "use client"
 
+import { BLANK_PARAGRAPH_MARKDOWN_TRANSFORMER } from "@/lib/event-markdown"
+
 import { memo, useEffect, useRef, useState } from "react"
 import { LexicalComposer } from "@lexical/react/LexicalComposer"
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin"
@@ -112,6 +114,7 @@ const LITERAL_GREATER_THAN_MARKDOWN_TRANSFORMER: ElementTransformer = {
 }
 
 const MARKDOWN_TRANSFORMERS = [
+  BLANK_PARAGRAPH_MARKDOWN_TRANSFORMER,
   HORIZONTAL_RULE_MARKDOWN_TRANSFORMER,
   BLANK_QUOTE_MARKDOWN_TRANSFORMER,
   LITERAL_GREATER_THAN_MARKDOWN_TRANSFORMER,

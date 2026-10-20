@@ -17,6 +17,7 @@ function normalizeLexicalMarkdown(markdown: string) {
   return markdown
     .split(/\r?\n/)
     .map((line) => {
+      if (/^\s*<!--lexical-blank-paragraph-->\s*$/.test(line)) return "\n\u200B\n"
       if (/^\s*>\s*<!--lexical-blank-quote-->\s*$/.test(line)) return "> \u200B"
       if (/^\s*<!--lexical-literal-greater-than-->\s*$/.test(line)) return "\\>"
 
@@ -78,12 +79,12 @@ function remarkLinkifyPlainDomains() {
 }
 
 const markdownComponents: Components = {
-  p: ({ node, ...props }) => <p {...props} className="mb-2" />,
+  p: ({ node, ...props }) => <p {...props} className="mb-2 whitespace-pre-line" />,
   h1: ({ node, ...props }) => <h1 {...props} className="text-3xl font-bold" />,
   h2: ({ node, ...props }) => <h2 {...props} className="text-xl font-semibold" />,
   h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-semibold" />,
-  ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-6" />,
-  ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-6 event-numbered-list" />,
+  ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-6 whitespace-pre-line" />,
+  ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-6 event-numbered-list whitespace-pre-line" />,
   blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-muted-foreground/30 pl-4 italic" />,
   a: ({ node, ...props }) => <a {...props} className="text-blue-600 underline decoration-blue-600/50 underline-offset-2 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" />,
   del: ({ node, ...props }) => <del {...props} className="line-through" />,
