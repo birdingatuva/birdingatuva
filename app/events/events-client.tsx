@@ -6,11 +6,10 @@ import { PageHeader } from "@/components/page-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { CloudinaryImage } from "@/components/cloudinary-image"
-import { Badge } from "@/components/ui/badge"
 import { MapPin, Calendar, Clock, Search, LayoutGrid, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { formatTimeForDisplay, formatDisplayDate, getEventStatus, type EventStatus } from "./date-utils"
+import { formatTimeForDisplay, formatDisplayDate, getEventStatus } from "./date-utils"
 import { useState } from "react"
 
 export interface EventsClientEvent {
@@ -117,7 +116,6 @@ export function EventsClient({ events }: EventsClientProps) {
                   </div>
                 ) : (
                   filteredEvents.map(event => {
-                    const status: EventStatus = getEventStatus(event.startDate, event.endDate, event.startTime, event.endTime)
                     const displayDate = formatDisplayDate(event.startDate, event.endDate ?? event.startDate)
                     
                     const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dev-birdingatuva'
@@ -144,9 +142,6 @@ export function EventsClient({ events }: EventsClientProps) {
                               <span className="text-sm">No image</span>
                             </div>
                           )}
-                          <Badge className={`absolute shadow-lg font-semibold ${view === "list" ? "top-2 right-2 text-xs" : "top-4 right-4 text-sm"}`} style={{ backgroundColor: '#36834C', color: 'white' }}>
-                            {status}
-                          </Badge>
                         </div>
                         {event.hidden && (
                           <div className="preview-outline pointer-events-none absolute -inset-px z-10 rounded-[inherit]" role="status">
