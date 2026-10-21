@@ -70,7 +70,6 @@ export function SuggestEventSettings({ onSaved }: { onSaved: () => void }) {
         <label htmlFor="suggest-event-url" className="text-sm font-medium">Button URL</label>
         <Input id="suggest-event-url" type="url" value={url} disabled={saving} onChange={event => setUrl(event.target.value)} placeholder="https://…" />
       </div>
-      {!validation.success && <p role="alert" className="text-sm text-destructive">Enter a valid HTTP or HTTPS URL without a username or password.</p>}
       <Button type="button" className="w-full sm:w-auto" disabled={saving || !validation.success || url.trim() === savedUrl} onClick={save}>{saving ? 'Saving...' : 'Save Changes'}</Button>
     </>}
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
