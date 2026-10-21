@@ -4,7 +4,8 @@ import { EventsClient } from "./events-client"
 import { cookies } from "next/headers"
 import { verifyAdminToken } from "@/lib/auth"
 import { listAllEvents, listEvents } from "@/lib/events-db"
-import { getSitePage } from "@/lib/pages-db"
+import { getSitePage, getSitePageSetting } from "@/lib/pages-db"
+import { suggestEventLinkSchema } from "@/lib/input-validation"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -20,6 +21,8 @@ export const metadata: Metadata = {
 
 export default async function EventsPage() {
   if (!(await getSitePage("events"))) notFound()
+  const savedSuggestEventUrl = await getSitePageSetting("events", "suggest_event_url")
+  const parsedSuggestEventUrl = suggestEventLinkSchema.safeParse(savedSuggestEventUrl)
   const token = (await cookies()).get("admin_jwt")?.value
   const isAdmin = token ? !!(await verifyAdminToken(token)) : false
   const events = await (isAdmin ? listAllEvents() : listEvents())
@@ -37,5 +40,5 @@ export default async function EventsPage() {
     imagePublicId: e.imagePublicId,
     url: `/events/${e.slug}`,
   }))
-  return <EventsClient events={clientEvents} />
+  return <EventsClient events={clientEvents} suggestEventUrl={parsedSuggestEventUrl.success ? parsedSuggestEventUrl.data : ""} />
 }

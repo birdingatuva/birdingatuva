@@ -19,6 +19,7 @@ import { BannerSettings } from "./BannerSettings"
 import { GroupMeSettings } from "./GroupMeSettings"
 import { EmailSettings } from "./EmailSettings"
 import { SmsSettings } from "./SmsSettings"
+import { SuggestEventSettings } from "./SuggestEventSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
 
 // No local token; rely on HttpOnly cookie and session endpoint.
@@ -1197,7 +1198,7 @@ export default function AdminPage() {
                     value={eventSearchQuery}
                     onChange={(event) => setEventSearchQuery(event.target.value)}
                     placeholder="Search events by title, location, or date..."
-                    className="pl-9"
+                    className="pl-9 transition-shadow focus:border-input focus:shadow-[0_2px_10px_rgba(0,0,0,0.18)] focus-visible:border-input focus-visible:ring-0"
                   />
                 </div>
                 {loadingEvents ? (
@@ -1253,16 +1254,28 @@ export default function AdminPage() {
                 )}
               </CardContent>
             </Card>
-            <Card className="mt-10">
-              <CardHeader>
-                <CardTitle className="text-2xl">Event Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <GroupMeSettings />
-                <div className="mt-8 border-t border-border pt-8"><SmsSettings /></div>
-                <div className="mt-8 border-t border-border pt-8"><EmailSettings /></div>
-              </CardContent>
-            </Card>
+            <div className="mt-10">
+              <h2 className="mb-6 px-6 font-display text-3xl text-primary">Communication Settings</h2>
+              <Card>
+                <CardContent>
+                  <GroupMeSettings />
+                  <div className="mt-8 border-t border-border pt-8"><SmsSettings /></div>
+                  <div className="mt-8 border-t border-border pt-8"><EmailSettings /></div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="mt-10">
+              <h2 className="mb-6 px-6 font-display text-3xl text-primary">Page settings</h2>
+              <Card>
+                <CardContent>
+                  <SuggestEventSettings onSaved={() => {
+                    setSuccessMessage("Changes saved")
+                    setShowSuccessToast(true)
+                    setTimeout(() => setShowSuccessToast(false), 1800)
+                  }} />
+                </CardContent>
+              </Card>
+            </div>
             {/* Delete confirmation modal */}
             {showDeleteModal && (
               <div

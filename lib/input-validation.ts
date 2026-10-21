@@ -47,3 +47,10 @@ export const leadershipSettings = z.array(z.object({
   email: z.union([z.string().email().max(254), z.literal('')]),
   image: cloudinaryURL,
 }).strict()).max(50)
+
+export const suggestEventLinkSchema = z.string().trim().min(1).max(2048).url().refine(value => {
+  try {
+    const url = new URL(value)
+    return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password
+  } catch { return false }
+})

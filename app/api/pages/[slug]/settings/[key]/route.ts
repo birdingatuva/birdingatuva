@@ -1,4 +1,4 @@
-import { leadershipSettings, linkSettings } from '@/lib/input-validation'
+import { leadershipSettings, linkSettings, suggestEventLinkSchema } from '@/lib/input-validation'
 import { safeImage } from '@/lib/image-upload'
 import { RequestError } from '@/lib/api-security'
 import { secureRoute } from '@/lib/api-security'
@@ -31,7 +31,13 @@ async function PUTHandler(request: NextRequest, { params }: { params: Promise<{ 
     const multipart = request.headers.get('content-type')?.includes('multipart/form-data')
     const formData = multipart ? await request.formData() : null
     const body = formData ? { setting: JSON.parse(String(formData.get('setting') || 'null')) } : await request.json()
-    const schema = slug === 'links' && key === 'links' ? linkSettings : slug === 'leadership' && key === 'leadership' ? leadershipSettings : null
+    const schema = slug === 'links' && key === 'links'
+      ? linkSettings
+      : slug === 'leadership' && key === 'leadership'
+        ? leadershipSettings
+        : slug === 'events' && key === 'suggest_event_url'
+          ? suggestEventLinkSchema
+          : null
     if (!schema) return NextResponse.json({ error: 'Unsupported setting.' }, { status: 400 })
     const parsed = schema.safeParse(body.setting)
     if (!parsed.success) return NextResponse.json({ error: 'Invalid page settings.' }, { status: 400 })
@@ -70,6 +76,9 @@ async function PUTHandler(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
     const setting = await updateSitePageSetting(slug, key, body.setting)
+    if (slug === 'events' && key === 'suggest_event_url' && setting === null) {
+      return NextResponse.json({ error: 'The Events page must exist before saving this setting.' }, { status: 409 })
+    }
     committed = true
     return NextResponse.json({ setting })
   } catch (error) {
