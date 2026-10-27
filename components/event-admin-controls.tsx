@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react'
 import { GroupMeSendButton } from '@/components/groupme-send-button'
 import { EventEmailComposer } from '@/components/event-email-composer'
 import { EventTextComposer } from '@/components/event-text-composer'
+import { EventAdminResponses } from '@/components/event-admin-responses'
 
 export function EventAdminControls({ slug, preview, hasDashboard }: { slug: string; preview: boolean; hasDashboard: boolean }) {
   const router = useRouter()
@@ -57,6 +58,7 @@ export function EventAdminControls({ slug, preview, hasDashboard }: { slug: stri
     {hasDashboard && <>
       <EventTextComposer slug={slug} />
       <EventEmailComposer slug={slug} />
+      <EventAdminResponses slug={slug} />
     </>}
   </div>
 }
