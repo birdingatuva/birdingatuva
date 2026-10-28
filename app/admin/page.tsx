@@ -18,6 +18,7 @@ import { ShortlinkTools } from "./ShortlinkTools"
 import { BannerSettings } from "./BannerSettings"
 import { GroupMeSettings } from "./GroupMeSettings"
 import { EmailSettings } from "./EmailSettings"
+import { CarpoolSettings } from "./CarpoolSettings"
 import { SmsSettings } from "./SmsSettings"
 import { SuggestEventSettings } from "./SuggestEventSettings"
 import { LexicalMarkdownEditor } from "./LexicalMarkdownEditor"
@@ -1388,7 +1389,9 @@ export default function AdminPage() {
                       ) : (
                         <Card>
                           <CardContent>
-                          {activePage === "Home" ? (
+                          {activePage === "Admin" ? (
+                            <CarpoolSettings />
+                          ) : activePage === "Home" ? (
                             <BannerSettings />
                           ) : activePage === "FAQ" ? (
                             <div className="space-y-4">
