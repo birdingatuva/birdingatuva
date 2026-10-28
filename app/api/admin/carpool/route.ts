@@ -1,3 +1,6 @@
+import { getCarpoolSettings, carpoolCallbackUrl } from '@/lib/carpool-settings'
+import { saveCarpoolSource } from '@/lib/carpool-source'
+import { getDashboardLink } from '@/lib/sheet-embed'
 import { secureRoute } from '@/lib/api-security'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminToken } from '@/lib/auth'
@@ -30,16 +33,20 @@ async function POSTHandler(req: NextRequest) {
   try { data = input.parse(JSON.parse(raw)) } catch { return reply({ error: 'Enter an event title and a valid start date.' }, 400) }
   const endpoint = process.env.CARPOOL_APPS_SCRIPT_URL || ''
   const secret = process.env.CARPOOL_API_SECRET || ''
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(endpoint) || secret.length < 32) return reply({ error: 'The private carpool connection is not configured.' }, 503)
   try {
+    const settings = await getCarpoolSettings()
     const response = await fetch(endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, apiKey: secret, timestamp: Date.now() }),
+      body: JSON.stringify({ ...data, ...settings, callbackUrl: carpoolCallbackUrl(), apiKey: secret, timestamp: Date.now() }),
       redirect: 'follow', cache: 'no-store', signal: AbortSignal.timeout(110000),
     })
     const result = await response.json()
     if (!response.ok || result.status !== 'success' || !googleUrl(result.data?.formPublishedUrl, 'form') || !googleUrl(result.data?.dashboardUrl, 'sheet')) {
       return reply({ error: 'Google could not complete this request. Check Apps Script executions and the event folder in Google Drive before creating another carpool.' }, 502)
     }
+    const dashboard = getDashboardLink(result.data.dashboardUrl)
+    if (dashboard && result.data.sourceId) await saveCarpoolSource(dashboard.spreadsheetId, result.data.sourceId)
     return reply({ signupUrl: result.data.formPublishedUrl, dashboardUrl: result.data.dashboardUrl })
   } catch {
     return reply({ error: 'No confirmation received from Google. Wait a minute, then retry with the same title and date to recover the links. Check the event folder in Google Drive if this continues.' }, 502)

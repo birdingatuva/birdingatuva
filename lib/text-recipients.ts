@@ -11,8 +11,8 @@ const lookupErrors: Record<string, string> = {
   RECIPIENTS_CHANGED: 'The passenger list changed. Close and reopen the composer to review the latest recipients.',
   TOO_MANY_EMAIL_RECIPIENTS: 'Each email supports at most 49 passengers. No email was sent.',
 
-  SOURCE_MAPPING_MISSING: 'This dashboard has no private source mapping. It may have been created with the older Apps Script deployment.',
-  PASSENGER_RANGE_INVALID: 'Set PASSENGERS_NAME_RANGE in Apps Script Properties to the confirmed-name range, such as A2:A1000. Use one column, no tab prefix, and at most 1,000 rows within the sheet.',
+  SOURCE_MAPPING_MISSING: 'This dashboard has no private source mapping. Check the carpool_sources table in Neon.',
+  PASSENGER_RANGE_INVALID: 'Set passengers_name_range in the Neon carpool_settings table to the confirmed-name range, such as A2:A1000. Use one column, no tab prefix, and at most 1,000 rows within the sheet.',
   SOURCE_ACCESS_FAILED: 'The Apps Script deployment owner cannot open the mapped private spreadsheet. Check its access permissions.',
   TABS_MISSING: 'The private spreadsheet must contain tabs named Form Responses 1 and Passengers.',
   HEADERS_MISMATCH: 'The response sheet headers do not match: B1 must contain “What is your name” and F1 must contain “phone number”.',

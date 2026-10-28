@@ -9,7 +9,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:security": "node --import tsx --test tests/security.test.ts",
-    "migrate:security": "node scripts/migrate-security.mjs"
+    "migrate:security": "node scripts/migrate-security.mjs",
+    "migrate:carpool": "node scripts/migrate-carpool.mjs",
+    "test:carpool": "node --test tests/carpool-source.test.mjs tests/carpool-database.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

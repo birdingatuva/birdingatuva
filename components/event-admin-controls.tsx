@@ -17,6 +17,23 @@ export function EventAdminControls({ slug, preview, hasDashboard }: { slug: stri
   const lock = useRef(false)
   useEffect(() => { setHidden(preview) }, [preview])
 
+  const [privateAvailable, setPrivateAvailable] = useState(false)
+  const [privateError, setPrivateError] = useState('')
+  useEffect(() => {
+    setPrivateAvailable(false)
+    setPrivateError('')
+    if (!hasDashboard) return
+    const controller = new AbortController()
+    fetch(`/api/events/${encodeURIComponent(slug)}/private-source`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store', signal: controller.signal,
+    }).then(async response => {
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Could not check private responses.')
+      if (!controller.signal.aborted) setPrivateAvailable(result.available === true)
+    }).catch(error => { if (!controller.signal.aborted) setPrivateError(error.message) })
+    return () => controller.abort()
+  }, [slug, hasDashboard])
+
   async function changeVisibility(nextHidden: boolean) {
     if (lock.current || nextHidden === hidden) return
     lock.current = true
@@ -55,7 +72,8 @@ export function EventAdminControls({ slug, preview, hasDashboard }: { slug: stri
     <span className="sr-only" role="status">{saving ? 'Updating visibility...' : hidden ? 'Only admins can view this event' : 'Visible to everyone'}</span>
     {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
     <GroupMeSendButton slug={slug} hidden={hidden} />
-    {hasDashboard && <>
+    {privateError && <p role="alert" className="mt-3 text-sm text-destructive">{privateError}</p>}
+    {hasDashboard && privateAvailable && <>
       <EventTextComposer slug={slug} />
       <EventEmailComposer slug={slug} />
       <EventAdminResponses slug={slug} />

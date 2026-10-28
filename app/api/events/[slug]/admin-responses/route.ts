@@ -1,3 +1,5 @@
+export const maxDuration = 60
+import { resolveCarpoolSource } from '@/lib/carpool-source'
 import { NextRequest, NextResponse } from 'next/server'
 import { boundedBody, secureRoute } from '@/lib/api-security'
 import { verifyAdminToken } from '@/lib/auth'
@@ -24,9 +26,11 @@ export const POST = secureRoute(async (request: NextRequest, context: { params: 
     return NextResponse.json({ error: 'The private carpool connection is not configured.' }, { status: 503 })
   }
   try {
+    const sourceId = await resolveCarpoolSource(dashboard.spreadsheetId)
+    if (!sourceId) return NextResponse.json({ error: 'Private responses are unavailable for this older event.' }, { status: 422 })
     const response = await fetch(endpoint, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'adminResponses', dashboardId: dashboard.spreadsheetId, apiKey: secret, timestamp: Date.now() }),
+      body: JSON.stringify({ action: 'adminResponses', dashboardId: dashboard.spreadsheetId, sourceId, passengersNameRange: process.env.CARPOOL_PASSENGERS_NAME_RANGE, apiKey: secret, timestamp: Date.now() }),
       cache: 'no-store', redirect: 'follow', signal: AbortSignal.timeout(20000),
     })
     const result = JSON.parse(new TextDecoder().decode(await boundedBody(response, 512 * 1024)))
