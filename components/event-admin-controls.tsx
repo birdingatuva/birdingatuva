@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -24,7 +25,7 @@ export function EventAdminControls({ slug, preview, hasDashboard }: { slug: stri
     setPrivateError('')
     if (!hasDashboard) return
     const controller = new AbortController()
-    fetch(`/api/events/${encodeURIComponent(slug)}/private-source`, {
+    adminFetch(`/api/events/${encodeURIComponent(slug)}/private-source`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store', signal: controller.signal,
     }).then(async response => {
       const result = await response.json()
@@ -39,7 +40,7 @@ export function EventAdminControls({ slug, preview, hasDashboard }: { slug: stri
     lock.current = true
     setSaving(true); setError('')
     try {
-      const response = await fetch(`/api/events/${encodeURIComponent(slug)}`, {
+      const response = await adminFetch(`/api/events/${encodeURIComponent(slug)}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hidden: nextHidden }),
       })
       if (!response.ok) throw new Error('Could not update event visibility. Please try again.')

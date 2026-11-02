@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useId, useState } from 'react'
 import { ChevronDown, MessageCircle, ArrowUpRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ function Composer({ slug }: { slug: string }) {
   const messageId = useId()
   useEffect(() => {
     const controller = new AbortController()
-    fetch(`/api/events/${encodeURIComponent(slug)}/text-recipients`, {
+    adminFetch(`/api/events/${encodeURIComponent(slug)}/text-recipients`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       cache: 'no-store', signal: controller.signal,
     }).then(async response => {

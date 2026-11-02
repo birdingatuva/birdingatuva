@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown, Mail, ArrowUpRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,7 @@ function Composer({ slug }: { slug: string }) {
   const id = useId()
   useEffect(() => {
     const controller = new AbortController()
-    fetch(`/api/events/${encodeURIComponent(slug)}/email-recipients`, {
+    adminFetch(`/api/events/${encodeURIComponent(slug)}/email-recipients`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store', signal: controller.signal,
     }).then(async response => {
       const data = await response.json()
@@ -36,7 +37,7 @@ function Composer({ slug }: { slug: string }) {
     if (attempt.current?.payload !== payload) attempt.current = { payload, id: crypto.randomUUID() }
     lock.current = true; setBusy(true); setError('')
     try {
-      const response = await fetch(`/api/events/${encodeURIComponent(slug)}/email-send`, {
+      const response = await adminFetch(`/api/events/${encodeURIComponent(slug)}/email-send`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
         body: JSON.stringify({ ...fields, requestId: attempt.current.id }),
       })

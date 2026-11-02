@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useRef, useState } from 'react'
 import { CloudinaryImage } from '@/components/cloudinary-image'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,7 +21,7 @@ export function GroupMeSendButton({ slug, hidden }: { slug: string; hidden: bool
   useEffect(() => {
     let active = true
     setText(null); setError(''); setDelivery(null); setBusy(true)
-    fetch(`/api/events/${encodeURIComponent(slug)}/groupme`, { cache: 'no-store' })
+    adminFetch(`/api/events/${encodeURIComponent(slug)}/groupme`, { cache: 'no-store' })
       .then(async response => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Unable to load the GroupMe preview.')
@@ -36,7 +37,7 @@ export function GroupMeSendButton({ slug, hidden }: { slug: string; hidden: bool
     if (lock.current || busy || saving || invalid || !dirty) return
     lock.current = true; setSaving(true); setError(''); setStatus('')
     try {
-      const response = await fetch(`/api/events/${encodeURIComponent(slug)}/groupme`, {
+      const response = await adminFetch(`/api/events/${encodeURIComponent(slug)}/groupme`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }),
       })
       const data = await response.json()
@@ -50,7 +51,7 @@ export function GroupMeSendButton({ slug, hidden }: { slug: string; hidden: bool
     if (lock.current || busy || saving || hidden || !configured || dirty || invalid || delivery) return
     lock.current = true; setBusy(true); setError('')
     try {
-      const response = await fetch(`/api/events/${encodeURIComponent(slug)}/groupme`, {
+      const response = await adminFetch(`/api/events/${encodeURIComponent(slug)}/groupme`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, revision }),
       })
       const data = await response.json()

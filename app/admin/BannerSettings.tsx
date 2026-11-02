@@ -1,5 +1,6 @@
 "use client"
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { BannerContent } from '@/components/banner-content'
@@ -20,7 +21,7 @@ export function BannerSettings() {
 
   useEffect(() => {
     let active = true
-    fetch('/api/banner?admin=true', { cache: 'no-store' }).then(async response => {
+    adminFetch('/api/banner?admin=true', { cache: 'no-store' }).then(async response => {
       if (!response.ok) throw new Error('Unable to load banner settings. Reload to try again.')
       const data = await response.json()
       if (active) {
@@ -41,7 +42,7 @@ export function BannerSettings() {
     const nextEnabled = !enabled
     visibilityOnly ? setToggling(true) : setSaving(true)
     try {
-      const response = await fetch('/api/banner', {
+      const response = await adminFetch('/api/banner', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(visibilityOnly ? { enabled: nextEnabled } : { content: snapshot }),
@@ -50,7 +51,7 @@ export function BannerSettings() {
       if (visibilityOnly) setEnabled(nextEnabled)
       else setSaved(snapshot)
       setMessage(visibilityOnly ? (nextEnabled ? 'Banner enabled.' : 'Banner hidden.') : 'Banner changes saved.')
-      window.dispatchEvent(new Event('banner-changed'))
+      window.dispatchEvent(new CustomEvent('banner-changed', { detail: { enabled: visibilityOnly ? nextEnabled : enabled, content: visibilityOnly ? saved : snapshot } }))
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to save banner settings.')
     } finally {

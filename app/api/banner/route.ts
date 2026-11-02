@@ -18,7 +18,7 @@ async function GETHandler(request: NextRequest) {
   return NextResponse.json({
     content: (enabled === true || admin) && isBannerContent(content) ? content : defaultBannerContent,
     enabled: enabled === true,
-  }, { headers: { 'Cache-Control': 'no-store' } })
+  }, { headers: adminRequested ? { 'Cache-Control': 'no-store' } : { 'Vercel-CDN-Cache-Control': 'public, s-maxage=60' } })
 }
 
 async function PUTHandler(request: NextRequest) {

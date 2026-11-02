@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import QRCode from 'qrcode'
@@ -66,7 +67,7 @@ export function ShortlinkTools() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch('/api/admin/shortlinks', { cache: 'no-store' })
+      const response = await adminFetch('/api/admin/shortlinks', { cache: 'no-store' })
       const data = await readShortlinkResponse(response)
       setLinks(data.links)
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to load shortlinks.') }
@@ -111,7 +112,7 @@ export function ShortlinkTools() {
     setError('')
     setCopyFeedback(null)
     try {
-      const response = await fetch('/api/admin/shortlinks', {
+      const response = await adminFetch('/api/admin/shortlinks', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug, destination }),
       })
       const data = await readShortlinkResponse(response)
@@ -127,7 +128,7 @@ export function ShortlinkTools() {
     setLocking(link.slug)
     setError('')
     try {
-      const response = await fetch('/api/admin/shortlinks', {
+      const response = await adminFetch('/api/admin/shortlinks', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: link.slug, locked: !link.locked }),
       })
       const data = await readShortlinkResponse(response)
@@ -142,7 +143,7 @@ export function ShortlinkTools() {
     setError('')
     setCopyFeedback(null)
     try {
-      const response = await fetch('/api/admin/shortlinks', {
+      const response = await adminFetch('/api/admin/shortlinks', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: link.slug }),
       })
       const data = await readShortlinkResponse(response)

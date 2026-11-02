@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Check, ChevronDown, Clock, FileText, Loader2, RefreshCw } from 'lucide-react'
 import { adminResponsesSchema, type AdminResponses } from '@/lib/admin-responses'
@@ -33,7 +34,7 @@ function ResponseList({ slug, kind }: { slug: string; kind: 'information' | 'due
     lock.current = true
     setLoading(true)
     setError('')
-    fetch(`/api/events/${encodeURIComponent(slug)}/admin-responses`, {
+    adminFetch(`/api/events/${encodeURIComponent(slug)}/admin-responses`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store', signal: controller.signal,
     }).then(async response => {
       const result = await response.json()

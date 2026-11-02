@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useRef, useState } from 'react'
 import { Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,7 @@ export function EmailSettings() {
   const lock = useRef(false)
   useEffect(() => {
     const controller = new AbortController()
-    fetch('/api/admin/email', { cache: 'no-store', signal: controller.signal }).then(async response => {
+    adminFetch('/api/admin/email', { cache: 'no-store', signal: controller.signal }).then(async response => {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to load email settings.')
       if (!controller.signal.aborted) { setTemplate(data.template); setSaved(JSON.stringify(data.template)); setLoaded(true) }
@@ -28,7 +29,7 @@ export function EmailSettings() {
     if (lock.current || !loaded || !validation.success || JSON.stringify(template) === saved) return
     lock.current = true; setSaving(true); setError(''); setStatus('')
     try {
-      const response = await fetch('/api/admin/email', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template }) })
+      const response = await adminFetch('/api/admin/email', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to save email settings.')
       setTemplate(data.template); setSaved(JSON.stringify(data.template)); setStatus('Default email saved.')

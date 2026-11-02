@@ -5,6 +5,7 @@ import { Bebas_Neue, Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import AppShell from "@/components/AppShell"
 import { cookies, headers } from "next/headers"
+import { AdminSessionProvider } from "@/components/admin-session"
 import { Navigation } from "@/components/navigation"
 import { verifyAdminToken } from "@/lib/auth"
 import { listSitePages } from "@/lib/pages-db"
@@ -80,15 +81,16 @@ export default async function RootLayout({
       </head>
       <body className={`${inter.variable} ${bebasNeue.variable} ${playfair.variable} font-sans antialiased bg-background`}>
         {/* AppShell is a client component that renders DevBanner and wraps the app */}
-        <AppShell>
-          <div className="min-h-screen flex flex-col">
-            <Navigation
-              initialAuthorized={authorized}
-              initialVisiblePages={pages?.map((page) => page.slug) ?? null}
-            />
-            {children}
-          </div>
-  </AppShell>
+        <AdminSessionProvider initialAuthorized={authorized}>
+          <AppShell>
+            <div className="min-h-screen flex flex-col">
+              <Navigation
+                initialVisiblePages={pages?.map((page) => page.slug) ?? null}
+              />
+              {children}
+            </div>
+          </AppShell>
+        </AdminSessionProvider>
       </body>
     </html>
   )

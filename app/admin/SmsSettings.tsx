@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useRef, useState } from 'react'
 import { MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,7 @@ export function SmsSettings() {
   const lock = useRef(false)
   useEffect(() => {
     const controller = new AbortController()
-    fetch('/api/admin/sms', { cache: 'no-store', signal: controller.signal }).then(async response => {
+    adminFetch('/api/admin/sms', { cache: 'no-store', signal: controller.signal }).then(async response => {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to load SMS settings.')
       if (!controller.signal.aborted) {
@@ -31,7 +32,7 @@ export function SmsSettings() {
     if (lock.current || !loaded || validation || template === saved) return
     lock.current = true; setSaving(true); setError(''); setStatus('')
     try {
-      const response = await fetch('/api/admin/sms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template }) })
+      const response = await adminFetch('/api/admin/sms', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to save SMS settings.')
       setTemplate(data.template); setSaved(data.template); setStatus('Default SMS message saved.')

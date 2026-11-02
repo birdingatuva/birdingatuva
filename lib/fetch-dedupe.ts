@@ -1,3 +1,4 @@
+import { adminFetch } from "@/lib/admin-fetch"
 // Simple client-side fetch de-duplication to avoid issuing identical concurrent
 // requests (e.g., rapid re-renders or focus re-fetches). This reduces redundant
 // Edge Requests for the same resource.
@@ -12,10 +13,10 @@ const inflight = new Map<string, Promise<Response>>()
 export async function dedupeFetch(input: string, init?: RequestInit): Promise<Response> {
   const method = (init?.method || 'GET').toUpperCase()
   if (method !== 'GET') {
-    return fetch(input, init)
+    return adminFetch(input, init)
   }
   if (!inflight.has(input)) {
-    const p = fetch(input, init).finally(() => {
+    const p = adminFetch(input, init).finally(() => {
       // Remove after settle to avoid memory growth
       inflight.delete(input)
     })

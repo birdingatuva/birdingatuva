@@ -1,39 +1,50 @@
 "use client"
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { BannerContent } from './banner-content'
 import { defaultBannerContent, type BannerContent as Content } from '@/lib/banner'
 
 export function AnnouncementBanner() {
   const [banner, setBanner] = useState({ content: defaultBannerContent, enabled: false })
   const ref = useRef<HTMLDivElement>(null)
-  const pathname = usePathname()
   const visible = banner.enabled && !!banner.content.markdown.trim()
 
   useEffect(() => {
-    let active = true
-    let version = 0
+    const interval = 5 * 60 * 1000
+    let nextRefresh = 0
+    let pending: AbortController | undefined
     const refresh = async () => {
-      const requestVersion = ++version
+      if (document.hidden || pending || Date.now() < nextRefresh) return
+      const controller = new AbortController()
+      pending = controller
+      nextRefresh = Date.now() + interval
       try {
-        const response = await fetch('/api/banner', { cache: 'no-store' })
+        const response = await fetch('/api/banner', { signal: controller.signal })
         if (!response.ok) return
         const data: { content: Content; enabled: boolean } = await response.json()
-        if (active && requestVersion === version) setBanner(data)
+        if (!controller.signal.aborted) setBanner(data)
       } catch { /* Keep the last successfully loaded announcement. */ }
+      finally { if (pending === controller) pending = undefined }
+    }
+    const onEdit = (event: Event) => {
+      pending?.abort()
+      pending = undefined
+      nextRefresh = Date.now() + interval
+      setBanner((event as CustomEvent<{ content: Content; enabled: boolean }>).detail)
     }
     void refresh()
-    window.addEventListener('banner-changed', refresh)
+    window.addEventListener('banner-changed', onEdit)
     window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
     const timer = window.setInterval(refresh, 60000)
     return () => {
-      active = false
+      pending?.abort()
       clearInterval(timer)
-      window.removeEventListener('banner-changed', refresh)
+      window.removeEventListener('banner-changed', onEdit)
       window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
     }
-  }, [pathname])
+  }, [])
 
   useLayoutEffect(() => {
     const root = document.documentElement

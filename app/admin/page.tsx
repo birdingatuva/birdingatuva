@@ -1,6 +1,8 @@
 "use client"
+import { adminFetch } from "@/lib/admin-fetch"
 import { MAX_IMAGE_MB, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react"
+import { useAdminSession } from "@/components/admin-session"
 import { dedupeJson } from '@/lib/fetch-dedupe'
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -100,7 +102,7 @@ export default function AdminPage() {
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
   const [error, setError] = useState("")
-  const [isAuthorized, setIsAuthorized] = useState(false)
+  const { authorized: isAuthorized } = useAdminSession()
   const [birdImages, setBirdImages] = useState<string[]>([])
   // Edit Events state
   const [events, setEvents] = useState<Array<{
@@ -193,24 +195,11 @@ export default function AdminPage() {
 
   // No client-side JWT helpers required.
 
-  // Check authorization on mount and periodically via session endpoint
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const data = await dedupeJson<{ authenticated: boolean }>('/api/admin-session')
-        setIsAuthorized(!!data.authenticated)
-        if (data.authenticated) {
-          const savedPage = sessionStorage.getItem(ADMIN_ACTIVE_PAGE_KEY)
-          if (isAdminPageName(savedPage)) setActivePage(savedPage)
-        }
-      } catch {
-        setIsAuthorized(false)
-      }
-    }
-    checkAuth()
-    const interval = setInterval(checkAuth, 15000)
-    return () => clearInterval(interval)
-  }, [])
+    if (!isAuthorized) return
+    const savedPage = sessionStorage.getItem(ADMIN_ACTIVE_PAGE_KEY)
+    if (isAdminPageName(savedPage)) setActivePage(savedPage)
+  }, [isAuthorized])
 
   const selectAdminPage = (page: AdminPageName) => {
     setActivePage(page)
@@ -406,7 +395,7 @@ export default function AdminPage() {
     const t = setTimeout(async () => {
       try {
         setCheckingSlug(true)
-        const res = await fetch(`/api/check-slug?base=${encodeURIComponent(form.slug)}`, { signal: controller.signal })
+        const res = await adminFetch(`/api/check-slug?base=${encodeURIComponent(form.slug)}`, { signal: controller.signal })
         if (!res.ok) throw new Error(`status ${res.status}`)
         const data: { uniqueSlug: string; isTaken: boolean } = await res.json()
         setDisplaySlug(data.uniqueSlug)
@@ -468,7 +457,7 @@ export default function AdminPage() {
 
     try {
       console.log("Sending POST request to /api/events");
-  const res = await fetch("/api/events", { method: "POST", body: fd });
+  const res = await adminFetch("/api/events", { method: "POST", body: fd });
 
       console.log("Response status:", res.status, res.statusText);
       
@@ -492,7 +481,6 @@ export default function AdminPage() {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
         console.error('Error response:', errorData);
         if (res.status === 401) {
-          setIsAuthorized(false)
           setError('Your session is invalid or expired. Please log in again and resubmit.')
         } else {
           setError(`Submission failed: ${errorData.error || 'Please try again.'}`);
@@ -578,7 +566,7 @@ export default function AdminPage() {
         upload.append('image', headerImage)
         body = upload
       }
-      const res = await fetch(`/api/events/${encodeURIComponent(editingSlug)}` , {
+      const res = await adminFetch(`/api/events/${encodeURIComponent(editingSlug)}` , {
         method: 'PUT',
         headers: headerImage ? undefined : { 'Content-Type': 'application/json' },
         body,
@@ -609,7 +597,7 @@ export default function AdminPage() {
     setVisibilitySaving(slug)
     setVisibilityError("")
     try {
-      const res = await fetch(`/api/events/${encodeURIComponent(slug)}`, {
+      const res = await adminFetch(`/api/events/${encodeURIComponent(slug)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hidden: nextHidden }),
@@ -646,7 +634,7 @@ export default function AdminPage() {
     setDeleting(true)
 
     try {
-      const res = await fetch(`/api/events/${encodeURIComponent(slugToDelete)}`, { method: 'DELETE' })
+      const res = await adminFetch(`/api/events/${encodeURIComponent(slugToDelete)}`, { method: 'DELETE' })
       if (res.ok) {
         setEvents(prev => prev.filter(e => e.slug !== slugToDelete))
         setShowDeleteModal(false)
@@ -671,7 +659,7 @@ export default function AdminPage() {
     try {
       setSavingFaq(true)
       setError("")
-      const response = await fetch('/api/pages/faq', {
+      const response = await adminFetch('/api/pages/faq', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contentMarkdown: faqMarkdown }),
@@ -729,7 +717,7 @@ export default function AdminPage() {
 
   const togglePageVisibility = async (slug: string, published: boolean) => {
     setPageVisibility((current) => ({ ...current, [slug]: published }))
-    const response = await fetch('/api/pages', {
+    const response = await adminFetch('/api/pages', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug, published }),
@@ -761,7 +749,7 @@ export default function AdminPage() {
     try {
       setSavingLinks(true)
       await linkSaveQueue.current
-      const response = await fetch('/api/pages/links/settings/links', {
+      const response = await adminFetch('/api/pages/links/settings/links', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ setting: linkSettings }),
@@ -783,7 +771,7 @@ export default function AdminPage() {
     // Serialize background saves so rapid reorders cannot persist out of order.
     linkSaveQueue.current = linkSaveQueue.current.then(async () => {
       try {
-        const response = await fetch('/api/pages/links/settings/links', {
+        const response = await adminFetch('/api/pages/links/settings/links', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ setting: reordered }),
         })
@@ -823,7 +811,7 @@ export default function AdminPage() {
         ...leader, image: leadershipImages[index] ? '' : leader.image,
       }))))
       Object.entries(leadershipImages).forEach(([index, file]) => upload.append(`image-${index}`, file))
-      const response = await fetch('/api/pages/leadership/settings/leadership', {
+      const response = await adminFetch('/api/pages/leadership/settings/leadership', {
         method: 'PUT',
         body: upload,
       })

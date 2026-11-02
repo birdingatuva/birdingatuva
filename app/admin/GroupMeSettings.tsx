@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useState } from 'react'
 import { CloudinaryImage } from '@/components/cloudinary-image'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ export function GroupMeSettings() {
   const [status, setStatus] = useState('')
   useEffect(() => {
     let active = true
-    fetch('/api/admin/groupme', { cache: 'no-store' }).then(async response => {
+    adminFetch('/api/admin/groupme', { cache: 'no-store' }).then(async response => {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to load settings.')
       if (active) { setTemplate(normalizeGroupMeTemplate(typeof data.template === 'string' ? data.template : '')); setSaved(normalizeGroupMeTemplate(typeof data.template === 'string' ? data.template : '')); setConfigured(data.configured); setDestination(data.destination || 'GroupMe'); setLoaded(true) }
@@ -27,7 +28,7 @@ export function GroupMeSettings() {
   async function save() {
     setSaving(true); setError(''); setStatus('')
     try {
-      const response = await fetch('/api/admin/groupme', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template }) })
+      const response = await adminFetch('/api/admin/groupme', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to save settings.')
       setSaved(template); setStatus('Default GroupMe message saved.')

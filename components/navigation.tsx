@@ -1,5 +1,6 @@
 "use client"
 
+import { useAdminSession } from "./admin-session"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
@@ -10,13 +11,12 @@ import { TurnstileChallenge } from "@/components/turnstile-challenge"
 import { Button } from "@/components/ui/button"
 import { CloudinaryImage } from "@/components/cloudinary-image"
 
-export function Navigation({ initialAuthorized, initialVisiblePages }: {
-  initialAuthorized: boolean
+export function Navigation({ initialVisiblePages }: {
   initialVisiblePages: string[] | null
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [authorized, setAuthorized] = useState(initialAuthorized)
+  const { authorized, updateSession } = useAdminSession()
   const [showLogin, setShowLogin] = useState(false)
   const loginTriggerRef = useRef<HTMLButtonElement>(null)
   const loginPasswordRef = useRef<HTMLInputElement>(null)
@@ -27,11 +27,6 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
   const [turnstileToken, setTurnstileToken] = useState("")
   const [challengeVersion, setChallengeVersion] = useState(0)
   const [visiblePages, setVisiblePages] = useState<string[] | null>(initialVisiblePages)
-  // Re-check session on route change
-  useEffect(() => {
-    checkSession()
-  }, [pathname])
-
   useEffect(() => {
     if (initialVisiblePages !== null) return
     fetch('/api/pages')
@@ -54,25 +49,6 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
     window.addEventListener('page-visibility-changed', refreshPages)
     return () => window.removeEventListener('page-visibility-changed', refreshPages)
   }, [])
-
-  // Periodically poll session validity (every 15s)
-  useEffect(() => {
-    const id = setInterval(() => {
-      checkSession()
-    }, 15000)
-    return () => clearInterval(id)
-  }, [])
-
-  async function checkSession() {
-    try {
-      const res = await fetch('/api/admin-session')
-      if (res.ok || res.status === 401) setAuthorized(res.ok)
-    } catch {
-      // Keep the last confirmed state during temporary network failures.
-    }
-  }
-
-  // Client no longer decodes JWT; server validates via cookie.
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +74,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
       });
 
       if (res.ok) {
-        // Cookie set server-side; poll session
-        await checkSession()
-        setAuthorized(true)
+        updateSession(true)
         sessionStorage.removeItem("adminActivePage")
         setLoginError("");
         setLoginSuccess(true);
@@ -138,7 +112,7 @@ export function Navigation({ initialAuthorized, initialVisiblePages }: {
     localStorage.removeItem('adminFormData')
     localStorage.removeItem('adminHeaderImagePreview')
     sessionStorage.removeItem("adminActivePage")
-    setAuthorized(false)
+    updateSession(false)
     setShowLogin(false)
     router.push("/")
   }

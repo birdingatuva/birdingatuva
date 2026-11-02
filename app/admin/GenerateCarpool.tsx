@@ -1,4 +1,5 @@
 "use client"
+import { adminFetch } from "@/lib/admin-fetch"
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 
@@ -26,7 +27,7 @@ export function GenerateCarpool(props: Props) {
     setMessage('Creating your Google form and dashboard. This may take a minute.')
     const original = props
     try {
-      const response = await fetch('/api/admin/carpool', {
+      const response = await adminFetch('/api/admin/carpool', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventName: props.title, eventDate: props.startDate }),
       })

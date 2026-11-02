@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useId, useRef, useState } from 'react'
 import { Car } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -18,7 +19,7 @@ export function CarpoolSettings() {
   useEffect(() => {
     const controller = new AbortController()
     setError('')
-    fetch('/api/admin/carpool-settings', { cache: 'no-store', signal: controller.signal }).then(async response => {
+    adminFetch('/api/admin/carpool-settings', { cache: 'no-store', signal: controller.signal }).then(async response => {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to load carpool settings.')
       if (!controller.signal.aborted) { setValues(data); setSaved(JSON.stringify(data)) }
@@ -32,7 +33,7 @@ export function CarpoolSettings() {
     if (lock.current || !validation.success || !changed) return
     lock.current = true; setSaving(true); setError(''); setStatus('')
     try {
-      const response = await fetch('/api/admin/carpool-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(validation.data) })
+      const response = await adminFetch('/api/admin/carpool-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(validation.data) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Unable to save carpool settings.')
       setValues(data); setSaved(JSON.stringify(data)); setStatus('Carpool settings saved.')

@@ -1,5 +1,6 @@
 'use client'
 
+import { adminFetch } from "@/lib/admin-fetch"
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +18,7 @@ export function SuggestEventSettings({ onSaved }: { onSaved: () => void }) {
 
   useEffect(() => {
     const controller = new AbortController()
-    fetch(SETTING_URL, { cache: 'no-store', signal: controller.signal })
+    adminFetch(SETTING_URL, { cache: 'no-store', signal: controller.signal })
       .then(async response => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Unable to load the suggest an event link.')
@@ -43,7 +44,7 @@ export function SuggestEventSettings({ onSaved }: { onSaved: () => void }) {
     setSaving(true)
     setError('')
     try {
-      const response = await fetch(SETTING_URL, {
+      const response = await adminFetch(SETTING_URL, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ setting: validation.data }),
